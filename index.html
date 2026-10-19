@@ -947,10 +947,8 @@
       clearTimeout(autoResetTimer);
       autoResetTimer = setTimeout(resetBoothToCamera, CONFIG.AUTO_RESET_SECONDS * 1000);
 
-      // 🌟 촬영이 끝나면 즉시 자동으로 인쇄 실행 (POS처럼 다이렉트 출력)
-      setTimeout(() => {
-        executeSmartPrint();
-      }, 400);
+      // 🌟 촬영 완료 즉시 0초 대기 다이렉트 자동 인쇄 실행
+      executeSmartPrint();
     }
 
     function resetBoothToCamera() {
