@@ -29,16 +29,6 @@
       overflow: hidden;
     }
 
-    /* 사이버네틱 테크 그리드 배경 이미지 패턴 */
-    .bg-tech-pattern {
-      background-image: 
-        linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px),
-        radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 70%);
-      background-size: 48px 48px, 48px 48px, 100% 100%;
-      background-position: center center;
-    }
-
     /* 거울 모드 비디오 */
     .mirror-video {
       transform: scaleX(-1);
@@ -74,19 +64,19 @@
     }
   </style>
 </head>
-<body class="h-[100dvh] w-full flex flex-col justify-between p-2 sm:p-4 select-none relative bg-tech-pattern">
+<body class="h-[100dvh] w-full flex flex-col justify-between p-2 sm:p-4 select-none relative">
 
-  <!-- 1. 헤더 영역 (적절히 아래로 내린 상단 여백, 완전 중앙 정렬) -->
-  <header class="w-full flex-shrink-0 relative pt-3.5 sm:pt-5 pb-2 sm:pb-3 mb-1 sm:mb-2 text-center">
+  <!-- 1. 헤더 영역 (상하 여백 최소화하여 뷰파인더와 바로 밀착) -->
+  <header class="w-full flex-shrink-0 relative pt-0.5 sm:pt-1 pb-0 mb-0 text-center">
     <div class="flex items-center justify-center gap-2">
-      <div class="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
-        <i class="fa-solid fa-camera-retro text-lg"></i>
+      <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
+        <i class="fa-solid fa-camera-retro text-base sm:text-lg"></i>
       </div>
-      <h1 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-teal-300 to-indigo-300">
+      <h1 class="text-lg sm:text-2xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-teal-300 to-indigo-300">
         2026 AI·SW체험 수피아여고 포토부스
       </h1>
     </div>
-    <p class="text-xs sm:text-sm text-slate-400 font-medium tracking-wide mt-1 sm:mt-1.5">
+    <p class="text-[11px] sm:text-xs md:text-sm text-slate-400 font-medium tracking-wide mt-0.5">
       화면을 보고 3가지 포즈를 취하면 영수증포토가 바로 인쇄됩니다!!
     </p>
 
@@ -98,13 +88,14 @@
     </button>
   </header>
 
+  <!-- 2. 메인 컨텐츠 영역 (상단 제목 바로 아래로 밀착 배치) -->
   <!-- 2. 메인 컨텐츠 영역 -->
-  <main class="flex-1 min-h-0 w-full flex flex-col items-center justify-start relative pt-1 sm:pt-2">
+  <main class="flex-1 min-h-0 w-full flex flex-col items-center justify-start relative pt-0 mt-0.5">
     
-    <!-- (A) 촬영 전 뷰파인더 화면 -->
-    <div id="captureSection" class="w-full h-full flex flex-col items-center justify-start relative max-w-4xl px-2">
+    <!-- (A) 촬영 전 뷰파인더 화면 (상단 텍스트와 마진을 더 넉넉하게 확장) -->
+    <div id="captureSection" class="w-full h-full flex flex-col items-center justify-start relative max-w-4xl px-2 pt-6 sm:pt-8">
       <!-- 카메라 사각 프레임 -->
-      <div class="relative w-full aspect-video max-h-[52vh] sm:max-h-[55vh] bg-black border-2 border-sky-500/60 shadow-[0_0_30px_rgba(56,189,248,0.25)] overflow-hidden flex items-center justify-center">
+      <div class="relative w-full aspect-video max-h-[50vh] sm:max-h-[52vh] bg-black border-2 border-sky-500/60 shadow-[0_0_30px_rgba(56,189,248,0.25)] overflow-hidden flex items-center justify-center">
         <!-- 웹캠 비디오 -->
         <video id="webcam" class="w-full h-full object-cover mirror-video" autoplay playsinline muted></video>
 
@@ -114,8 +105,8 @@
         <div class="corner-bracket bracket-bl"></div>
         <div class="corner-bracket bracket-br"></div>
 
-        <!-- 카메라 상단 HUD 정보 (적절한 중간 여백, 그림자 없는 얇은 일반 폰트) -->
-        <div class="absolute top-4 left-8 right-8 flex items-center justify-between text-xs sm:text-sm font-mono text-sky-300 font-normal tracking-wider pointer-events-none z-10">
+        <!-- 카메라 상단 HUD 정보 (그림자 없는 얇은 일반 폰트, 순백색 통일) -->
+        <div class="absolute top-4 left-8 right-8 flex items-center justify-between text-xs sm:text-sm font-mono font-normal tracking-wider pointer-events-none z-10 text-white">
           <span class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
             LIVE // READY
@@ -132,12 +123,12 @@
           <div class="absolute h-28 w-px bg-sky-400"></div>
         </div>
 
-        <!-- 하단 브랜딩 레터링 (적절한 중간 여백, 그림자 없는 얇은 일반 폰트) -->
-        <div class="absolute bottom-4 left-8 right-8 flex items-center justify-between pointer-events-none z-10 text-xs sm:text-sm font-mono font-normal tracking-wider">
-          <span class="text-sky-300 flex items-center">
-            <i class="fa-solid fa-microchip text-sky-400 mr-2"></i>SPEER 인공지능공학연구반
+        <!-- 하단 브랜딩 레터링 (그림자 없는 얇은 일반 폰트, 순백색 통일) -->
+        <div class="absolute bottom-4 left-8 right-8 flex items-center justify-between pointer-events-none z-10 text-xs sm:text-sm font-mono font-normal tracking-wider text-white">
+          <span class="flex items-center">
+            <i class="fa-solid fa-microchip mr-2 text-white"></i>SPEER 인공지능공학연구반
           </span>
-          <span class="text-sky-300">
+          <span>
             CAM-01
           </span>
         </div>
@@ -156,7 +147,7 @@
       <!-- 뷰파인더 하단: 3컷 촬영 실시간 썸네일 프리뷰 트레이 -->
       <div class="w-full flex items-center justify-center gap-3 sm:gap-4 mt-6 sm:mt-8 px-2">
         <!-- 컷 1 썸네일 -->
-        <div id="thumbSlot1" class="relative flex-1 max-w-[170px] aspect-[2/1] bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+        <div id="thumbSlot1" class="relative flex-1 max-w-[200px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
           <canvas id="thumbCanvas1" class="w-full h-full object-cover hidden"></canvas>
           <div id="thumbPlaceholder1" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
             <span class="text-sky-400 font-medium">CUT 1</span>
@@ -166,7 +157,7 @@
         </div>
 
         <!-- 컷 2 썸네일 -->
-        <div id="thumbSlot2" class="relative flex-1 max-w-[170px] aspect-[2/1] bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+        <div id="thumbSlot2" class="relative flex-1 max-w-[200px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
           <canvas id="thumbCanvas2" class="w-full h-full object-cover hidden"></canvas>
           <div id="thumbPlaceholder2" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
             <span class="text-sky-400 font-medium">CUT 2</span>
@@ -176,7 +167,7 @@
         </div>
 
         <!-- 컷 3 썸네일 -->
-        <div id="thumbSlot3" class="relative flex-1 max-w-[170px] aspect-[2/1] bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+        <div id="thumbSlot3" class="relative flex-1 max-w-[200px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
           <canvas id="thumbCanvas3" class="w-full h-full object-cover hidden"></canvas>
           <div id="thumbPlaceholder3" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
             <span class="text-sky-400 font-medium">CUT 3</span>
@@ -187,17 +178,17 @@
       </div>
     </div>
 
-    <!-- (B) 촬영 완료 결과 화면 (좌측 영수증 스티커 / 우측 인쇄 버튼) -->
-    <div id="resultSection" class="w-full h-full hidden flex-row items-center justify-center gap-4 sm:gap-8 max-w-4xl px-2">
+    <!-- (B) 촬영 완료 결과 화면 (상단 텍스트와 간격을 줄여 밀착 배치, 우측은 중앙 정렬 유지) -->
+    <div id="resultSection" class="w-full h-full hidden flex-row items-center justify-center gap-4 sm:gap-8 max-w-4xl px-2 mt-0.5 sm:mt-1">
       <!-- 좌측: 선명한 영수증 스티커 캔버스 뷰 -->
-      <div class="h-full flex items-center justify-center py-1">
-        <div class="receipt-shadow border-4 border-slate-700 bg-white p-2.5 sm:p-3 flex flex-col items-center justify-center max-h-[62vh] sm:max-h-[66vh] aspect-[576/1320] relative">
+      <div class="h-full flex items-start justify-center pt-0 pb-1">
+        <div class="receipt-shadow border-4 border-slate-700 bg-white p-2 sm:p-2.5 flex flex-col items-center justify-center max-h-[68vh] sm:max-h-[72vh] aspect-[576/1320] relative">
           <canvas id="stickerDisplayCanvas" class="w-full h-full object-contain block"></canvas>
         </div>
       </div>
 
-      <!-- 우측: 결과 안내 및 대형 버튼 패널 -->
-      <div class="flex-1 flex flex-col justify-center items-start gap-4 sm:gap-6 max-w-md">
+      <!-- 우측: 결과 안내 및 대형 버튼 패널 (가운데 정렬) -->
+      <div class="flex-1 flex flex-col justify-center items-start gap-4 sm:gap-6 max-w-md self-center">
         <div class="space-y-1 sm:space-y-2">
           <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs sm:text-sm font-semibold">
             <i class="fa-solid fa-circle-check"></i> 3컷 촬영 완료
@@ -376,7 +367,7 @@
 
       for (let shot = 1; shot <= 3; shot++) {
         cutTracker.innerText = `SHOT [ ${shot} / 3 ]`;
-        cutTracker.className = "text-sky-400 font-normal tracking-widest";
+        cutTracker.className = "text-white font-normal tracking-widest";
 
         // 3초 카운트다운
         for (let c = 3; c >= 1; c--) {
