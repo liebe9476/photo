@@ -360,180 +360,45 @@
     let bluetoothCharacteristic = null;
 
     // ------------------------------------------------------------
-    // [2] 흑백 디더링 및 영수증 그래픽 생성
-    // ------------------------------------------------------------
-    function generateCompositeSticker() {
-      const W = 576;
-      const H = 1320;
-      thermalCanvas.width = W;
-      thermalCanvas.height = H;
-      displayCanvas.width = W;
-      displayCanvas.height = H;
-
-      const ctx = thermalCtx;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, W, H);
-
-      // 상단 타이틀 및 날짜
-      ctx.fillStyle = '#000000';
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.fillText(CONFIG.FESTIVAL_TITLE, W / 2, 60);
-
-      ctx.font = '16px monospace';
-      ctx.fillText('수피아여고 인공지능체험관 포토부스', W / 2, 92);
-
-      // 점선 구분선
-      ctx.setLineDash([6, 6]);
-      ctx.beginPath();
-      ctx.moveTo(30, 115);
-      ctx.lineTo(W - 30, 115);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // 3컷 프레임 배치
-      const frameW = 516;
-      const frameH = 290;
-      const startX = 30;
-      const startY = 135;
-      const gap = 20;
-
-      for (let i = 0; i < 3; i++) {
-        const y = startY + i * (frameH + gap);
-        if (capturedFrames[i]) {
-          ctx.drawImage(capturedFrames[i], startX, y, frameW, frameH);
-        } else {
-          ctx.fillStyle = '#e2e8f0';
-          ctx.fillRect(startX, y, frameW, frameH);
-        }
-        // 사진 테두리
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(startX, y, frameW, frameH);
-      }
-
-      // 하단 정보 영역
-      const bottomY = startY + 3 * (frameH + gap) + 15;
-      ctx.setLineDash([6, 6]);
-      ctx.beginPath();
-      ctx.moveTo(30, bottomY);
-      ctx.lineTo(W - 30, bottomY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      ctx.font = 'bold 18px sans-serif';
-      ctx.fillText(CONFIG.CLUB_NAME, W / 2, bottomY + 35);
-      ctx.font = '15px monospace';
-      ctx.fillText(dateStr, W / 2, bottomY + 62);
-      ctx.font = '14px sans-serif';
-      ctx.fillText('소중한 추억을 간직하세요 ✨', W / 2, bottomY + 90);
-
-      // 화면 표시용 캔버스에 복사
-      displayCtx.drawImage(thermalCanvas, 0, 0);
-    }
-
-    function createDitheredThermalData() {
-      const W = thermalCanvas.width;
-      const H = thermalCanvas.height;
-      const imgData = thermalCtx.getImageData(0, 0, W, H);
-      const data = imgData.data;
-
-      // Floyd-Steinberg Dithering
-      const gray = new Float32Array(W * H);
-      for (let i = 0; i < data.length; i += 4) {
-        gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      }
-
-      for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          const idx = y * W + x;
-          const oldVal = gray[idx];
-          const newVal = oldVal < 128 ? 0 : 255;
-          gray[idx] = newVal;
-          const err = oldVal - newVal;
-
-          if (x + 1 < W) gray[idx + 1] += (err * 7) / 16;
-          if (x - 1 >= 0 && y + 1 < H) gray[(y + 1) * W + (x - 1)] += (err * 3) / 16;
-          if (y + 1 < H) gray[(y + 1) * W + x] += (err * 5) / 16;
-          if (x + 1 < W && y + 1 < H) gray[(y + 1) * W + (x + 1)] += (err * 1) / 16;
-        }
-      }
-
-      for (let i = 0; i < data.length; i += 4) {
-        const val = gray[i / 4];
-        data[i] = val;
-        data[i + 1] = val;
-        data[i + 2] = val;
-      }
-      thermalCtx.putImageData(imgData, 0, 0);
-
-      // 브라우저 인쇄용 이미지 동기화
-      if (browserPrintImg) {
-        browserPrintImg.src = thermalCanvas.toDataURL('image/png');
-      }
-    }
-
-    // ------------------------------------------------------------
-    // [6] 인쇄 실행 파이프라인 (프린터 선택 대화창 우회 다이렉트 출력)
+    // [6] 인쇄 실행 파이프라인 (블루투스 TM-m30III 안정적 직결 출력)
     // ------------------------------------------------------------
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
-      printBtnLabel.innerText = "블루투스 출력 중...";
+      printBtnLabel.innerText = "프린터로 전송 중...";
       clearTimeout(autoResetTimer);
 
+      // 1) 감열 인쇄용 흑백 Floyd-Steinberg 디더링 생성
       createDitheredThermalData();
 
-      try {
-        showToast("대화상자 없이 TM-m30III로 즉시 출력합니다...", "⚡");
-
-        // 1) 흑백 디더링 이미지의 래스터 Base64 추출
-        const dataUrl = thermalCanvas.toDataURL('image/png');
-        const base64Data = dataUrl.split(',')[1];
-
-        // 2) ePOS-Print XML 규격 구성
-        const eposXml = `<?xml version="1.0" encoding="utf-8"?>
-<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-  <image width="${thermalCanvas.width}" height="${thermalCanvas.height}">${base64Data}</image>
-  <cut type="feed"/>
-</epos-print>`;
-
-        // 3) Epson 공식 URL Scheme 호출 (무대화상자 다이렉트 전송)
-        const encodedXml = encodeURIComponent(eposXml);
-        const currentUrl = encodeURIComponent(window.location.href);
-        const schemeUrl = `epson-tmassistant://print?data=${encodedXml}&back=${currentUrl}`;
-
-        // 안드로이드 인텐트 또는 스킴으로 이동하여 백그라운드 인쇄
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = schemeUrl;
-        document.body.appendChild(iframe);
-
-        setTimeout(() => {
-          // iframe으로 응답 없을 시 직접 location 전환 폴백
-          window.location.href = schemeUrl;
-        }, 250);
-
-        printBtnLabel.innerText = "출력 완료!";
-        setTimeout(() => {
-          if (document.body.contains(iframe)) document.body.removeChild(iframe);
-          resetBoothToCamera();
-        }, 3500);
-        return;
-
-      } catch (err) {
-        console.warn("Assistant dispatch error:", err);
-        // 시스템 인쇄창 폴백
-        showToast("인쇄창에서 TM-m30III를 선택해 주세요.", "🖨️");
-        setTimeout(() => {
-          window.print();
-          printActionBtn.disabled = false;
-          printBtnLabel.innerText = "블루투스로 인쇄하기";
-          setTimeout(resetBoothToCamera, 4000);
-        }, 300);
+      // 2) 브라우저 인쇄 영역에 최신 디더링 이미지 장착 확인
+      if (browserPrintImg) {
+        browserPrintImg.src = thermalCanvas.toDataURL('image/png');
       }
+
+      showToast("TM-m30III로 인쇄를 시작합니다...", "🖨️");
+
+      // 3) 태블릿에 페어링된 블루투스 TM-m30III로 안정적인 출력 트리거
+      setTimeout(() => {
+        try {
+          // 브라우저 인쇄 API 호출 (태블릿 블루투스 프린터 엔진으로 바로 전달)
+          window.print();
+
+          printBtnLabel.innerText = "출력 완료!";
+          showToast("인쇄가 완료되었습니다! ✨", "🎉");
+
+          setTimeout(() => {
+            printActionBtn.disabled = false;
+            printBtnLabel.innerText = "블루투스로 인쇄하기";
+            resetBoothToCamera();
+          }, 3500);
+
+        } catch (err) {
+          console.error("Print Error:", err);
+          showToast("인쇄 실행 중 오류가 발생했습니다.", "⚠️");
+          printActionBtn.disabled = false;
+          printBtnLabel.innerText = "다시 인쇄 시도";
+        }
+      }, 350);
     }
 
     // ------------------------------------------------------------
