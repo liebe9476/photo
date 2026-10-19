@@ -95,11 +95,11 @@
       transform: scale(0.97);
     }
 
-    /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 전폭 100% 가득 채움) */
+    /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 롤 유효 인쇄폭 72mm 100% 전폭 매핑) */
     @page {
-      size: 80mm auto !important;
-      margin: 0 !important;
-      padding: 0 !important;
+      size: 72mm auto !important;
+      margin: 0mm !important;
+      padding: 0mm !important;
     }
 
     @media print {
@@ -108,18 +108,25 @@
         margin: 0 !important;
         padding: 0 !important;
       }
-      html, body {
-        width: 80mm !important;
-        max-width: 80mm !important;
-        min-width: 80mm !important;
+      html {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+      }
+      body {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         color: #000000 !important;
+        overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
-      body * {
+      body > *:not(#browserPrintZone) {
         display: none !important;
         visibility: hidden !important;
       }
@@ -132,6 +139,7 @@
         top: 0 !important;
         left: 0 !important;
         width: 100% !important;
+        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         page-break-inside: avoid !important;
@@ -142,9 +150,10 @@
       #browserPrintZone img {
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 100% !important;
         height: auto !important;
         display: block !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         image-rendering: -webkit-optimize-contrast !important;
         image-rendering: pixelated !important;
@@ -375,8 +384,8 @@
     // [4] 1컷 대형 영수증 합성 (80mm 롤 폭 100% 꽉 채움: 576 x 850)
     // ------------------------------------------------------------
     function generateCompositeColorSticker() {
-      // TM-m30III 80mm 규격 물리 도트 수: 576px
-      // 1장 가득 시원하게 채우는 황금 비율 높이: 850px
+      // TM-m30III 80mm 규격 물리 도트 수: 576px (72mm 유효 인쇄폭)
+      // 1장 가득 시원하게 채우는 비율 높이: 850px
       const W = 576;
       const H = 850;
 
@@ -394,32 +403,32 @@
       displayCtx.textAlign = 'center';
 
       // 상단 헤더
-      displayCtx.font = 'bold 32px -apple-system, sans-serif';
-      displayCtx.fillText('★ 2026 수피아 AI·SW ★', W / 2, 46);
+      displayCtx.font = '900 32px -apple-system, sans-serif';
+      displayCtx.fillText('★ 2026 수피아 AI·SW ★', W / 2, 44);
 
       displayCtx.font = 'bold 24px -apple-system, sans-serif';
-      displayCtx.fillText('수피아여고 포토 영수증', W / 2, 80);
+      displayCtx.fillText('수피아여고 포토 영수증', W / 2, 78);
 
       displayCtx.font = 'bold 16px monospace';
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-      displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 108);
+      displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 106);
 
-      // 상단 점선 구분선
+      // 상단 점선 구분선 (좌우 여백 최소화하여 넓게)
       displayCtx.lineWidth = 3;
       displayCtx.strokeStyle = '#000000';
       displayCtx.beginPath();
       displayCtx.setLineDash([8, 6]);
-      displayCtx.moveTo(16, 122);
-      displayCtx.lineTo(W - 16, 122);
+      displayCtx.moveTo(4, 120);
+      displayCtx.lineTo(W - 4, 120);
       displayCtx.stroke();
       displayCtx.setLineDash([]);
 
-      // 1컷 대형 사진 영역: 544 x 544 (용지 좌우 여백 없이 꽉 채우는 대형 정방형 포토)
-      const imgW = 544;
-      const imgH = 544;
-      const startX = 16;
-      const startY = 136;
+      // [핵심] 1컷 대형 사진 영역: 568 x 568 (용지 좌우 끝까지 100% 꽉 채우는 전폭 포토)
+      const imgW = 568;
+      const imgH = 568;
+      const startX = 4;
+      const startY = 130;
 
       // 외곽 블랙 테두리
       displayCtx.fillStyle = '#000000';
@@ -451,27 +460,27 @@
       }
 
       // 하단 점선 구분선
-      const bottomLineY = startY + imgH + 20;
+      const bottomLineY = startY + imgH + 16;
       displayCtx.beginPath();
       displayCtx.setLineDash([8, 6]);
-      displayCtx.moveTo(16, bottomLineY);
-      displayCtx.lineTo(W - 16, bottomLineY);
+      displayCtx.moveTo(4, bottomLineY);
+      displayCtx.lineTo(W - 4, bottomLineY);
       displayCtx.stroke();
       displayCtx.setLineDash([]);
 
       // 하단 푸터 텍스트
       displayCtx.fillStyle = '#000000';
       displayCtx.font = 'bold 24px -apple-system, sans-serif';
-      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 34);
+      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 32);
 
       displayCtx.font = 'bold 16px monospace';
-      displayCtx.fillText(CONFIG.CLUB_NAME, W / 2, bottomLineY + 58);
+      displayCtx.fillText(CONFIG.CLUB_NAME, W / 2, bottomLineY + 56);
 
       // 모의 바코드 (좌우 꽉 찬 형태)
-      const bcY = bottomLineY + 70;
+      const bcY = bottomLineY + 68;
       const bcH = 34;
-      let bcX = 28;
-      while (bcX < W - 28) {
+      let bcX = 14;
+      while (bcX < W - 14) {
         const barWidth = (Math.sin(bcX * 12.3) > 0) ? 3.5 : 2;
         displayCtx.fillRect(bcX, bcY, barWidth, bcH);
         bcX += barWidth + ((Math.cos(bcX * 5.7) > 0) ? 3.5 : 2);
@@ -504,11 +513,11 @@
         gray[i / 4] = lum;
       }
 
-      // 2. 사진 영역 적응형 대비 강화 (사진 박스 영역: startX:16, startY:136, imgW:544, imgH:544)
-      const photoTop = 134;
-      const photoBottom = 136 + 544 + 2;
-      const photoLeft = 14;
-      const photoRight = 16 + 544 + 2;
+      // 2. 사진 영역 적응형 대비 강화 (사진 박스 영역: startX:4, startY:130, imgW:568, imgH:568)
+      const photoTop = 128;
+      const photoBottom = 130 + 568 + 2;
+      const photoLeft = 2;
+      const photoRight = 4 + 568 + 2;
 
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
@@ -594,7 +603,7 @@
 
         showToast("인쇄 데이터를 프린터로 전송합니다...", "🖨️");
 
-        // iframe 내에 80mm auto 규격 주입 (높이 제한 해제로 가로 100% 꽉 참)
+        // iframe 내에 Epson 80mm 롤 유효폭(72mm) 100% 풀블리드 규격 주입
         const iframeDoc = thermalPrintIframe.contentDocument || thermalPrintIframe.contentWindow.document;
         iframeDoc.open();
         iframeDoc.write(`
@@ -602,11 +611,12 @@
           <html>
           <head>
             <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
               @page {
-                size: 80mm auto !important;
-                margin: 0 !important;
-                padding: 0 !important;
+                size: 72mm auto !important;
+                margin: 0mm !important;
+                padding: 0mm !important;
               }
               *, *::before, *::after {
                 box-sizing: border-box !important;
@@ -614,12 +624,16 @@
                 padding: 0 !important;
               }
               html, body {
-                width: 80mm !important;
-                max-width: 80mm !important;
-                min-width: 80mm !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
+                color: #000000 !important;
+                overflow: visible !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
                 page-break-inside: avoid !important;
                 page-break-after: avoid !important;
                 break-inside: avoid !important;
@@ -627,21 +641,20 @@
               }
               .thermal-wrapper {
                 width: 100% !important;
+                max-width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: flex-start !important;
+                display: block !important;
                 page-break-inside: avoid !important;
                 page-break-after: avoid !important;
               }
               img {
                 width: 100% !important;
                 max-width: 100% !important;
+                min-width: 100% !important;
                 height: auto !important;
                 display: block !important;
-                margin: 0 auto !important;
+                margin: 0 !important;
                 padding: 0 !important;
                 image-rendering: -webkit-optimize-contrast !important;
                 image-rendering: pixelated !important;
@@ -666,6 +679,9 @@
           setTimeout(() => {
             try {
               printBtnLabel.innerText = "프린터 출력 중...";
+              // browserPrintZone에도 동시 주입 (호환성 보장)
+              if (browserPrintImg) browserPrintImg.src = ditheredUrl;
+              
               thermalPrintIframe.contentWindow.focus();
               thermalPrintIframe.contentWindow.print();
 
