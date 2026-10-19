@@ -218,20 +218,20 @@
     </div>
 
     <!-- [B] 결과 화면 (영수증 스티커 미리보기 + 인쇄/재촬영 버튼) -->
-    <div id="resultSection" class="hidden w-full h-full flex flex-col md:flex-row items-center justify-center gap-5 md:gap-10 min-h-0 px-2 mt-2 sm:mt-3">
+    <div id="resultSection" class="hidden w-full h-full flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 min-h-0 px-2 mt-2 sm:mt-3">
       
-      <!-- 좌측: 영수증 스티커 실물 캔버스 미리보기 (종횡비 576:1320 보존) -->
-      <div class="flex-1 max-h-[68vh] sm:max-h-[72vh] flex items-center justify-center p-2 sm:p-2.5 bg-slate-900/80 border border-slate-700 rounded-2xl shadow-2xl relative flex-shrink-0">
-        <div class="receipt-edge h-full p-2 flex items-center justify-center overflow-hidden">
+      <!-- 좌측: 영수증 스티커 실물 캔버스 미리보기 (가로폭에 딱 맞게 최적화된 핏) -->
+      <div class="w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[380px] max-h-[72vh] flex items-center justify-center p-2.5 sm:p-3 bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-2xl relative flex-shrink-0">
+        <div class="receipt-edge w-full h-auto flex flex-col items-center justify-center overflow-hidden p-2">
           <canvas id="stickerDisplayCanvas" width="576" height="1320" 
-                  class="h-full w-auto max-w-full aspect-[576/1320] object-contain block select-none pointer-events-none shadow-md"></canvas>
+                  class="w-full h-auto max-h-[66vh] object-contain block select-none pointer-events-none shadow-sm"></canvas>
         </div>
       </div>
 
       <!-- 우측: 안내 텍스트 및 메인 버튼 그룹 (수직 중앙 정렬) -->
-      <div class="flex flex-col justify-center items-start text-left gap-3.5 max-w-md w-full self-center">
+      <div class="flex flex-col justify-center items-start text-left gap-4 max-w-sm md:max-w-md w-full self-center">
         
-        <div class="space-y-1.5">
+        <div class="space-y-2">
           <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
             <span>🎉 스티커 사진이 완성되었습니다!</span>
           </h2>
@@ -240,7 +240,7 @@
           </p>
         </div>
 
-        <!-- 조작 버튼 2개: 인쇄하기 & 다시 촬영하기 (둥근 모서리 rounded-xl 복원) -->
+        <!-- 조작 버튼 2개: 인쇄하기 & 다시 촬영하기 (둥근 모서리 rounded-xl) -->
         <div class="w-full flex flex-col gap-2.5 mt-1">
           <!-- 1) 인쇄하기 버튼 -->
           <button id="printActionBtn" onclick="printReceiptSticker()"
