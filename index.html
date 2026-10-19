@@ -324,15 +324,30 @@
           <span id="btStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30">미연결</span>
         </div>
         <p class="text-slate-400 text-[11px] leading-relaxed">
-          태블릿(Chrome 브라우저)과 Epson TM-m30III를 블루투스로 직접 연결합니다. 인터넷 연결이 전혀 없는 환경에서도 바로 인쇄됩니다.
+          태블릿(Chrome)과 Epson TM-m30III를 블루투스로 연결합니다. 이미 태블릿 설정에 페어링되어 있는 경우 [기존 연결 장치 불러오기]를 누르시면 즉시 연결됩니다.
         </p>
-        <div class="flex gap-2 pt-1">
-          <button onclick="connectBluetoothPrinter()" class="flex-1 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95">
-            <i class="fa-brands fa-bluetooth-b"></i>
-            프린터 검색 및 페어링
-          </button>
-          <button onclick="disconnectBluetoothPrinter()" class="py-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-lg transition-all">
-            연결 해제
+
+        <!-- 프린터 이름 검색 필터 설정 -->
+        <div>
+          <label class="block text-[11px] font-mono text-slate-400 mb-1">프린터 이름(또는 접두사) 검색</label>
+          <input type="text" id="cfgBtNamePrefix" value="TM-m30" placeholder="예: TM-m30, EPSON, TM"
+                 class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-sky-400 focus:outline-none" />
+        </div>
+
+        <div class="flex flex-col gap-1.5 pt-1">
+          <div class="flex gap-2">
+            <button onclick="connectBluetoothPrinter()" class="flex-1 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-md">
+              <i class="fa-brands fa-bluetooth-b"></i>
+              이름으로 프린터 검색
+            </button>
+            <button onclick="disconnectBluetoothPrinter()" class="py-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-lg transition-all">
+              연결 해제
+            </button>
+          </div>
+          <!-- 이미 태블릿 OS에 페어링된 기기 즉시 로드 버튼 -->
+          <button onclick="connectExistingPairedDevice()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 active:scale-95">
+            <i class="fa-solid fa-link text-xs"></i>
+            이미 페어링된 장치 바로 연결
           </button>
         </div>
       </div>
@@ -374,6 +389,7 @@
       CONNECTION_MODE: localStorage.getItem('SOOPIA_PRINT_MODE') || 'BLUETOOTH', // 'BLUETOOTH' or 'NETWORK'
       PRINTER_IP: localStorage.getItem('SOOPIA_PRINTER_IP') || '172.16.10.1',
       PRINTER_PORT: localStorage.getItem('SOOPIA_PRINTER_PORT') || (location.protocol === 'https:' ? '8043' : '8008'),
+      BT_NAME_PREFIX: localStorage.getItem('SOOPIA_BT_PREFIX') || 'TM-m30',
       AUTO_RESET_SECONDS: 45,
       FESTIVAL_TITLE: '2026 AI·SW 체험 한마당',
       CLUB_NAME: 'SPEER 인공지능공학연구반'
@@ -723,57 +739,118 @@
       return buffer.slice(0, offset);
     }
 
-    // 블루투스 프린터 연결 시도
+    // 블루투스 공통 서비스 UUID 목록
+    const BT_PRINTER_SERVICES = [
+      '000018f0-0000-1000-8000-00805f9b34fb', // Standard Serial/POS
+      'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Nordic UART
+      '49535343-fe7d-4ae5-8fa9-9fafd205e455', // ISSC Serial
+      '0000ae30-0000-1000-8000-00805f9b34fb', // Generic POS
+      '00001101-0000-1000-8000-00805f9b34fb'  // Serial Port Profile (SPP)
+    ];
+
+    // 블루투스 기기 GATT 연결 및 쓰기 특성 확보 공통 로직
+    async function setupGattConnection(device) {
+      bluetoothDevice = device;
+      bluetoothDevice.addEventListener('gattserverdisconnected', onBluetoothDisconnected);
+
+      showToast(`${bluetoothDevice.name || '프린터'}에 연결 중...`, "⏳");
+      const server = await bluetoothDevice.gatt.connect();
+
+      // 서비스 및 쓰기 가능 Characteristic 탐색
+      const services = await server.getPrimaryServices();
+      let writableChar = null;
+
+      for (const service of services) {
+        try {
+          const chars = await service.getCharacteristics();
+          for (const ch of chars) {
+            if (ch.properties.write || ch.properties.writeWithoutResponse) {
+              writableChar = ch;
+              break;
+            }
+          }
+          if (writableChar) break;
+        } catch (e) {}
+      }
+
+      if (!writableChar) {
+        throw new Error("프린터의 인쇄 전송 채널(Characteristic)을 찾지 못했습니다.");
+      }
+
+      bluetoothCharacteristic = writableChar;
+      updateBluetoothUI(true, bluetoothDevice.name);
+      showToast(`블루투스 연결 완료: ${bluetoothDevice.name || 'Epson TM-m30'}`, "🎉");
+      return true;
+    }
+
+    // 이미 태블릿에 페어링된 기기 즉시 연결 (getDevices API)
+    async function connectExistingPairedDevice() {
+      if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
+        showToast("이 기기에서는 자동 감지가 지원되지 않아 검색창을 엽니다.", "ℹ️");
+        return connectBluetoothPrinter();
+      }
+
+      try {
+        showToast("이미 페어링된 블루투스 장치 확인 중...", "🔍");
+        const devices = await navigator.bluetooth.getDevices();
+        
+        if (devices.length > 0) {
+          // 이름에 TM-m30, TM, Epson 등이 들어간 기기 우선 탐색
+          const target = devices.find(d => {
+            const n = (d.name || '').toUpperCase();
+            return n.includes('TM') || n.includes('EPSON') || n.includes('PRINT');
+          }) || devices[0];
+
+          await setupGattConnection(target);
+          return true;
+        } else {
+          showToast("등록된 장치가 없습니다. 직접 검색을 시작합니다.", "🔍");
+          return connectBluetoothPrinter();
+        }
+      } catch (err) {
+        console.warn("기존 장치 로드 실패:", err);
+        return connectBluetoothPrinter();
+      }
+    }
+
+    // 이름(Name Prefix) 필터 기반 블루투스 검색 및 연결
     async function connectBluetoothPrinter() {
       if (!navigator.bluetooth) {
         showToast("이 브라우저는 Web Bluetooth를 지원하지 않습니다. Chrome을 사용해주세요.", "⚠️");
         return false;
       }
 
+      const inputPrefix = document.getElementById('cfgBtNamePrefix');
+      const prefix = (inputPrefix ? inputPrefix.value.trim() : '') || CONFIG.BT_NAME_PREFIX || 'TM-m30';
+      CONFIG.BT_NAME_PREFIX = prefix;
+      localStorage.setItem('SOOPIA_BT_PREFIX', prefix);
+
       try {
-        showToast("블루투스 프린터를 검색하고 있습니다...", "🔍");
-        
-        // Epson TM 및 범용 ESC/POS 감열 프린터 GATT 서비스 검색
-        bluetoothDevice = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: [
-            '000018f0-0000-1000-8000-00805f9b34fb', // Standard Serial/POS
-            'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Nordic UART
-            '49535343-fe7d-4ae5-8fa9-9fafd205e455', // ISSC
-            '0000ae30-0000-1000-8000-00805f9b34fb'  // Generic POS
-          ]
-        });
+        showToast(`'${prefix}' 프린터를 검색하고 있습니다...`, "🔍");
 
-        bluetoothDevice.addEventListener('gattserverdisconnected', onBluetoothDisconnected);
-
-        showToast(`${bluetoothDevice.name || '프린터'}에 연결 중...`, "⏳");
-        const server = await bluetoothDevice.gatt.connect();
-
-        // 사용 가능한 서비스 및 쓰기 특성(Characteristic) 탐색
-        const services = await server.getPrimaryServices();
-        let writableChar = null;
-
-        for (const service of services) {
-          try {
-            const chars = await service.getCharacteristics();
-            for (const ch of chars) {
-              if (ch.properties.write || ch.properties.writeWithoutResponse) {
-                writableChar = ch;
-                break;
-              }
-            }
-            if (writableChar) break;
-          } catch (e) {}
+        // 1순위: 지정한 이름 접두사 필터로 검색 (목록에 바로 타겟 프린터만 깔끔하게 노출)
+        // 만약 검색에 안 걸릴 경우를 대비해 acceptAllDevices 대체
+        let device = null;
+        try {
+          device = await navigator.bluetooth.requestDevice({
+            filters: [
+              { namePrefix: prefix },
+              { namePrefix: 'TM-' },
+              { namePrefix: 'EPSON' }
+            ],
+            optionalServices: BT_PRINTER_SERVICES
+          });
+        } catch (filterErr) {
+          console.warn("이름 필터 검색 실패/취소, 전체 장치 보기로 전환:", filterErr);
+          // 2순위: 전체 블루투스 목록에서 수동 선택
+          device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: BT_PRINTER_SERVICES
+          });
         }
 
-        if (!writableChar) {
-          throw new Error("쓰기 가능한 블루투스 특성을 찾을 수 없습니다.");
-        }
-
-        bluetoothCharacteristic = writableChar;
-        updateBluetoothUI(true, bluetoothDevice.name);
-        showToast(`블루투스 연결 완료: ${bluetoothDevice.name || 'Epson TM-m30'}`, "🎉");
-        return true;
+        if (!device) return false;
+        return await setupGattConnection(device);
 
       } catch (err) {
         console.error("Bluetooth Connect Error:", err);
@@ -789,7 +866,7 @@
     }
 
     function disconnectBluetoothPrinter() {
-      if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+      if (bluetoothDevice && bluetoothDevice.gatt && bluetoothDevice.gatt.connected) {
         bluetoothDevice.gatt.disconnect();
       }
       updateBluetoothUI(false);
@@ -801,14 +878,18 @@
       if (connected) {
         btHeaderLabel.innerText = deviceName ? deviceName.slice(0, 10) : "BT 연결됨";
         btHeaderIcon.className = "fa-brands fa-bluetooth text-emerald-400 text-sm animate-pulse";
-        badge.innerText = `연결됨 (${deviceName || 'TM-m30'})`;
-        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-        hudPrinterStatus.innerText = "PRINTER // BT ONLINE";
+        if (badge) {
+          badge.innerText = `연결됨 (${deviceName || 'TM-m30'})`;
+          badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        }
+        hudPrinterStatus.innerText = `PRINTER // BT: ${deviceName ? deviceName.slice(0, 8) : 'ONLINE'}`;
       } else {
         btHeaderLabel.innerText = "BT 미연결";
         btHeaderIcon.className = "fa-brands fa-bluetooth-b text-sky-400 text-sm";
-        badge.innerText = "미연결";
-        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30";
+        if (badge) {
+          badge.innerText = "미연결";
+          badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30";
+        }
         hudPrinterStatus.innerText = "PRINTER // READY";
       }
     }
@@ -823,14 +904,15 @@
       if (bluetoothDevice && bluetoothDevice.gatt && bluetoothDevice.gatt.connected) {
         toggleConfigModal(true);
       } else {
-        connectBluetoothPrinter();
+        // 이미 OS와 페어링되어 있는 경우 우선 연결 시도
+        connectExistingPairedDevice();
       }
     }
 
     // 블루투스로 대용량 바이너리 청크 단위 분할 전송
     async function sendBytesViaBluetooth(bytes) {
       if (!bluetoothCharacteristic) {
-        const connected = await connectBluetoothPrinter();
+        const connected = await connectExistingPairedDevice();
         if (!connected) return false;
       }
 
@@ -970,6 +1052,8 @@
       if (show) {
         document.getElementById('cfgPrinterIp').value = CONFIG.PRINTER_IP;
         document.getElementById('cfgPrinterPort').value = CONFIG.PRINTER_PORT;
+        const inputBtPrefix = document.getElementById('cfgBtNamePrefix');
+        if (inputBtPrefix) inputBtPrefix.value = CONFIG.BT_NAME_PREFIX || 'TM-m30';
         updateModeUI();
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -982,6 +1066,11 @@
     function saveConfigModal() {
       CONFIG.PRINTER_IP = document.getElementById('cfgPrinterIp').value.trim();
       CONFIG.PRINTER_PORT = document.getElementById('cfgPrinterPort').value.trim();
+      const inputBtPrefix = document.getElementById('cfgBtNamePrefix');
+      if (inputBtPrefix) {
+        CONFIG.BT_NAME_PREFIX = inputBtPrefix.value.trim() || 'TM-m30';
+        localStorage.setItem('SOOPIA_BT_PREFIX', CONFIG.BT_NAME_PREFIX);
+      }
       localStorage.setItem('SOOPIA_PRINTER_IP', CONFIG.PRINTER_IP);
       localStorage.setItem('SOOPIA_PRINTER_PORT', CONFIG.PRINTER_PORT);
       toggleConfigModal(false);
