@@ -97,7 +97,7 @@
 
     /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 롤 유효 인쇄폭 72mm 100% 전폭 매핑) */
     @page {
-      size: 72mm 125mm !important;
+      size: 72mm 120mm !important;
       margin: 0mm !important;
       padding: 0mm !important;
     }
@@ -154,7 +154,7 @@
 <body class="flex flex-col items-center justify-between">
 
   <!-- ============================================================
-       1. 상단 헤더 (제목, 아이콘, 블루투스 상태 & 제어 버튼)
+       1. 상단 헤더 (제목, 아이콘, 전체화면 버튼)
        ============================================================ -->
   <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 4px; margin-top: 4px; z-index: 20;">
     <!-- 좌측 균형용 빈 영역 -->
@@ -183,9 +183,8 @@
       </p>
     </div>
 
-    <!-- 우측 제어 버튼 (전체화면 토글만 유지) -->
+    <!-- 우측 제어 버튼 (전체화면 토글) -->
     <div style="display: flex; align-items: center; gap: 8px;">
-      <!-- 전체화면 토글 버튼 -->
       <button id="fullscreenToggleBtn" onclick="toggleFullscreen()" title="전체화면 전환"
               class="btn" style="padding: 7px 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px;">
         <svg id="fullscreenIconSvg" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
@@ -201,10 +200,10 @@
        ============================================================ -->
   <main style="width: 100%; max-width: 1150px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; position: relative; margin: 2px 0; padding: 0 8px;">
 
-    <!-- [A] 촬영 대기 및 진행 화면 (인쇄 비율과 일치하는 컴팩트 가로폭 뷰파인더) -->
+    <!-- [A] 촬영 대기 및 진행 화면 (인쇄 비율과 일치하는 뷰파인더) -->
     <div id="captureSection" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 0; padding: 6px 0;">
 
-      <!-- 유연한 가변 뷰파인더 프레임: 가로폭을 줄이고 인쇄 사진과 1:1 비율(aspect-ratio: 1/1) 일치 -->
+      <!-- 유연한 가변 뷰파인더 프레임 (인쇄 사진과 1:1 비율 일치) -->
       <div id="viewfinderFrame" style="position: relative; width: min(82vw, 480px); aspect-ratio: 1 / 1; max-height: 56vh; background: #000; border: 3px solid #334155; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; outline: 1px solid rgba(56,189,248,0.4); overflow: hidden; border-radius: 8px;">
 
         <!-- 웹캠 비디오 엘리먼트 -->
@@ -236,13 +235,13 @@
           <div style="width: 1px; height: 32px; background: #fff; position: absolute;"></div>
         </div>
 
-        <!-- 하단 테크니컬 HUD (흰색 폰트) -->
+        <!-- 하단 테크니컬 HUD -->
         <div style="position: absolute; bottom: 12px; left: 14px; right: 14px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 11px; color: #ffffff; pointer-events: none; z-index: 10;">
           <div id="hudConnectionMode">BLUETOOTH // TM-m30III</div>
           <div id="hudPrinterStatus" style="color: #38bdf8;">1-PAGE FIT</div>
         </div>
 
-        <!-- 카운트다운 오버레이 (블러 없이 선명하게 비디오 투시) -->
+        <!-- 카운트다운 오버레이 -->
         <div id="countdownBox" style="position: absolute; inset: 0; background: transparent; display: none; align-items: center; justify-content: center; z-index: 25; pointer-events: none;">
           <span id="countdownNumber" style="font-size: clamp(4.5rem, 14vw, 7.5rem); font-weight: 900; color: #ffffff; font-family: monospace; filter: drop-shadow(0 0 25px rgba(56,189,248,0.95));">
             3
@@ -261,15 +260,15 @@
 
     </div>
 
-    <!-- [B] 결과 화면 (1페이지 핏 영수증 미리보기 + 블루투스 출력) -->
+    <!-- [B] 결과 화면 (바코드 없는 깔끔한 영수증 미리보기 + 인쇄) -->
     <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px; margin-top: 4px;">
 
-      <!-- 좌측: 영수증 스티커 캔버스 미리보기 (컬러 모드 1페이지 비율 576x720) -->
-      <div style="height: 68vh; max-height: 580px; min-height: 380px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
-        <div class="receipt-edge" style="height: 100%; aspect-ratio: 576/720; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
+      <!-- 좌측: 영수증 스티커 캔버스 미리보기 (컬러 모드 1페이지 비율 576x680) -->
+      <div style="height: 68vh; max-height: 560px; min-height: 380px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
+        <div class="receipt-edge" style="height: 100%; aspect-ratio: 576/680; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
           <img id="stickerPreviewImg" alt="영수증 미리보기"
                style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: -webkit-optimize-contrast; background: #ffffff;" />
-          <canvas id="stickerDisplayCanvas" width="576" height="720" style="display: none;"></canvas>
+          <canvas id="stickerDisplayCanvas" width="576" height="680" style="display: none;"></canvas>
         </div>
       </div>
 
@@ -281,7 +280,7 @@
             <span>🎉 멋진 영수증 사진이 완성되었습니다!</span>
           </h2>
           <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-top: 8px;">
-            촬영된 사진을 확인해보세요. 아래 <strong style="color: #38bdf8;">[인쇄하기]</strong> 버튼을 누르면 감열 영수증 모드(흑백 그레이스케일)로 변환되어 <strong style="color: #2dd4bf;">Epson TM-m30III</strong>에서 스티커로 즉시 출력됩니다.
+            촬영된 사진을 확인해보세요. 아래 <strong style="color: #38bdf8;">[인쇄하기]</strong> 버튼을 누르면 감열 영수증 모드(부드러운 그레이스케일)로 변환되어 <strong style="color: #2dd4bf;">Epson TM-m30III</strong>에서 스티커로 즉시 출력됩니다.
           </p>
         </div>
 
@@ -316,26 +315,25 @@
 
   </main>
 
-  <!-- 3. 백그라운드 캔버스 및 감열 인쇄 DOM 영역 -->
-  <canvas id="thermalStripCanvas" width="576" height="720" style="display: none;"></canvas>
+  <!-- ============================================================
+       3. 백그라운드 캔버스 및 감열 인쇄 DOM 영역
+       ============================================================ -->
+  <canvas id="thermalStripCanvas" width="576" height="680" style="display: none;"></canvas>
   <div id="browserPrintZone" style="display: none;">
     <img id="browserPrintImg" src="" alt="print-strip" />
   </div>
   <iframe id="thermalPrintIframe" style="display: none; width: 0; height: 0; border: none; position: absolute; left: -9999px;"></iframe>
 
-  <!-- 5. 토스트 알림 메시지 바 -->
+  <!-- 4. 토스트 알림 메시지 바 -->
   <div id="appToast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60; background: #0f172a; border: 1px solid #38bdf8; color: #fff; padding: 10px 18px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: opacity 0.3s ease; opacity: 0; pointer-events: none; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
     <span id="toastIcon">✨</span>
     <span id="toastMessage">안내 메시지</span>
   </div>
 
   <!-- ============================================================
-       6. 스크립트 로직 (1컷 컬러 프리뷰 & 흑백 감열 변환 인쇄)
+       5. 스크립트 로직 (1컷 컬러 프리뷰 & 흑백 감열 변환 인쇄)
        ============================================================ -->
   <script>
-    // ==========================================
-    // 1. 시스템 설정 (CONFIG)
-    // ==========================================
     const CONFIG = {
       AUTO_RESET_SECONDS: 45,
       FESTIVAL_TITLE: '2026 수피아 AI·SW',
@@ -368,12 +366,12 @@
     let finalGrayscaleDataUrl = '';
 
     // ------------------------------------------------------------
-    // [4] 1컷 대형 영수증 합성 (1페이지 핏: 576 x 720, 양옆 여백 유지 & 뷰파인더 1:1 매핑)
+    // [1] 1컷 대형 영수증 합성 (바코드 제거 & 1페이지 핏: 576 x 680)
     // ------------------------------------------------------------
     function generateCompositeColorSticker() {
-      // 1페이지 정확한 핏 높이: 720px (Epson TM-m30III 80mm 용지에서 2페이지 넘어감 원천 차단)
+      // 바코드가 제거되어 680px 높이로 깔끔한 1페이지 핏 구현
       const W = 576;
-      const H = 720;
+      const H = 680;
 
       displayCanvas.width = W;
       displayCanvas.height = H;
@@ -400,7 +398,7 @@
       const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
       displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 95);
 
-      // 상단 점선 구분선 (좌우 여백 24px 남김)
+      // 상단 점선 구분선 (좌우 여백 24px)
       const marginX = 24;
       displayCtx.lineWidth = 2.5;
       displayCtx.strokeStyle = '#000000';
@@ -411,7 +409,7 @@
       displayCtx.stroke();
       displayCtx.setLineDash([]);
 
-      // [핵심] 뷰파인더 1:1 비율 그대로 일치시키는 사진 영역: 468 x 468 (좌우 24px 여백)
+      // 뷰파인더 1:1 비율 그대로 일치시키는 사진 영역: 528 x 468
       const imgW = W - (marginX * 2); // 528px
       const imgH = 468;
       const startX = marginX;
@@ -423,7 +421,6 @@
 
       if (singleCapturedFrame) {
         try {
-          // singleCapturedFrame은 뷰파인더 1:1 프레임에서 중앙 정방형 크롭된 이미지이므로 왜곡 없이 그대로 매핑
           displayCtx.drawImage(singleCapturedFrame, startX, startY, imgW, imgH);
         } catch (e) {
           console.error("Frame draw error:", e);
@@ -435,7 +432,7 @@
       }
 
       // 하단 점선 구분선
-      const bottomLineY = startY + imgH + 14;
+      const bottomLineY = startY + imgH + 16;
       displayCtx.beginPath();
       displayCtx.setLineDash([7, 5]);
       displayCtx.moveTo(marginX, bottomLineY);
@@ -443,23 +440,13 @@
       displayCtx.stroke();
       displayCtx.setLineDash([]);
 
-      // 하단 푸터 텍스트
+      // 하단 푸터 텍스트 (바코드 없이 균형감 있는 배치)
       displayCtx.fillStyle = '#000000';
-      displayCtx.font = 'bold 21px -apple-system, sans-serif';
-      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 28);
+      displayCtx.font = 'bold 22px -apple-system, sans-serif';
+      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 34);
 
       displayCtx.font = 'bold 15px monospace';
-      displayCtx.fillText(CONFIG.CLUB_NAME, W / 2, bottomLineY + 48);
-
-      // 모의 바코드 (좌우 여백 일치)
-      const bcY = bottomLineY + 58;
-      const bcH = 26;
-      let bcX = marginX + 16;
-      while (bcX < W - marginX - 16) {
-        const barWidth = (Math.sin(bcX * 12.3) > 0) ? 3.5 : 2;
-        displayCtx.fillRect(bcX, bcY, barWidth, bcH);
-        bcX += barWidth + ((Math.cos(bcX * 5.7) > 0) ? 3.5 : 2);
-      }
+      displayCtx.fillText(CONFIG.CLUB_NAME, W / 2, bottomLineY + 56);
 
       // 컬러 미리보기 생성
       finalColorDataUrl = displayCanvas.toDataURL('image/png', 1.0);
@@ -469,7 +456,7 @@
     }
 
     // ------------------------------------------------------------
-    // [5] 부드러운 그레이스케일(Grayscale) 변환 (점 노이즈 대신 풍부한 명암 계조)
+    // [2] 부드러운 그레이스케일(Grayscale) 변환
     // ------------------------------------------------------------
     function applyGrayscaleForThermalPrint() {
       const W = displayCanvas.width;
@@ -481,7 +468,7 @@
       const imgData = displayCtx.getImageData(0, 0, W, H);
       const data = imgData.data;
 
-      // 텍스트/사진 영역 경계
+      // 사진 영역 경계
       const marginX = 24;
       const photoTop = 118;
       const photoBottom = 118 + 468;
@@ -504,7 +491,7 @@
             // 명암 대비 완화 조정
             gray = (gray - 128) * 1.15 + 128;
           } else {
-            // 헤더, 텍스트, 바코드: 선명한 흑백 대비
+            // 헤더 및 푸터 텍스트: 선명한 흑백 대비
             gray = gray < 185 ? 0 : 255;
           }
 
@@ -524,7 +511,7 @@
     }
 
     // ------------------------------------------------------------
-    // [6] 인쇄 실행 파이프라인 (그레이스케일 변환 & 정확한 1페이지 롤 인쇄)
+    // [3] 인쇄 실행 파이프라인 (그레이스케일 변환 & 정확한 1페이지 롤 인쇄)
     // ------------------------------------------------------------
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
@@ -547,7 +534,7 @@
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
               @page {
-                size: 72mm 125mm !important;
+                size: 72mm 120mm !important;
                 margin: 0mm !important;
                 padding: 0mm !important;
               }
@@ -647,7 +634,7 @@
     }
 
     // ------------------------------------------------------------
-    // [7] 1컷 촬영 시퀀스 (뷰파인더 프레임에 보이는 크기 그대로 1:1 중앙 크롭 캡처)
+    // [4] 1컷 촬영 시퀀스 (뷰파인더 프레임에 보이는 크기 그대로 1:1 정방형 캡처)
     // ------------------------------------------------------------
     async function runShootingSequence() {
       startShootBtn.disabled = true;
@@ -672,7 +659,7 @@
       const vw = webcamView.videoWidth || 1280;
       const vh = webcamView.videoHeight || 720;
 
-      // [핵심] 뷰파인더 화면에 보이는 영역 그대로 1:1(정방형) 크롭
+      // 뷰파인더 화면에 보이는 영역 그대로 1:1 정방형 크롭
       const cropSize = Math.min(vw, vh);
       const cropX = (vw - cropSize) / 2;
       const cropY = (vh - cropSize) / 2;
@@ -684,7 +671,7 @@
       fCtx.imageSmoothingEnabled = true;
       fCtx.imageSmoothingQuality = 'high';
 
-      // 웹캠 거울 모드(좌우 반전) 반영하여 뷰파인더 뷰와 100% 동일하게 캡처
+      // 웹캠 거울 모드(좌우 반전) 반영하여 뷰파인더와 100% 동일하게 캡처
       fCtx.translate(frameCanvas.width, 0);
       fCtx.scale(-1, 1);
       fCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, frameCanvas.width, frameCanvas.height);
@@ -693,7 +680,7 @@
 
       await sleep(350);
 
-      // 컬러 영수증 미리보기 합성
+      // 바코드 없는 컬러 영수증 미리보기 합성
       generateCompositeColorSticker();
 
       captureSection.style.display = 'none';
@@ -716,7 +703,7 @@
     }
 
     // ------------------------------------------------------------
-    // [8] 웹캠 초기화 (안전 다단계 폴백)
+    // [5] 웹캠 초기화 (안전 다단계 폴백)
     // ------------------------------------------------------------
     async function initWebcam() {
       try {
@@ -740,7 +727,7 @@
     }
 
     // ------------------------------------------------------------
-    // [9] 전체화면 토글
+    // [6] 전체화면 토글
     // ------------------------------------------------------------
     function toggleFullscreen() {
       const doc = document.documentElement;
@@ -769,7 +756,7 @@
     document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 
     // ------------------------------------------------------------
-    // [10] 유틸리티
+    // [7] 유틸리티
     // ------------------------------------------------------------
     function showToast(msg, icon = "✨") {
       const toast = document.getElementById('appToast');
