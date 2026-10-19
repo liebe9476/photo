@@ -66,8 +66,8 @@
 </head>
 <body class="h-[100dvh] w-full flex flex-col justify-between p-2 sm:p-4 select-none relative">
 
-  <!-- 1. 헤더 영역 (상하 여백 최소화하여 뷰파인더와 바로 밀착) -->
-  <header class="w-full flex-shrink-0 relative pt-0.5 sm:pt-1 pb-0 mb-0 text-center">
+  <!-- 1. 헤더 영역 (상단 마진/패딩을 주어 최상단과 답답하지 않게 간격 확보) -->
+  <header class="w-full flex-shrink-0 relative pt-2.5 sm:pt-4 pb-1 mb-1 text-center">
     <div class="flex items-center justify-center gap-2">
       <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
         <i class="fa-solid fa-camera-retro text-base sm:text-lg"></i>
@@ -76,7 +76,7 @@
         2026 AI·SW체험 수피아여고 포토부스
       </h1>
     </div>
-    <p class="text-[11px] sm:text-xs md:text-sm text-slate-400 font-medium tracking-wide mt-0.5">
+    <p class="text-[11px] sm:text-xs md:text-sm text-slate-400 font-medium tracking-wide mt-1">
       화면을 보고 3가지 포즈를 취하면 영수증포토가 바로 인쇄됩니다!!
     </p>
 
@@ -88,14 +88,13 @@
     </button>
   </header>
 
-  <!-- 2. 메인 컨텐츠 영역 (상단 제목 바로 아래로 밀착 배치) -->
   <!-- 2. 메인 컨텐츠 영역 -->
   <main class="flex-1 min-h-0 w-full flex flex-col items-center justify-start relative pt-0 mt-0.5">
     
     <!-- (A) 촬영 전 뷰파인더 화면 (상단 텍스트와 마진을 더 넉넉하게 확장) -->
     <div id="captureSection" class="w-full h-full flex flex-col items-center justify-start relative max-w-4xl px-2 pt-6 sm:pt-8">
-      <!-- 카메라 사각 프레임 -->
-      <div class="relative w-full aspect-video max-h-[50vh] sm:max-h-[52vh] bg-black border-2 border-sky-500/60 shadow-[0_0_30px_rgba(56,189,248,0.25)] overflow-hidden flex items-center justify-center">
+      <!-- 카메라 사각 프레임 (세로 길이 추가 확장) -->
+      <div class="relative w-full aspect-video max-h-[60vh] sm:max-h-[63vh] bg-black border-2 border-sky-500/60 shadow-[0_0_30px_rgba(56,189,248,0.25)] overflow-hidden flex items-center justify-center">
         <!-- 웹캠 비디오 -->
         <video id="webcam" class="w-full h-full object-cover mirror-video" autoplay playsinline muted></video>
 
@@ -134,7 +133,7 @@
         </div>
 
         <!-- 카운트다운 오버레이 -->
-        <div id="countdownOverlay" class="absolute inset-0 bg-black/50 backdrop-blur-[2px] hidden items-center justify-center z-20">
+        <div id="countdownOverlay" class="absolute inset-0 bg-transparent hidden items-center justify-center z-20">
           <span id="countdownNumber" class="text-8xl sm:text-9xl font-black text-white drop-shadow-[0_0_35px_rgba(56,189,248,1)] animate-bounce">
             3
           </span>
@@ -144,45 +143,45 @@
         <div id="flashLayer" class="absolute inset-0 bg-white pointer-events-none opacity-0 z-30"></div>
       </div>
 
-      <!-- 뷰파인더 하단: 3컷 촬영 실시간 썸네일 프리뷰 트레이 -->
-      <div class="w-full flex items-center justify-center gap-3 sm:gap-4 mt-6 sm:mt-8 px-2">
+      <!-- 뷰파인더 하단: 3컷 촬영 실시간 썸네일 프리뷰 트레이 (마진 축소 및 썸네일 크기 추가 축소) -->
+      <div class="w-full flex items-center justify-center gap-2.5 sm:gap-3 mt-2.5 sm:mt-3 px-2">
         <!-- 컷 1 썸네일 -->
-        <div id="thumbSlot1" class="relative flex-1 max-w-[200px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+        <div id="thumbSlot1" class="relative flex-1 max-w-[110px] sm:max-w-[125px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
           <canvas id="thumbCanvas1" class="w-full h-full object-cover hidden"></canvas>
-          <div id="thumbPlaceholder1" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
+          <div id="thumbPlaceholder1" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[9px] sm:text-[10px] tracking-wider">
             <span class="text-sky-400 font-medium">CUT 1</span>
-            <span class="text-[9px] text-slate-500">WAITING</span>
+            <span class="text-[8px] text-slate-500">WAITING</span>
           </div>
-          <span class="absolute top-1 left-1.5 text-[9px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag1">#01</span>
+          <span class="absolute top-0.5 left-1 text-[8px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag1">#01</span>
         </div>
 
         <!-- 컷 2 썸네일 -->
-        <div id="thumbSlot2" class="relative flex-1 max-w-[200px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+        <div id="thumbSlot2" class="relative flex-1 max-w-[110px] sm:max-w-[125px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
           <canvas id="thumbCanvas2" class="w-full h-full object-cover hidden"></canvas>
-          <div id="thumbPlaceholder2" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
+          <div id="thumbPlaceholder2" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[9px] sm:text-[10px] tracking-wider">
             <span class="text-sky-400 font-medium">CUT 2</span>
-            <span class="text-[9px] text-slate-500">WAITING</span>
+            <span class="text-[8px] text-slate-500">WAITING</span>
           </div>
-          <span class="absolute top-1 left-1.5 text-[9px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag2">#02</span>
+          <span class="absolute top-0.5 left-1 text-[8px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag2">#02</span>
         </div>
 
         <!-- 컷 3 썸네일 -->
-        <div id="thumbSlot3" class="relative flex-1 max-w-[200px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+        <div id="thumbSlot3" class="relative flex-1 max-w-[110px] sm:max-w-[125px] aspect-video bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
           <canvas id="thumbCanvas3" class="w-full h-full object-cover hidden"></canvas>
-          <div id="thumbPlaceholder3" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
+          <div id="thumbPlaceholder3" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[9px] sm:text-[10px] tracking-wider">
             <span class="text-sky-400 font-medium">CUT 3</span>
-            <span class="text-[9px] text-slate-500">WAITING</span>
+            <span class="text-[8px] text-slate-500">WAITING</span>
           </div>
-          <span class="absolute top-1 left-1.5 text-[9px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag3">#03</span>
+          <span class="absolute top-0.5 left-1 text-[8px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag3">#03</span>
         </div>
       </div>
     </div>
 
     <!-- (B) 촬영 완료 결과 화면 (상단 텍스트와 간격을 줄여 밀착 배치, 우측은 중앙 정렬 유지) -->
-    <div id="resultSection" class="w-full h-full hidden flex-row items-center justify-center gap-4 sm:gap-8 max-w-4xl px-2 mt-0.5 sm:mt-1">
+    <div id="resultSection" class="w-full h-full hidden flex-row items-center justify-center gap-4 sm:gap-8 max-w-4xl px-2 mt-3 sm:mt-5">
       <!-- 좌측: 선명한 영수증 스티커 캔버스 뷰 -->
       <div class="h-full flex items-start justify-center pt-0 pb-1">
-        <div class="receipt-shadow border-4 border-slate-700 bg-white p-2 sm:p-2.5 flex flex-col items-center justify-center max-h-[68vh] sm:max-h-[72vh] aspect-[576/1320] relative">
+        <div class="receipt-shadow border-4 border-slate-700 bg-white p-2 sm:p-2.5 flex flex-col items-center justify-center max-h-[66vh] sm:max-h-[70vh] aspect-[576/1320] relative">
           <canvas id="stickerDisplayCanvas" class="w-full h-full object-contain block"></canvas>
         </div>
       </div>
