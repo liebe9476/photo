@@ -386,6 +386,170 @@
     let finalGrayscaleDataUrl = '';
 
     // ------------------------------------------------------------
+    // [1] 영수증 컬러 합성 렌더링 (미리보기용)
+    // ------------------------------------------------------------
+    function generateCompositeColorSticker() {
+      if (!singleCapturedFrame) return;
+
+      const cw = 576;
+      const ch = 680;
+      displayCanvas.width = cw;
+      displayCanvas.height = ch;
+
+      // 1) 흰색 배경 채우기
+      displayCtx.fillStyle = '#ffffff';
+      displayCtx.fillRect(0, 0, cw, ch);
+
+      // 2) 상단 헤더 텍스트
+      displayCtx.textAlign = 'center';
+      displayCtx.fillStyle = '#111827';
+      displayCtx.font = 'bold 26px sans-serif';
+      displayCtx.fillText(CONFIG.FESTIVAL_TITLE, cw / 2, 46);
+
+      displayCtx.font = '600 13px monospace';
+      displayCtx.fillStyle = '#4b5563';
+      displayCtx.fillText(CONFIG.CLUB_NAME, cw / 2, 70);
+
+      // 3) 상단 점선 구분선
+      displayCtx.strokeStyle = '#9ca3af';
+      displayCtx.lineWidth = 2;
+      displayCtx.setLineDash([6, 6]);
+      displayCtx.beginPath();
+      displayCtx.moveTo(20, 84);
+      displayCtx.lineTo(cw - 20, 84);
+      displayCtx.stroke();
+      displayCtx.setLineDash([]);
+
+      // 4) 1컷 사진 렌더링 (중앙 정렬 정방형)
+      const photoSize = 516;
+      const photoX = (cw - photoSize) / 2;
+      const photoY = 96;
+
+      // 사진 테두리
+      displayCtx.strokeStyle = '#d1d5db';
+      displayCtx.lineWidth = 1.5;
+      displayCtx.strokeRect(photoX, photoY, photoSize, photoSize);
+
+      // 촬영된 프레임 그리기
+      displayCtx.drawImage(singleCapturedFrame, photoX, photoY, photoSize, photoSize);
+
+      // 5) 하단 점선 구분선
+      displayCtx.setLineDash([6, 6]);
+      displayCtx.beginPath();
+      displayCtx.moveTo(20, photoY + photoSize + 14);
+      displayCtx.lineTo(cw - 20, photoY + photoSize + 14);
+      displayCtx.stroke();
+      displayCtx.setLineDash([]);
+
+      // 6) 하단 날짜, 시간 및 안내 텍스트
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+      displayCtx.font = 'bold 13px monospace';
+      displayCtx.fillStyle = '#374151';
+      displayCtx.fillText(`DATE: ${dateStr}`, cw / 2, photoY + photoSize + 34);
+
+      displayCtx.font = 'bold 15px sans-serif';
+      displayCtx.fillStyle = '#111827';
+      displayCtx.fillText('광주수피아여자고등학교 AI·SW 체험', cw / 2, photoY + photoSize + 54);
+
+      // 데이터 URL 생성 및 미리보기 img 태그에 반영
+      finalColorDataUrl = displayCanvas.toDataURL('image/png');
+      stickerPreviewImg.src = finalColorDataUrl;
+    }
+
+    // ------------------------------------------------------------
+    // [2] 감열 인쇄용 고해상도 그레이스케일 생성 (800x1100)
+    // ------------------------------------------------------------
+    function applyGrayscaleForThermalPrint() {
+      if (!singleCapturedFrame) return finalColorDataUrl;
+
+      const tw = 800;
+      const th = 1100;
+      thermalCanvas.width = tw;
+      thermalCanvas.height = th;
+
+      // 흰색 배경
+      thermalCtx.fillStyle = '#ffffff';
+      thermalCtx.fillRect(0, 0, tw, th);
+
+      // 상단 헤더
+      thermalCtx.textAlign = 'center';
+      thermalCtx.fillStyle = '#000000';
+      thermalCtx.font = 'bold 36px sans-serif';
+      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 70);
+
+      thermalCtx.font = 'bold 18px monospace';
+      thermalCtx.fillStyle = '#333333';
+      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 105);
+
+      // 상단 점선
+      thermalCtx.strokeStyle = '#000000';
+      thermalCtx.lineWidth = 3;
+      thermalCtx.setLineDash([8, 8]);
+      thermalCtx.beginPath();
+      thermalCtx.moveTo(25, 128);
+      thermalCtx.lineTo(tw - 25, 128);
+      thermalCtx.stroke();
+      thermalCtx.setLineDash([]);
+
+      // 1컷 대형 사진 (750 x 750)
+      const photoSize = 750;
+      const photoX = (tw - photoSize) / 2;
+      const photoY = 145;
+
+      // 임시 캔버스에 그레이스케일 필터 적용하여 변환
+      const tempC = document.createElement('canvas');
+      tempC.width = photoSize;
+      tempC.height = photoSize;
+      const tempCtx = tempC.getContext('2d');
+      tempCtx.drawImage(singleCapturedFrame, 0, 0, photoSize, photoSize);
+
+      const imgData = tempCtx.getImageData(0, 0, photoSize, photoSize);
+      const data = imgData.data;
+
+      // 대비 강화 + 감열 최적화 그레이스케일 계조 처리
+      for (let i = 0; i < data.length; i += 4) {
+        let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        // 미드톤과 윤곽을 살리는 가벼운 S-Curve 대비 보정
+        gray = Math.min(255, Math.max(0, (gray - 128) * 1.25 + 128));
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      }
+      tempCtx.putImageData(imgData, 0, 0);
+
+      thermalCtx.drawImage(tempC, photoX, photoY, photoSize, photoSize);
+
+      // 사진 테두리
+      thermalCtx.strokeStyle = '#000000';
+      thermalCtx.lineWidth = 3;
+      thermalCtx.strokeRect(photoX, photoY, photoSize, photoSize);
+
+      // 하단 점선
+      thermalCtx.setLineDash([8, 8]);
+      thermalCtx.beginPath();
+      thermalCtx.moveTo(25, photoY + photoSize + 22);
+      thermalCtx.lineTo(tw - 25, photoY + photoSize + 22);
+      thermalCtx.stroke();
+      thermalCtx.setLineDash([]);
+
+      // 날짜 및 학교 문구
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+      thermalCtx.font = 'bold 20px monospace';
+      thermalCtx.fillStyle = '#000000';
+      thermalCtx.fillText(`DATE: ${dateStr}`, tw / 2, photoY + photoSize + 56);
+
+      thermalCtx.font = 'bold 24px sans-serif';
+      thermalCtx.fillText('광주수피아여자고등학교 AI·SW 체험', tw / 2, photoY + photoSize + 90);
+
+      finalGrayscaleDataUrl = thermalCanvas.toDataURL('image/png');
+      return finalGrayscaleDataUrl;
+    }
+
+    // ------------------------------------------------------------
     // [3] 인쇄 실행 파이프라인 (축소 방지 직결 인쇄)
     // ------------------------------------------------------------
     async function printReceiptSticker() {
