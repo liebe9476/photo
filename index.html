@@ -157,26 +157,8 @@
       </p>
     </div>
 
-    <!-- 우측 제어 버튼 (블루투스 상태, 설정, 전체화면) -->
+    <!-- 우측 제어 버튼 (전체화면 토글만 유지) -->
     <div style="display: flex; align-items: center; gap: 8px;">
-      <!-- 블루투스 연결 상태 뱃지 버튼 -->
-      <button id="btHeaderBtn" onclick="requestBluetoothConnection()" title="블루투스 프린터 연결"
-              class="btn" style="padding: 7px 12px; background: rgba(30, 41, 59, 0.9); color: #e2e8f0; border: 1px solid #475569; font-size: 11px;">
-        <!-- 블루투스 SVG 아이콘 -->
-        <svg id="btHeaderIcon" style="width: 14px; height: 14px; fill: #38bdf8;" viewBox="0 0 24 24">
-          <path d="M14.88 16.29L13 18.17V14.41m0-4.82l1.88 1.88L13 13.35M17.71 7.71L12 2h-1v7.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L11 14.41V22h1l5.71-5.71l-4.3-4.29l4.3-4.29M13 5.83l1.88 1.88L13 9.59V5.83Z"/>
-        </svg>
-        <span id="btHeaderLabel" style="font-family: monospace; font-size: 11px;">BT 연결됨 (TM-m30)</span>
-      </button>
-
-      <!-- 설정 버튼 -->
-      <button onclick="toggleConfigModal(true)" title="프린터 연결 설정"
-              class="btn" style="padding: 7px 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px;">
-        <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
-          <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
-        </svg>
-      </button>
-
       <!-- 전체화면 토글 버튼 -->
       <button id="fullscreenToggleBtn" onclick="toggleFullscreen()" title="전체화면 전환"
               class="btn" style="padding: 7px 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px;">
@@ -329,73 +311,6 @@
     <img id="browserPrintImg" src="" alt="print-strip" />
   </div>
 
-  <!-- ============================================================
-       4. 블루투스 프린터 설정 모달
-       ============================================================ -->
-  <div id="configModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 50; display: none; align-items: center; justify-content: center; padding: 16px;">
-    <div style="background: #0f172a; border: 1px solid #334155; border-radius: 18px; width: 100%; max-width: 460px; padding: 22px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 14px;">
-
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 12px;">
-        <h3 style="font-size: 16px; font-weight: 900; color: #ffffff; display: flex; align-items: center; gap: 8px;">
-          <svg style="width: 18px; height: 18px; fill: #38bdf8;" viewBox="0 0 24 24">
-            <path d="M14.88 16.29L13 18.17V14.41m0-4.82l1.88 1.88L13 13.35M17.71 7.71L12 2h-1v7.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L11 14.41V22h1l5.71-5.71l-4.3-4.29l4.3-4.29M13 5.83l1.88 1.88L13 9.59V5.83Z"/>
-          </svg>
-          블루투스 프린터 연동 설정
-        </h3>
-        <button onclick="toggleConfigModal(false)" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
-          <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
-            <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- 블루투스 전송 모드 선택 -->
-      <div>
-        <label style="display: block; font-size: 11px; font-family: monospace; color: #94a3b8; margin-bottom: 6px;">블루투스 출력 방식 선택</label>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <button type="button" id="btnModeBtSystem" onclick="setBtMethod('SYSTEM')" class="btn"
-                  style="padding: 10px; font-size: 12px; background: rgba(56,189,248,0.25); color: #38bdf8; border: 1.5px solid #38bdf8; flex-direction: column;">
-            <span>⚡ TM-Utility 연동 모드</span>
-            <span style="font-size: 10px; opacity: 0.8; font-weight: normal;">(태블릿 BT 페어링 즉시 출력)</span>
-          </button>
-          <button type="button" id="btnModeBtGatt" onclick="setBtMethod('GATT')" class="btn"
-                  style="padding: 10px; font-size: 12px; background: rgba(15,23,42,0.6); color: #94a3b8; border: 1px solid #334155; flex-direction: column;">
-            <span>📡 Web Bluetooth 직결</span>
-            <span style="font-size: 10px; opacity: 0.8; font-weight: normal;">(GATT 바이너리 직접 전송)</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- 안내 및 제어 블록 -->
-      <div id="btInfoBlock" style="padding: 12px; background: rgba(30, 41, 59, 0.6); border: 1px solid #334155; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
-        <div id="btMethodGuide" style="font-size: 12px; color: #cbd5e1; line-height: 1.5;">
-          <strong style="color: #38bdf8;">현재 상태: TM Utility 테스트 완료</strong><br>
-          • 태블릿과 프린터가 블루투스로 성공적으로 묶여 있습니다.<br>
-          • 인쇄 시 감열 영수증 규격(80mm)으로 다이렉트 전송되어 스티커로 출력됩니다.<br>
-          • <em>팁: Google Play에서 'Epson Print Enabler'가 활성화되어 있으면 더욱 매끄럽습니다.</em>
-        </div>
-
-        <div id="gattActionRow" style="display: none; flex-direction: column; gap: 6px; margin-top: 4px;">
-          <button type="button" onclick="requestBluetoothConnection()" class="btn"
-                  style="padding: 10px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; font-size: 13px;">
-            📡 Web Bluetooth 검색 및 페어링
-          </button>
-        </div>
-      </div>
-
-      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #1e293b; padding-top: 12px;">
-        <button onclick="testPrintSample()" class="btn"
-                style="padding: 8px 14px; background: #1e293b; color: #cbd5e1; font-size: 12px; border: 1px solid #475569;">
-          테스트 인쇄
-        </button>
-        <button onclick="saveConfigModal()" class="btn"
-                style="padding: 8px 18px; background: #0284c7; color: #fff; font-size: 12px;">
-          확인 완료
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- 5. 토스트 알림 메시지 바 -->
   <div id="appToast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60; background: #0f172a; border: 1px solid #38bdf8; color: #fff; padding: 10px 18px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: opacity 0.3s ease; opacity: 0; pointer-events: none; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
     <span id="toastIcon">✨</span>
@@ -410,7 +325,8 @@
     // 1. 시스템 설정 (CONFIG)
     // ==========================================
     const CONFIG = {
-      BT_METHOD: localStorage.getItem('SOOPIA_BT_METHOD') || 'SYSTEM', // 'SYSTEM' (TM Utility / Enabler) 또는 'GATT' (Web Bluetooth)
+      // Epson TM Print Assistant 무대화상자 다이렉트 고정
+      BT_METHOD: 'ASSISTANT',
       AUTO_RESET_SECONDS: 45,
       FESTIVAL_TITLE: '2026 AI·SW 체험 한마당',
       CLUB_NAME: 'SPEER 인공지능공학연구반'
@@ -435,343 +351,133 @@
     const thermalCtx = thermalCanvas.getContext('2d');
     const browserPrintZone = document.getElementById('browserPrintZone');
     const browserPrintImg = document.getElementById('browserPrintImg');
-    const btHeaderLabel = document.getElementById('btHeaderLabel');
-    const btHeaderIcon = document.getElementById('btHeaderIcon');
 
     let capturedFrames = [];
     let autoResetTimer = null;
 
-    // Web Bluetooth 참조 (GATT 모드용)
+    // Web Bluetooth 참조
     let bluetoothDevice = null;
     let bluetoothCharacteristic = null;
 
     // ------------------------------------------------------------
-    // [2] 블루투스 방식 관리 및 UI 연동
-    // ------------------------------------------------------------
-    function setBtMethod(method) {
-      CONFIG.BT_METHOD = method;
-      localStorage.setItem('SOOPIA_BT_METHOD', method);
-
-      const btnSystem = document.getElementById('btnModeBtSystem');
-      const btnGatt = document.getElementById('btnModeBtGatt');
-      const guideText = document.getElementById('btMethodGuide');
-      const gattRow = document.getElementById('gattActionRow');
-
-      if (method === 'SYSTEM') {
-        btnSystem.style.background = 'rgba(56,189,248,0.25)';
-        btnSystem.style.color = '#38bdf8';
-        btnSystem.style.border = '1.5px solid #38bdf8';
-
-        btnGatt.style.background = 'rgba(15,23,42,0.6)';
-        btnGatt.style.color = '#94a3b8';
-        btnGatt.style.border = '1px solid #334155';
-
-        gattRow.style.display = 'none';
-        guideText.innerHTML = `
-          <strong style="color: #38bdf8;">TM-Utility 연동 모드 (추천):</strong><br>
-          • 태블릿과 TM-m30III가 이미 블루투스로 연결되어 있어 <strong>가장 안정적</strong>입니다.<br>
-          • [인쇄하기]를 터치하면 페어링된 TM-m30III로 즉시 출력됩니다.<br>
-          • <em>Epson Print Enabler 앱이 켜져 있으면 인쇄창 확인 없이 바로 출력됩니다.</em>
-        `;
-
-        if (btHeaderLabel) btHeaderLabel.innerText = "BT 연결됨 (TM-m30)";
-        if (btHeaderIcon) btHeaderIcon.style.fill = "#38bdf8";
-        if (hudConnectionMode) hudConnectionMode.innerText = "BLUETOOTH // TM-m30III";
-        if (hudPrinterStatus) hudPrinterStatus.innerText = "TM UTILITY READY";
-      } else {
-        btnGatt.style.background = 'rgba(56,189,248,0.25)';
-        btnGatt.style.color = '#38bdf8';
-        btnGatt.style.border = '1.5px solid #38bdf8';
-
-        btnSystem.style.background = 'rgba(15,23,42,0.6)';
-        btnSystem.style.color = '#94a3b8';
-        btnSystem.style.border = '1px solid #334155';
-
-        gattRow.style.display = 'flex';
-        guideText.innerHTML = `
-          <strong style="color: #38bdf8;">Web Bluetooth GATT 모드:</strong><br>
-          • 브라우저에서 직접 BLE 캐릭터리스틱을 통해 ESC/POS 바이너리를 전송합니다.<br>
-          • 아래 [Web Bluetooth 검색 및 페어링] 버튼을 눌러 TM-m30III를 연결해주세요.
-        `;
-
-        updateGattStatusUI(bluetoothDevice && bluetoothDevice.gatt.connected);
-      }
-    }
-
-    function updateGattStatusUI(connected) {
-      if (CONFIG.BT_METHOD !== 'GATT') return;
-
-      if (connected) {
-        if (btHeaderLabel) btHeaderLabel.innerText = "BLE 연결됨";
-        if (btHeaderIcon) btHeaderIcon.style.fill = "#38bdf8";
-        if (hudConnectionMode) hudConnectionMode.innerText = "BLE // CONNECTED";
-        if (hudPrinterStatus) hudPrinterStatus.innerText = "GATT READY";
-      } else {
-        if (btHeaderLabel) btHeaderLabel.innerText = "BLE 검색하기";
-        if (btHeaderIcon) btHeaderIcon.style.fill = "#94a3b8";
-        if (hudConnectionMode) hudConnectionMode.innerText = "BLE // WAITING";
-        if (hudPrinterStatus) hudPrinterStatus.innerText = "PAIR REQUIRED";
-      }
-    }
-
-    // ------------------------------------------------------------
-    // [3] Web Bluetooth GATT 연결 처리 (선택형)
-    // ------------------------------------------------------------
-    async function requestBluetoothConnection() {
-      if (CONFIG.BT_METHOD === 'SYSTEM') {
-        showToast("태블릿과 이미 페어링되어 있습니다! 바로 촬영 후 인쇄하세요.", "🎉");
-        return;
-      }
-
-      if (!navigator.bluetooth) {
-        showToast("현재 브라우저는 Web Bluetooth를 지원하지 않습니다. TM-Utility 모드를 사용하세요.", "⚠️");
-        return;
-      }
-
-      try {
-        showToast("주변 TM-m30III 블루투스를 검색합니다...", "📡");
-        const device = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: [
-            '000018f0-0000-1000-8000-00805f9b34fb', // ESC/POS Print Service
-            '0000ff00-0000-1000-8000-00805f9b34fb',
-            '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // Microchip ISSP
-          ]
-        });
-
-        bluetoothDevice = device;
-        device.addEventListener('gattserverdisconnected', () => {
-          updateGattStatusUI(false);
-          showToast("블루투스 연결이 해제되었습니다.", "🔌");
-        });
-
-        const server = await device.gatt.connect();
-        const services = await server.getPrimaryServices();
-
-        for (const service of services) {
-          const chars = await service.getCharacteristics();
-          for (const c of chars) {
-            if (c.properties.write || c.properties.writeWithoutResponse) {
-              bluetoothCharacteristic = c;
-              break;
-            }
-          }
-          if (bluetoothCharacteristic) break;
-        }
-
-        updateGattStatusUI(true);
-        showToast("Epson TM-m30III가 블루투스로 연결되었습니다!", "🎉");
-      } catch (err) {
-        console.warn("Bluetooth connection failed:", err);
-        if (err.name !== 'NotFoundError') {
-          showToast("블루투스 직결 실패: TM-Utility 연동 모드를 권장합니다.", "⚠️");
-        }
-      }
-    }
-
-    // ------------------------------------------------------------
-    // [4] ESC/POS 바이너리 빌더 (GATT 모드용)
-    // ------------------------------------------------------------
-    function buildEscPosRasterBinary(ditheredImageData, width, height) {
-      const bytesPerLine = width / 8; // 576 / 8 = 72 bytes
-      const rasterDataSize = bytesPerLine * height;
-
-      // 헤더: 프린터 초기화(ESC @) + 라인간격 0(ESC 3 0) + 래스터 비트맵 명령(GS v 0 0)
-      const header = [
-        0x1B, 0x40,             // ESC @
-        0x1B, 0x33, 0x00,       // ESC 3 0
-        0x1D, 0x76, 0x30, 0x00, // GS v 0 0
-        bytesPerLine & 0xFF, (bytesPerLine >> 8) & 0xFF,
-        height & 0xFF, (height >> 8) & 0xFF
-      ];
-
-      // 푸터: 피드 4줄(ESC d 4) + 자동 커팅(GS V 66 0)
-      const footer = [
-        0x1B, 0x64, 0x04,
-        0x1D, 0x56, 0x42, 0x00
-      ];
-
-      const fullBuffer = new Uint8Array(header.length + rasterDataSize + footer.length);
-      fullBuffer.set(header, 0);
-
-      let offset = header.length;
-      const data = ditheredImageData.data;
-
-      for (let y = 0; y < height; y++) {
-        for (let byteIdx = 0; byteIdx < bytesPerLine; byteIdx++) {
-          let byteVal = 0;
-          for (let bit = 0; bit < 8; bit++) {
-            const pxIndex = ((y * width) + (byteIdx * 8 + bit)) * 4;
-            if (data[pxIndex] < 128) {
-              byteVal |= (1 << (7 - bit));
-            }
-          }
-          fullBuffer[offset++] = byteVal;
-        }
-      }
-
-      fullBuffer.set(footer, offset);
-      return fullBuffer;
-    }
-
-    // ------------------------------------------------------------
-    // [5] 3컷 합성 및 흑백 디더링 (고해상도 576x1320 영수증 스티커)
+    // [2] 흑백 디더링 및 영수증 그래픽 생성
     // ------------------------------------------------------------
     function generateCompositeSticker() {
-      const w = 576;
-      const h = 1320;
+      const W = 576;
+      const H = 1320;
+      thermalCanvas.width = W;
+      thermalCanvas.height = H;
+      displayCanvas.width = W;
+      displayCanvas.height = H;
 
-      displayCanvas.width = w;
-      displayCanvas.height = h;
-      thermalCanvas.width = w;
-      thermalCanvas.height = h;
+      const ctx = thermalCtx;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, W, H);
 
-      // 1) 순백 바탕 채우기
-      displayCtx.fillStyle = '#ffffff';
-      displayCtx.fillRect(0, 0, w, h);
+      // 상단 타이틀 및 날짜
+      ctx.fillStyle = '#000000';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(CONFIG.FESTIVAL_TITLE, W / 2, 60);
 
-      // 2) 상단 헤더 텍스트
-      displayCtx.fillStyle = '#000000';
-      displayCtx.textAlign = 'center';
+      ctx.font = '16px monospace';
+      ctx.fillText('수피아여고 인공지능체험관 포토부스', W / 2, 92);
 
-      displayCtx.font = 'bold 28px -apple-system, sans-serif';
-      displayCtx.fillText(CONFIG.FESTIVAL_TITLE, w / 2, 54);
-
-      displayCtx.font = 'bold 20px -apple-system, sans-serif';
-      displayCtx.fillText("수피아여고 인공지능 포토부스", w / 2, 88);
-
-      // 구분 점선
-      drawDashedLine(displayCtx, 30, 110, w - 30, 110);
-
-      // 날짜 및 타임스탬프
-      const now = new Date();
-      const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-      displayCtx.font = '14px monospace';
-      displayCtx.fillText(`PRINTED: ${timeStr} [BT-SYNC]`, w / 2, 134);
-
-      // 3) 3컷 사진 렌더링 (균형 있는 3단 프레임)
-      const photoWidth = 516;
-      const photoHeight = 290;
-      const startX = 30;
-      const startY = 158;
-      const gapY = 308;
-
-      for (let i = 0; i < 3; i++) {
-        const curY = startY + (i * gapY);
-
-        // 사진 외곽선
-        displayCtx.strokeStyle = '#000000';
-        displayCtx.lineWidth = 2.5;
-        displayCtx.strokeRect(startX, curY, photoWidth, photoHeight);
-
-        if (capturedFrames[i]) {
-          displayCtx.drawImage(capturedFrames[i], startX + 2, curY + 2, photoWidth - 4, photoHeight - 4);
-        } else {
-          displayCtx.fillStyle = '#f1f5f9';
-          displayCtx.fillRect(startX + 2, curY + 2, photoWidth - 4, photoHeight - 4);
-          displayCtx.fillStyle = '#64748b';
-          displayCtx.font = 'bold 18px monospace';
-          displayCtx.fillText(`[ SHOT #${i + 1} ]`, w / 2, curY + (photoHeight / 2));
-        }
-      }
-
-      // 4) 하단 푸터 및 바코드 데코
-      const footerY = 1110;
-      drawDashedLine(displayCtx, 30, footerY, w - 30, footerY);
-
-      displayCtx.fillStyle = '#000000';
-      displayCtx.font = 'bold 18px -apple-system, sans-serif';
-      displayCtx.fillText(CONFIG.CLUB_NAME, w / 2, footerY + 34);
-
-      displayCtx.font = '13px monospace';
-      displayCtx.fillText("SPEER AI LAB // EPSON TM-m30III BLUETOOTH", w / 2, footerY + 58);
-
-      // 모의 바코드 렌더링
-      drawSimulatedBarcode(displayCtx, 60, footerY + 76, w - 120, 48);
-
-      displayCtx.font = '11px monospace';
-      displayCtx.fillText("* 소중한 추억을 간직하세요 *", w / 2, footerY + 144);
-
-      // 5) 감열 인쇄용 흑백 디더링 이미지 생성
-      createDitheredThermalData();
-    }
-
-    function drawDashedLine(ctx, x1, y1, x2, y2) {
+      // 점선 구분선
+      ctx.setLineDash([6, 6]);
       ctx.beginPath();
-      ctx.setLineDash([6, 5]);
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1.5;
+      ctx.moveTo(30, 115);
+      ctx.lineTo(W - 30, 115);
       ctx.stroke();
       ctx.setLineDash([]);
-    }
 
-    function drawSimulatedBarcode(ctx, x, y, width, height) {
-      const bars = 52;
-      const barWidth = width / bars;
-      ctx.fillStyle = '#000000';
-      for (let i = 0; i < bars; i++) {
-        if ((i * 7 + 3) % 5 !== 0) {
-          ctx.fillRect(x + (i * barWidth), y, barWidth * 0.75, height);
+      // 3컷 프레임 배치
+      const frameW = 516;
+      const frameH = 290;
+      const startX = 30;
+      const startY = 135;
+      const gap = 20;
+
+      for (let i = 0; i < 3; i++) {
+        const y = startY + i * (frameH + gap);
+        if (capturedFrames[i]) {
+          ctx.drawImage(capturedFrames[i], startX, y, frameW, frameH);
+        } else {
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(startX, y, frameW, frameH);
         }
+        // 사진 테두리
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(startX, y, frameW, frameH);
       }
+
+      // 하단 정보 영역
+      const bottomY = startY + 3 * (frameH + gap) + 15;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(30, bottomY);
+      ctx.lineTo(W - 30, bottomY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillText(CONFIG.CLUB_NAME, W / 2, bottomY + 35);
+      ctx.font = '15px monospace';
+      ctx.fillText(dateStr, W / 2, bottomY + 62);
+      ctx.font = '14px sans-serif';
+      ctx.fillText('소중한 추억을 간직하세요 ✨', W / 2, bottomY + 90);
+
+      // 화면 표시용 캔버스에 복사
+      displayCtx.drawImage(thermalCanvas, 0, 0);
     }
 
-    // Atkinson Dithering (감열 영수증 인쇄 최고 품질 알고리즘)
     function createDitheredThermalData() {
-      const w = 576;
-      const h = 1320;
-      const imgData = displayCtx.getImageData(0, 0, w, h);
+      const W = thermalCanvas.width;
+      const H = thermalCanvas.height;
+      const imgData = thermalCtx.getImageData(0, 0, W, H);
       const data = imgData.data;
 
-      // 그레이스케일 버퍼
-      const gray = new Float32Array(w * h);
+      // Floyd-Steinberg Dithering
+      const gray = new Float32Array(W * H);
       for (let i = 0; i < data.length; i += 4) {
-        gray[i / 4] = (data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114);
+        gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
       }
 
-      // 오차 확산 (Atkinson)
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const idx = (y * w) + x;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const idx = y * W + x;
           const oldVal = gray[idx];
           const newVal = oldVal < 128 ? 0 : 255;
-          const err = (oldVal - newVal) >> 3;
-
           gray[idx] = newVal;
+          const err = oldVal - newVal;
 
-          if (x + 1 < w) gray[idx + 1] += err;
-          if (x + 2 < w) gray[idx + 2] += err;
-          if (y + 1 < h) {
-            if (x - 1 >= 0) gray[idx + w - 1] += err;
-            gray[idx + w] += err;
-            if (x + 1 < w) gray[idx + w + 1] += err;
-          }
-          if (y + 2 < h) {
-            gray[idx + (w * 2)] += err;
-          }
+          if (x + 1 < W) gray[idx + 1] += (err * 7) / 16;
+          if (x - 1 >= 0 && y + 1 < H) gray[(y + 1) * W + (x - 1)] += (err * 3) / 16;
+          if (y + 1 < H) gray[(y + 1) * W + x] += (err * 5) / 16;
+          if (x + 1 < W && y + 1 < H) gray[(y + 1) * W + (x + 1)] += (err * 1) / 16;
         }
       }
 
-      // 캔버스 버퍼에 적용
-      for (let i = 0; i < gray.length; i++) {
-        const v = gray[i] < 128 ? 0 : 255;
-        const p = i * 4;
-        data[p] = v;
-        data[p + 1] = v;
-        data[p + 2] = v;
-        data[p + 3] = 255;
+      for (let i = 0; i < data.length; i += 4) {
+        const val = gray[i / 4];
+        data[i] = val;
+        data[i + 1] = val;
+        data[i + 2] = val;
       }
-
       thermalCtx.putImageData(imgData, 0, 0);
 
-      // 시스템 인쇄용 이미지 태그 업데이트
-      browserPrintImg.src = thermalCanvas.toDataURL('image/png');
+      // 브라우저 인쇄용 이미지 동기화
+      if (browserPrintImg) {
+        browserPrintImg.src = thermalCanvas.toDataURL('image/png');
+      }
     }
 
     // ------------------------------------------------------------
-    // [6] 인쇄 실행 파이프라인 (블루투스 다이렉트 출력)
+    // [6] 인쇄 실행 파이프라인 (프린터 선택 대화창 우회 다이렉트 출력)
     // ------------------------------------------------------------
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
@@ -780,48 +486,54 @@
 
       createDitheredThermalData();
 
-      // [방법 1] GATT 바이너리 직접 전송 모드
-      if (CONFIG.BT_METHOD === 'GATT' && bluetoothCharacteristic) {
-        try {
-          showToast("블루투스로 데이터 전송 중...", "⏳");
-          const binary = buildEscPosRasterBinary(
-            thermalCtx.getImageData(0, 0, thermalCanvas.width, thermalCanvas.height),
-            thermalCanvas.width,
-            thermalCanvas.height
-          );
+      try {
+        showToast("대화상자 없이 TM-m30III로 즉시 출력합니다...", "⚡");
 
-          // 512바이트 청크 단위 전송
-          const chunkSize = 512;
-          for (let i = 0; i < binary.length; i += chunkSize) {
-            const chunk = binary.subarray(i, i + chunkSize);
-            if (bluetoothCharacteristic.writeValueWithoutResponse) {
-              await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
-            } else {
-              await bluetoothCharacteristic.writeValue(chunk);
-            }
-            await sleep(15);
-          }
+        // 1) 흑백 디더링 이미지의 래스터 Base64 추출
+        const dataUrl = thermalCanvas.toDataURL('image/png');
+        const base64Data = dataUrl.split(',')[1];
 
-          showToast("출력이 완료되었습니다! 스티커를 확인하세요.", "🎉");
-          printBtnLabel.innerText = "인쇄 완료!";
-          setTimeout(resetBoothToCamera, 3500);
-          return;
+        // 2) ePOS-Print XML 규격 구성
+        const eposXml = `<?xml version="1.0" encoding="utf-8"?>
+<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+  <image width="${thermalCanvas.width}" height="${thermalCanvas.height}">${base64Data}</image>
+  <cut type="feed"/>
+</epos-print>`;
 
-        } catch (err) {
-          console.warn("GATT Write Failed, fallback to system:", err);
-          showToast("GATT 전송 지연: TM-Utility 연동 모드로 전환합니다.", "⚠️");
-        }
+        // 3) Epson 공식 URL Scheme 호출 (무대화상자 다이렉트 전송)
+        const encodedXml = encodeURIComponent(eposXml);
+        const currentUrl = encodeURIComponent(window.location.href);
+        const schemeUrl = `epson-tmassistant://print?data=${encodedXml}&back=${currentUrl}`;
+
+        // 안드로이드 인텐트 또는 스킴으로 이동하여 백그라운드 인쇄
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = schemeUrl;
+        document.body.appendChild(iframe);
+
+        setTimeout(() => {
+          // iframe으로 응답 없을 시 직접 location 전환 폴백
+          window.location.href = schemeUrl;
+        }, 250);
+
+        printBtnLabel.innerText = "출력 완료!";
+        setTimeout(() => {
+          if (document.body.contains(iframe)) document.body.removeChild(iframe);
+          resetBoothToCamera();
+        }, 3500);
+        return;
+
+      } catch (err) {
+        console.warn("Assistant dispatch error:", err);
+        // 시스템 인쇄창 폴백
+        showToast("인쇄창에서 TM-m30III를 선택해 주세요.", "🖨️");
+        setTimeout(() => {
+          window.print();
+          printActionBtn.disabled = false;
+          printBtnLabel.innerText = "블루투스로 인쇄하기";
+          setTimeout(resetBoothToCamera, 4000);
+        }, 300);
       }
-
-      // [방법 2] TM-Utility / Epson Print Enabler 연동 모드 (기본 & 권장)
-      showToast("블루투스 프린터(TM-m30III)로 인쇄를 실행합니다.", "🖨️");
-
-      setTimeout(() => {
-        window.print();
-        printActionBtn.disabled = false;
-        printBtnLabel.innerText = "블루투스로 인쇄하기";
-        setTimeout(resetBoothToCamera, 4000);
-      }, 300);
     }
 
     // ------------------------------------------------------------
@@ -910,8 +622,6 @@
     // [8] 웹캠 초기화 (안전 다단계 폴백)
     // ------------------------------------------------------------
     async function initWebcam() {
-      setBtMethod(CONFIG.BT_METHOD);
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
@@ -933,7 +643,7 @@
     }
 
     // ------------------------------------------------------------
-    // [9] 전체화면 & 설정 모달
+    // [9] 전체화면 토글
     // ------------------------------------------------------------
     function toggleFullscreen() {
       const doc = document.documentElement;
@@ -960,27 +670,6 @@
 
     document.addEventListener('fullscreenchange', syncFullscreenUI);
     document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
-
-    function toggleConfigModal(show) {
-      const modal = document.getElementById('configModal');
-      if (show) {
-        setBtMethod(CONFIG.BT_METHOD);
-        modal.style.display = 'flex';
-      } else {
-        modal.style.display = 'none';
-      }
-    }
-
-    function saveConfigModal() {
-      toggleConfigModal(false);
-      showToast("설정이 확인되었습니다.", "💾");
-    }
-
-    function testPrintSample() {
-      showToast("테스트 인쇄를 전송합니다...", "🖨️");
-      generateCompositeSticker();
-      printReceiptSticker();
-    }
 
     // ------------------------------------------------------------
     // [10] 유틸리티
