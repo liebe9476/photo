@@ -95,9 +95,9 @@
       transform: scale(0.97);
     }
 
-    /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 규격 좌우 여백 0, 전폭 100% 꽉 채움) */
+    /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 전폭 100% 가득 채움) */
     @page {
-      size: 80mm 105mm !important;
+      size: 80mm auto !important;
       margin: 0 !important;
       padding: 0 !important;
     }
@@ -112,13 +112,12 @@
         width: 80mm !important;
         max-width: 80mm !important;
         min-width: 80mm !important;
-        height: 105mm !important;
-        max-height: 105mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         color: #000000 !important;
-        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       body * {
         display: none !important;
@@ -133,22 +132,21 @@
         top: 0 !important;
         left: 0 !important;
         width: 100% !important;
-        height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         page-break-inside: avoid !important;
         page-break-after: avoid !important;
         break-inside: avoid !important;
         break-after: avoid !important;
-        overflow: hidden !important;
       }
       #browserPrintZone img {
         width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
-        max-height: 105mm !important;
         display: block !important;
         margin: 0 auto !important;
         padding: 0 !important;
+        image-rendering: -webkit-optimize-contrast !important;
         image-rendering: pixelated !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -270,12 +268,12 @@
     <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px; margin-top: 6px;">
 
       <!-- 좌측: 영수증 스티커 캔버스 미리보기 (컬러 모드로 선명하게 노출) -->
-      <div style="height: 64vh; max-height: 560px; min-height: 380px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
-        <div class="receipt-edge" style="height: 100%; aspect-ratio: 576/650; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
+      <div style="height: 68vh; max-height: 590px; min-height: 400px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
+        <div class="receipt-edge" style="height: 100%; aspect-ratio: 576/850; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
           <!-- 이미지 태그를 우선 활용하여 캔버스 컬러 렌더링 결과를 완벽하게 표시 -->
           <img id="stickerPreviewImg" alt="영수증 미리보기"
                style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: -webkit-optimize-contrast; background: #ffffff;" />
-          <canvas id="stickerDisplayCanvas" width="576" height="650" style="display: none;"></canvas>
+          <canvas id="stickerDisplayCanvas" width="576" height="850" style="display: none;"></canvas>
         </div>
       </div>
 
@@ -323,7 +321,7 @@
   </main>
 
   <!-- 3. 백그라운드 캔버스 및 감열 인쇄 DOM 영역 -->
-  <canvas id="thermalStripCanvas" width="576" height="650" style="display: none;"></canvas>
+  <canvas id="thermalStripCanvas" width="576" height="850" style="display: none;"></canvas>
   <div id="browserPrintZone" style="display: none;">
     <img id="browserPrintImg" src="" alt="print-strip" />
   </div>
@@ -374,13 +372,13 @@
     let finalDitheredDataUrl = '';
 
     // ------------------------------------------------------------
-    // [4] 1컷 영수증 합성 (TM-m30III 물리 헤드 규격 576 x 650 1:1 도트 매핑)
+    // [4] 1컷 대형 영수증 합성 (80mm 롤 폭 100% 꽉 채움: 576 x 850)
     // ------------------------------------------------------------
     function generateCompositeColorSticker() {
-      // TM-m30III 80mm(유효 72mm) 규격 물리 도트 수: 정확히 576px
-      // 1페이지(약 100mm) 규격 최적화 높이: 650px (2페이지 초과 원천 방지)
+      // TM-m30III 80mm 규격 물리 도트 수: 576px
+      // 1장 가득 시원하게 채우는 황금 비율 높이: 850px
       const W = 576;
-      const H = 650;
+      const H = 850;
 
       displayCanvas.width = W;
       displayCanvas.height = H;
@@ -396,32 +394,32 @@
       displayCtx.textAlign = 'center';
 
       // 상단 헤더
-      displayCtx.font = 'bold 30px -apple-system, sans-serif';
-      displayCtx.fillText('★ 2026 수피아 AI·SW ★', W / 2, 42);
+      displayCtx.font = 'bold 32px -apple-system, sans-serif';
+      displayCtx.fillText('★ 2026 수피아 AI·SW ★', W / 2, 46);
 
-      displayCtx.font = 'bold 22px -apple-system, sans-serif';
-      displayCtx.fillText('수피아여고 포토 영수증', W / 2, 72);
+      displayCtx.font = 'bold 24px -apple-system, sans-serif';
+      displayCtx.fillText('수피아여고 포토 영수증', W / 2, 80);
 
-      displayCtx.font = 'bold 15px monospace';
+      displayCtx.font = 'bold 16px monospace';
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-      displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 96);
+      displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 108);
 
       // 상단 점선 구분선
-      displayCtx.lineWidth = 2.5;
+      displayCtx.lineWidth = 3;
       displayCtx.strokeStyle = '#000000';
       displayCtx.beginPath();
       displayCtx.setLineDash([8, 6]);
-      displayCtx.moveTo(16, 110);
-      displayCtx.lineTo(W - 16, 110);
+      displayCtx.moveTo(16, 122);
+      displayCtx.lineTo(W - 16, 122);
       displayCtx.stroke();
       displayCtx.setLineDash([]);
 
-      // 1컷 사진 영역: 528 x 390 (용지 전폭 꽉 채움)
-      const imgW = 528;
-      const imgH = 390;
-      const startX = 24;
-      const startY = 120;
+      // 1컷 대형 사진 영역: 544 x 544 (용지 좌우 여백 없이 꽉 채우는 대형 정방형 포토)
+      const imgW = 544;
+      const imgH = 544;
+      const startX = 16;
+      const startY = 136;
 
       // 외곽 블랙 테두리
       displayCtx.fillStyle = '#000000';
@@ -453,7 +451,7 @@
       }
 
       // 하단 점선 구분선
-      const bottomLineY = startY + imgH + 16;
+      const bottomLineY = startY + imgH + 20;
       displayCtx.beginPath();
       displayCtx.setLineDash([8, 6]);
       displayCtx.moveTo(16, bottomLineY);
@@ -463,20 +461,20 @@
 
       // 하단 푸터 텍스트
       displayCtx.fillStyle = '#000000';
-      displayCtx.font = 'bold 22px -apple-system, sans-serif';
-      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 28);
+      displayCtx.font = 'bold 24px -apple-system, sans-serif';
+      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 34);
 
-      displayCtx.font = 'bold 15px monospace';
-      displayCtx.fillText(CONFIG.CLUB_NAME, W / 2, bottomLineY + 48);
+      displayCtx.font = 'bold 16px monospace';
+      displayCtx.fillText(CONFIG.CLUB_NAME, W / 2, bottomLineY + 58);
 
-      // 모의 바코드
-      const bcY = bottomLineY + 58;
-      const bcH = 26;
-      let bcX = 36;
-      while (bcX < W - 36) {
-        const barWidth = (Math.sin(bcX * 12.3) > 0) ? 3 : 2;
+      // 모의 바코드 (좌우 꽉 찬 형태)
+      const bcY = bottomLineY + 70;
+      const bcH = 34;
+      let bcX = 28;
+      while (bcX < W - 28) {
+        const barWidth = (Math.sin(bcX * 12.3) > 0) ? 3.5 : 2;
         displayCtx.fillRect(bcX, bcY, barWidth, bcH);
-        bcX += barWidth + ((Math.cos(bcX * 5.7) > 0) ? 3 : 2);
+        bcX += barWidth + ((Math.cos(bcX * 5.7) > 0) ? 3.5 : 2);
       }
 
       // 컬러 미리보기 생성
@@ -487,7 +485,7 @@
     }
 
     // ------------------------------------------------------------
-    // [5] 고선명 감열 디더링 (Atkinson 알고리즘 + 윤곽선 강조 + 적응형 대비)
+    // [5] 고선명 감열 디더링 (대형 포토 Atkinson 알고리즘 + 윤곽선 강조)
     // ------------------------------------------------------------
     function applyDitheringForThermalPrint() {
       const W = displayCanvas.width;
@@ -502,24 +500,27 @@
       // 1. 고정밀 인지 밝기 추출
       const gray = new Float32Array(W * H);
       for (let i = 0; i < data.length; i += 4) {
-        // 인지적 휘도 공식
         const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
         gray[i / 4] = lum;
       }
 
-      // 2. 사진 영역 적응형 대비 강화 및 피부톤 클리핑 방지
-      // 사진 박스 영역: y: 120 ~ 510, x: 24 ~ 552
+      // 2. 사진 영역 적응형 대비 강화 (사진 박스 영역: startX:16, startY:136, imgW:544, imgH:544)
+      const photoTop = 134;
+      const photoBottom = 136 + 544 + 2;
+      const photoLeft = 14;
+      const photoRight = 16 + 544 + 2;
+
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
           const idx = y * W + x;
           let val = gray[idx];
 
-          if (y >= 118 && y <= 512 && x >= 22 && x <= 554) {
-            // 사진 영역: 감마 보정으로 밝은 톤 부스팅 + 고대비 S-커브
+          if (y >= photoTop && y <= photoBottom && x >= photoLeft && x <= photoRight) {
+            // 사진 영역: 감마 보정 + 고대비 S-커브로 피부톤은 화사하게, 이목구비는 뚜렷하게
             val = Math.pow(val / 255, 1 / 1.4) * 255;
             val = (val - 128) * 1.45 + 128;
           } else {
-            // 텍스트/바코드 영역: 순수 블랙/화이트 대비 극대화
+            // 텍스트/바코드/구분선 영역: 순수 블랙/화이트 대비 극대화
             val = val < 170 ? 0 : 255;
           }
           if (val < 0) val = 0;
@@ -528,13 +529,13 @@
         }
       }
 
-      // 3. 언샵 마스크 윤곽선 샤프닝 필터 (인물 이목구비 선명도 대폭 향상)
+      // 3. 언샵 마스크 윤곽선 샤프닝 필터
       const sharpened = new Float32Array(W * H);
       for (let y = 1; y < H - 1; y++) {
         for (let x = 1; x < W - 1; x++) {
           const idx = y * W + x;
           const center = gray[idx];
-          if (y >= 118 && y <= 512 && x >= 22 && x <= 554) {
+          if (y >= photoTop && y <= photoBottom && x >= photoLeft && x <= photoRight) {
             const edge = center * 4 - gray[idx - 1] - gray[idx + 1] - gray[idx - W] - gray[idx + W];
             let v = center + edge * 0.45;
             if (v < 0) v = 0;
@@ -546,14 +547,14 @@
         }
       }
 
-      // 4. Atkinson 디더링 알고리즘 적용 (감열지 특유의 번짐 없는 가장 깨끗하고 날카로운 도트 패턴)
+      // 4. Atkinson 디더링 알고리즘 (감열지 특유의 번짐 없는 깔끔한 도트 패턴)
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
           const idx = y * W + x;
           const oldVal = sharpened[idx];
           const newVal = oldVal < 128 ? 0 : 255;
           sharpened[idx] = newVal;
-          const err = (oldVal - newVal) >> 3; // Atkinson은 1/8 오차만 확산하여 클러스터링과 선명도가 극대화됨
+          const err = (oldVal - newVal) >> 3;
 
           if (err !== 0) {
             if (x + 1 < W) sharpened[idx + 1] += err;
@@ -581,7 +582,7 @@
     }
 
     // ------------------------------------------------------------
-    // [6] 인쇄 실행 파이프라인 (엄격한 1페이지 롤 인쇄 & 자동 절단 유도)
+    // [6] 인쇄 실행 파이프라인 (80mm 롤 폭 100% 꽉 채우는 풀블리드 인쇄)
     // ------------------------------------------------------------
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
@@ -593,7 +594,7 @@
 
         showToast("인쇄 데이터를 프린터로 전송합니다...", "🖨️");
 
-        // iframe 내에 엄격한 80mm x 105mm 단 1페이지 규격 주입
+        // iframe 내에 80mm auto 규격 주입 (높이 제한 해제로 가로 100% 꽉 참)
         const iframeDoc = thermalPrintIframe.contentDocument || thermalPrintIframe.contentWindow.document;
         iframeDoc.open();
         iframeDoc.write(`
@@ -603,7 +604,7 @@
             <meta charset="utf-8">
             <style>
               @page {
-                size: 80mm 105mm !important;
+                size: 80mm auto !important;
                 margin: 0 !important;
                 padding: 0 !important;
               }
@@ -615,12 +616,10 @@
               html, body {
                 width: 80mm !important;
                 max-width: 80mm !important;
-                height: 105mm !important;
-                max-height: 105mm !important;
+                min-width: 80mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
-                overflow: hidden !important;
                 page-break-inside: avoid !important;
                 page-break-after: avoid !important;
                 break-inside: avoid !important;
@@ -628,8 +627,6 @@
               }
               .thermal-wrapper {
                 width: 100% !important;
-                height: 105mm !important;
-                max-height: 105mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 display: flex !important;
@@ -638,15 +635,15 @@
                 justify-content: flex-start !important;
                 page-break-inside: avoid !important;
                 page-break-after: avoid !important;
-                overflow: hidden !important;
               }
               img {
                 width: 100% !important;
+                max-width: 100% !important;
                 height: auto !important;
-                max-height: 105mm !important;
                 display: block !important;
                 margin: 0 auto !important;
                 padding: 0 !important;
+                image-rendering: -webkit-optimize-contrast !important;
                 image-rendering: pixelated !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
