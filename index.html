@@ -95,9 +95,9 @@
       transform: scale(0.97);
     }
 
-    /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 롤 유효 인쇄폭 72mm 100% 전폭 매핑) */
+    /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 롤 좌우 전폭 매핑) */
     @page {
-      size: 72mm 120mm !important;
+      size: 80mm auto !important;
       margin: 0mm !important;
       padding: 0mm !important;
     }
@@ -110,7 +110,8 @@
       }
       html, body {
         width: 100% !important;
-        height: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -132,6 +133,8 @@
         top: 0 !important;
         left: 0 !important;
         width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         page-break-inside: avoid !important;
@@ -141,9 +144,11 @@
       }
       #browserPrintZone img {
         width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
         display: block !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -398,8 +403,8 @@
       const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
       displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 95);
 
-      // 상단 점선 구분선 (좌우 여백 24px)
-      const marginX = 24;
+      // 상단 점선 구분선 (용지 좌우 끝까지 꽉 차도록 여백 10px로 최적화)
+      const marginX = 10;
       displayCtx.lineWidth = 2.5;
       displayCtx.strokeStyle = '#000000';
       displayCtx.beginPath();
@@ -409,8 +414,8 @@
       displayCtx.stroke();
       displayCtx.setLineDash([]);
 
-      // 뷰파인더 1:1 비율 그대로 일치시키는 사진 영역: 528 x 468
-      const imgW = W - (marginX * 2); // 528px
+      // 뷰파인더 1:1 비율 그대로 일치시키며 용지 폭에 꽉 찬 사진 영역 (556 x 468)
+      const imgW = W - (marginX * 2); // 556px (좌우 꽉 찬 너비)
       const imgH = 468;
       const startX = marginX;
       const startY = 118;
@@ -469,7 +474,7 @@
       const data = imgData.data;
 
       // 사진 영역 경계
-      const marginX = 24;
+      const marginX = 10;
       const photoTop = 118;
       const photoBottom = 118 + 468;
       const photoLeft = marginX;
@@ -523,7 +528,7 @@
 
         showToast("인쇄 데이터를 프린터로 전송합니다...", "🖨️");
 
-        // iframe 내에 Epson 80mm 롤 유효폭(72mm) 1페이지 규격 주입
+        // iframe 내에 Epson 80mm 롤 전폭 매핑 규격 주입
         const iframeDoc = thermalPrintIframe.contentDocument || thermalPrintIframe.contentWindow.document;
         iframeDoc.open();
         iframeDoc.write(`
@@ -534,7 +539,7 @@
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
               @page {
-                size: 72mm 120mm !important;
+                size: 80mm auto !important;
                 margin: 0mm !important;
                 padding: 0mm !important;
               }
@@ -545,7 +550,8 @@
               }
               html, body {
                 width: 100% !important;
-                height: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
@@ -560,21 +566,21 @@
               }
               .thermal-wrapper {
                 width: 100% !important;
-                height: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                display: flex !important;
-                align-items: flex-start !important;
-                justify-content: center !important;
+                display: block !important;
                 page-break-inside: avoid !important;
                 page-break-after: avoid !important;
               }
               img {
                 width: 100% !important;
+                min-width: 100% !important;
                 max-width: 100% !important;
                 height: auto !important;
                 display: block !important;
-                margin: 0 auto !important;
+                margin: 0 !important;
                 padding: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
