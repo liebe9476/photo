@@ -254,11 +254,13 @@
     <!-- [B] 결과 화면 (가로/세로 완벽 핏 영수증 미리보기 + 블루투스 출력) -->
     <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px; margin-top: 6px;">
 
-      <!-- 좌측: 영수증 스티커 캔버스 미리보기 (화면 밖으로 나가지 않도록 세로 높이 기준 잠금) -->
-      <div style="height: 62vh; max-height: 560px; width: auto; display: flex; align-items: center; justify-content: center; padding: 10px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
-        <div class="receipt-edge" style="height: 100%; width: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 6px 8px;">
-          <canvas id="stickerDisplayCanvas" width="576" height="1320"
-                  style="height: 100%; width: auto; max-width: 270px; object-fit: contain; display: block; pointer-events: none;"></canvas>
+      <!-- 좌측: 영수증 스티커 캔버스 미리보기 (화면 밖으로 나가지 않도록 세로 높이 기준 잠금 & 선명한 핏) -->
+      <div style="height: 64vh; max-height: 560px; min-height: 380px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
+        <div class="receipt-edge" style="height: 100%; aspect-ratio: 576/1320; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
+          <!-- 이미지 태그를 우선 활용하여 캔버스 렌더링 결과를 완벽하게 표시 -->
+          <img id="stickerPreviewImg" alt="영수증 미리보기"
+               style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: -webkit-optimize-contrast; background: #ffffff;" />
+          <canvas id="stickerDisplayCanvas" width="576" height="1320" style="display: none;"></canvas>
         </div>
       </div>
 
@@ -325,11 +327,9 @@
     // 1. 시스템 설정 (CONFIG)
     // ==========================================
     const CONFIG = {
-      // Epson TM Print Assistant 무대화상자 다이렉트 고정
-      BT_METHOD: 'ASSISTANT',
       AUTO_RESET_SECONDS: 45,
-      FESTIVAL_TITLE: '2026 AI·SW 체험 한마당',
-      CLUB_NAME: 'SPEER 인공지능공학연구반'
+      FESTIVAL_TITLE: '2026 수피아 AI·SW',
+      CLUB_NAME: 'SPEER HIGH SCHOOL // AI LAB'
     };
 
     // DOM 요소
@@ -347,6 +347,7 @@
     const printBtnLabel = document.getElementById('printBtnLabel');
     const displayCanvas = document.getElementById('stickerDisplayCanvas');
     const displayCtx = displayCanvas.getContext('2d');
+    const stickerPreviewImg = document.getElementById('stickerPreviewImg');
     const thermalCanvas = document.getElementById('thermalStripCanvas');
     const thermalCtx = thermalCanvas.getContext('2d');
     const browserPrintZone = document.getElementById('browserPrintZone');
@@ -356,11 +357,14 @@
     let autoResetTimer = null;
 
     // ------------------------------------------------------------
-    // [4] 영수증 스티커 합성 (Canvas Rendering)
+    // [4] 영수증 스티커 합성 (Canvas Rendering -> Preview Image 출력)
     // ------------------------------------------------------------
     function generateCompositeSticker() {
       const W = 576;
       const H = 1320;
+
+      displayCanvas.width = W;
+      displayCanvas.height = H;
 
       // 1. 흰색 바탕 클리어
       displayCtx.fillStyle = '#ffffff';
@@ -370,22 +374,24 @@
       displayCtx.textAlign = 'center';
 
       // 상단 헤더
-      displayCtx.font = 'bold 30px sans-serif';
-      displayCtx.fillText('★ 2026 수피아 AI·SW ★', W / 2, 50);
+      displayCtx.font = 'bold 32px sans-serif';
+      displayCtx.fillText('★ 2026 수피아 AI·SW ★', W / 2, 54);
 
       displayCtx.font = 'bold 21px sans-serif';
-      displayCtx.fillText('포토부스 영수증 스티커', W / 2, 85);
+      displayCtx.fillText('포토부스 영수증 스티커', W / 2, 88);
 
       displayCtx.font = '15px monospace';
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-      displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 115);
+      displayCtx.fillText(`DATE: ${dateStr}`, W / 2, 118);
 
-      // 점선 구분선
+      // 상단 점선 구분선
+      displayCtx.lineWidth = 2;
+      displayCtx.strokeStyle = '#000000';
       displayCtx.beginPath();
       displayCtx.setLineDash([6, 6]);
-      displayCtx.moveTo(24, 130);
-      displayCtx.lineTo(W - 24, 130);
+      displayCtx.moveTo(24, 134);
+      displayCtx.lineTo(W - 24, 134);
       displayCtx.stroke();
       displayCtx.setLineDash([]);
 
@@ -393,20 +399,38 @@
       const imgW = 512;
       const imgH = 295;
       const startX = 32;
-      const startY = 145;
+      const startY = 150;
       const gapY = 320;
 
       for (let i = 0; i < 3; i++) {
         const frame = capturedFrames[i];
         const curY = startY + (i * gapY);
 
-        if (frame) {
-          // 사진 외곽 테두리
-          displayCtx.fillStyle = '#000000';
-          displayCtx.fillRect(startX - 2, curY - 2, imgW + 4, imgH + 4);
+        // 사진 외곽 테두리 (블랙 프레임)
+        displayCtx.fillStyle = '#000000';
+        displayCtx.fillRect(startX - 2, curY - 2, imgW + 4, imgH + 4);
 
-          // 사진 본체 (16:9 비율 크롭 드로잉)
-          displayCtx.drawImage(frame, startX, curY, imgW, imgH);
+        if (frame) {
+          try {
+            // 프레임 중앙 정렬 비율 크롭 렌더링
+            const fW = frame.width || 1280;
+            const fH = frame.height || 720;
+            const targetRatio = imgW / imgH;
+            const frameRatio = fW / fH;
+            let sx = 0, sy = 0, sw = fW, sh = fH;
+
+            if (frameRatio > targetRatio) {
+              sw = fH * targetRatio;
+              sx = (fW - sw) / 2;
+            } else {
+              sh = fW / targetRatio;
+              sy = (fH - sh) / 2;
+            }
+            displayCtx.drawImage(frame, sx, sy, sw, sh, startX, curY, imgW, imgH);
+          } catch (e) {
+            console.error("Frame draw error:", e);
+            displayCtx.drawImage(frame, startX, curY, imgW, imgH);
+          }
         } else {
           displayCtx.fillStyle = '#e2e8f0';
           displayCtx.fillRect(startX, curY, imgW, imgH);
@@ -414,7 +438,7 @@
       }
 
       // 하단 점선 구분선
-      const bottomLineY = startY + (3 * gapY);
+      const bottomLineY = startY + (3 * gapY) - 5;
       displayCtx.beginPath();
       displayCtx.setLineDash([6, 6]);
       displayCtx.moveTo(24, bottomLineY);
@@ -424,21 +448,26 @@
 
       // 하단 푸터 텍스트
       displayCtx.fillStyle = '#000000';
-      displayCtx.font = 'bold 18px sans-serif';
-      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 30);
+      displayCtx.font = 'bold 19px sans-serif';
+      displayCtx.fillText('광주수피아여자고등학교', W / 2, bottomLineY + 34);
 
       displayCtx.font = '14px monospace';
-      displayCtx.fillText('SPEER HIGH SCHOOL // AI LAB', W / 2, bottomLineY + 54);
+      displayCtx.fillText(CONFIG.CLUB_NAME, W / 2, bottomLineY + 58);
 
       // 모의 바코드 렌더링
-      const bcY = bottomLineY + 70;
+      const bcY = bottomLineY + 74;
       const bcH = 34;
-      displayCtx.fillStyle = '#000000';
       let bcX = 64;
       while (bcX < W - 64) {
         const barWidth = (Math.sin(bcX * 12.3) > 0) ? 3 : 1.5;
         displayCtx.fillRect(bcX, bcY, barWidth, bcH);
         bcX += barWidth + ((Math.cos(bcX * 5.7) > 0) ? 3 : 2);
+      }
+
+      // [중요] 미리보기용 <img> 태그에 즉시 dataURL 바인딩 (Canvas 렌더링 붕 뜸/누락 완벽 방지)
+      const dataUrl = displayCanvas.toDataURL('image/png');
+      if (stickerPreviewImg) {
+        stickerPreviewImg.src = dataUrl;
       }
     }
 
@@ -592,7 +621,7 @@
         await sleep(600);
       }
 
-      // 촬영 완료 -> 영수증 스티커 합성 및 결과 화면 전환
+      // 촬영 완료 -> 영수증 스티커 합성 및 미리보기 이미지 갱신
       generateCompositeSticker();
 
       captureSection.style.display = 'none';
