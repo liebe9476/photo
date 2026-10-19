@@ -29,6 +29,16 @@
       overflow: hidden;
     }
 
+    /* 사이버네틱 테크 그리드 배경 이미지 패턴 */
+    .bg-tech-pattern {
+      background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 70%);
+      background-size: 48px 48px, 48px 48px, 100% 100%;
+      background-position: center center;
+    }
+
     /* 거울 모드 비디오 */
     .mirror-video {
       transform: scaleX(-1);
@@ -58,20 +68,16 @@
     .bracket-bl { bottom: 12px; left: 12px; border-bottom: 3px solid #38bdf8; border-left: 3px solid #38bdf8; }
     .bracket-br { bottom: 12px; right: 12px; border-bottom: 3px solid #38bdf8; border-right: 3px solid #38bdf8; }
 
-    /* 영수증 종이 느낌의 그림자 및 절취선 */
+    /* 영수증 종이 느낌의 그림자 */
     .receipt-shadow {
       box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.2);
     }
-    .receipt-zigzag {
-      background: radial-gradient(circle, transparent, transparent 50%, #ffffff 50%, #ffffff 100%);
-      background-size: 14px 14px;
-    }
   </style>
 </head>
-<body class="h-[100dvh] w-full flex flex-col justify-between p-2 sm:p-4 select-none">
+<body class="h-[100dvh] w-full flex flex-col justify-between p-2 sm:p-4 select-none relative bg-tech-pattern">
 
-  <!-- 1. 헤더 영역 (여유로운 상하 여백, 완전 중앙 정렬) -->
-  <header class="w-full flex-shrink-0 relative py-2 sm:py-3.5 mb-1 sm:mb-2 text-center">
+  <!-- 1. 헤더 영역 (적절히 아래로 내린 상단 여백, 완전 중앙 정렬) -->
+  <header class="w-full flex-shrink-0 relative pt-3.5 sm:pt-5 pb-2 sm:pb-3 mb-1 sm:mb-2 text-center">
     <div class="flex items-center justify-center gap-2">
       <div class="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
         <i class="fa-solid fa-camera-retro text-lg"></i>
@@ -98,7 +104,7 @@
     <!-- (A) 촬영 전 뷰파인더 화면 -->
     <div id="captureSection" class="w-full h-full flex flex-col items-center justify-start relative max-w-4xl px-2">
       <!-- 카메라 사각 프레임 -->
-      <div class="relative w-full aspect-video max-h-[55vh] sm:max-h-[58vh] bg-black border-2 border-sky-500/60 shadow-[0_0_30px_rgba(56,189,248,0.25)] overflow-hidden flex items-center justify-center">
+      <div class="relative w-full aspect-video max-h-[52vh] sm:max-h-[55vh] bg-black border-2 border-sky-500/60 shadow-[0_0_30px_rgba(56,189,248,0.25)] overflow-hidden flex items-center justify-center">
         <!-- 웹캠 비디오 -->
         <video id="webcam" class="w-full h-full object-cover mirror-video" autoplay playsinline muted></video>
 
@@ -108,7 +114,7 @@
         <div class="corner-bracket bracket-bl"></div>
         <div class="corner-bracket bracket-br"></div>
 
-        <!-- 카메라 상단 HUD 정보 (적절한 중간 여백 & 얇은 일반 폰트) -->
+        <!-- 카메라 상단 HUD 정보 (적절한 중간 여백, 그림자 없는 얇은 일반 폰트) -->
         <div class="absolute top-4 left-8 right-8 flex items-center justify-between text-xs sm:text-sm font-mono text-sky-300 font-normal tracking-wider pointer-events-none z-10">
           <span class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
@@ -126,7 +132,7 @@
           <div class="absolute h-28 w-px bg-sky-400"></div>
         </div>
 
-        <!-- 하단 브랜딩 레터링 (적절한 중간 여백 & 얇은 일반 폰트) -->
+        <!-- 하단 브랜딩 레터링 (적절한 중간 여백, 그림자 없는 얇은 일반 폰트) -->
         <div class="absolute bottom-4 left-8 right-8 flex items-center justify-between pointer-events-none z-10 text-xs sm:text-sm font-mono font-normal tracking-wider">
           <span class="text-sky-300 flex items-center">
             <i class="fa-solid fa-microchip text-sky-400 mr-2"></i>SPEER 인공지능공학연구반
@@ -148,7 +154,7 @@
       </div>
 
       <!-- 뷰파인더 하단: 3컷 촬영 실시간 썸네일 프리뷰 트레이 -->
-      <div class="w-full flex items-center justify-center gap-3 sm:gap-4 mt-2 sm:mt-2.5 px-2">
+      <div class="w-full flex items-center justify-center gap-3 sm:gap-4 mt-6 sm:mt-8 px-2">
         <!-- 컷 1 썸네일 -->
         <div id="thumbSlot1" class="relative flex-1 max-w-[170px] aspect-[2/1] bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
           <canvas id="thumbCanvas1" class="w-full h-full object-cover hidden"></canvas>
@@ -222,7 +228,7 @@
     </div>
   </main>
 
-  <!-- 3. 하단 컨트롤러 바 (첫 화면: 촬영 시작 버튼 - 뷰파인더 아래로 바짝 상향 이동) -->
+  <!-- 3. 하단 컨트롤러 바 (첫 화면: 촬영 시작 버튼 - 뷰파인더 아래로 상향 배치) -->
   <footer class="w-full flex-shrink-0 pt-0 pb-2 sm:pb-3 flex items-center justify-center -mt-5 sm:-mt-6 z-10">
     <div id="startBtnContainer" class="w-full max-w-xl px-2">
       <button id="startBtn" onclick="startPhotoShoot()" 
