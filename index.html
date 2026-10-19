@@ -47,32 +47,32 @@
     /* 사각 프레임 코너 브래킷 (HUD 데코레이션) */
     .hud-corner {
       position: absolute;
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       pointer-events: none;
       z-index: 15;
     }
     .hud-tl {
-      top: 10px;
-      left: 10px;
+      top: 8px;
+      left: 8px;
       border-top: 3px solid #38bdf8;
       border-left: 3px solid #38bdf8;
     }
     .hud-tr {
-      top: 10px;
-      right: 10px;
+      top: 8px;
+      right: 8px;
       border-top: 3px solid #38bdf8;
       border-right: 3px solid #38bdf8;
     }
     .hud-bl {
-      bottom: 10px;
-      left: 10px;
+      bottom: 8px;
+      left: 8px;
       border-bottom: 3px solid #38bdf8;
       border-left: 3px solid #38bdf8;
     }
     .hud-br {
-      bottom: 10px;
-      right: 10px;
+      bottom: 8px;
+      right: 8px;
       border-bottom: 3px solid #38bdf8;
       border-right: 3px solid #38bdf8;
     }
@@ -82,8 +82,8 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       transform: translate(-50%, -50%);
       pointer-events: none;
       z-index: 12;
@@ -92,9 +92,9 @@
     .hud-crosshair::before {
       content: "";
       position: absolute;
-      top: 21px;
+      top: 19px;
       left: 0;
-      width: 44px;
+      width: 40px;
       height: 2px;
       background: #38bdf8;
     }
@@ -102,9 +102,9 @@
       content: "";
       position: absolute;
       top: 0;
-      left: 21px;
+      left: 19px;
       width: 2px;
-      height: 44px;
+      height: 40px;
       background: #38bdf8;
     }
 
@@ -122,22 +122,22 @@
     .receipt-paper {
       background: #ffffff;
       position: relative;
-      filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.75));
+      filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.7));
     }
     .receipt-paper::after {
       content: "";
       position: absolute;
-      bottom: -10px;
+      bottom: -8px;
       left: 0;
       right: 0;
-      height: 10px;
+      height: 8px;
       background: linear-gradient(135deg, transparent 75%, #ffffff 75%) 0 0,
                   linear-gradient(225deg, transparent 75%, #ffffff 75%) 0 0;
-      background-size: 12px 10px;
+      background-size: 10px 8px;
       background-repeat: repeat-x;
     }
 
-    /* 미리보기 캔버스: 왜곡 없이 종횡비(576:1350)를 완벽히 유지하도록 고정 */
+    /* 미리보기 캔버스: 왜곡 없이 부모 높이에 맞춰 자동 크기 유지 */
     #stickerDisplayCanvas {
       width: auto;
       height: 100%;
@@ -148,47 +148,47 @@
   </style>
 </head>
 
-<body class="h-[100dvh] w-full flex flex-col justify-between p-2.5 sm:p-4 bg-slate-950">
+<body class="h-[100dvh] w-full flex flex-col justify-between px-3 py-1.5 sm:px-5 sm:py-2.5 bg-slate-950">
 
-  <!-- 헤더 영역 (완전 중앙 정렬 + 우측 전체화면 토글) -->
-  <header class="w-full flex-shrink-0 flex items-center justify-between pb-2 border-b border-slate-800/80 relative">
+  <!-- 헤더 영역 (컴팩트 높이로 축소하여 세로 공간 대폭 확보) -->
+  <header class="w-full flex-shrink-0 flex items-center justify-between pb-1.5 border-b border-slate-800/80 relative">
     <!-- 좌측 빈 공간 (중앙 정렬 균형용) -->
-    <div class="w-20 hidden sm:block"></div>
+    <div class="w-16 hidden sm:block"></div>
 
     <!-- 중앙 타이틀 & 부제목 -->
     <div class="flex-1 flex flex-col items-center justify-center text-center">
-      <div class="flex items-center gap-2">
-        <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white text-sm sm:text-base shadow">
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white text-xs sm:text-sm shadow">
           <i class="fa-solid fa-camera"></i>
         </span>
-        <h1 class="text-base sm:text-xl md:text-2xl font-black text-white tracking-tight">
+        <h1 class="text-sm sm:text-lg md:text-xl font-black text-white tracking-tight">
           2026 AI·SW체험 수피아여고 포토부스
         </h1>
       </div>
-      <p class="text-[11px] sm:text-xs text-sky-400 mt-0.5 font-medium">
+      <p class="text-[10px] sm:text-xs text-sky-400 mt-0.5 font-medium leading-none">
         화면을 보고 3가지 포즈를 취하면 영수증포토가 바로 인쇄됩니다!!
       </p>
     </div>
 
     <!-- 우측 전체화면 토글 버튼 -->
-    <div class="w-auto sm:w-20 flex justify-end">
-      <button onclick="toggleFullScreen()" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow">
+    <div class="w-auto sm:w-16 flex justify-end">
+      <button onclick="toggleFullScreen()" class="px-2 py-1 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-[11px] sm:text-xs font-semibold flex items-center gap-1 transition active:scale-95 shadow">
         <i id="fsIcon" class="fa-solid fa-expand text-sky-400"></i>
         <span class="hidden sm:inline">전체화면</span>
       </button>
     </div>
   </header>
 
-  <!-- 메인 영역: flex-1 min-h-0을 주어 가로모드 태블릿에서 절대 세로로 넘치지 않음 -->
-  <main class="w-full flex-1 min-h-0 my-2 relative flex items-center justify-center overflow-hidden">
+  <!-- 메인 영역: min-h-0과 flex-1로 스크롤 발생 방지 -->
+  <main class="w-full flex-1 min-h-0 my-1 relative flex items-center justify-center overflow-hidden">
 
     <!-- ==============================================
-         1. 촬영 모드 (와이드 사각 프레임 + 테크니컬 HUD)
+         1. 촬영 모드 (뷰파인더를 위로 끌어올리고 촬영버튼 공간 확보)
          ============================================== -->
-    <div id="cameraView" class="w-full h-full flex flex-col items-center justify-center gap-2 min-h-0">
+    <div id="cameraView" class="w-full h-full flex flex-col items-center justify-start pt-1 gap-1.5 min-h-0">
       
-      <!-- 카메라 뷰파인더 박스: 16:9 와이드 비율 유지, 높이가 화면을 초과하지 않도록 max-h 설정 -->
-      <div class="relative w-full max-w-4xl h-full max-h-[58vh] sm:max-h-[62vh] aspect-[16/9] bg-black border-2 sm:border-4 border-slate-700 shadow-2xl flex items-center justify-center ring-1 ring-sky-500/30 overflow-hidden">
+      <!-- 카메라 뷰파인더 박스: 태블릿 가로에서 위쪽으로 밀어올리고 높이를 48~52vh로 컴팩트하게 제한 -->
+      <div class="relative w-full max-w-3xl h-full max-h-[48vh] sm:max-h-[52vh] aspect-[16/9] bg-black border-2 sm:border-4 border-slate-700 shadow-2xl flex items-center justify-center ring-1 ring-sky-500/30 overflow-hidden flex-shrink">
         
         <!-- 사각 테크니컬 코너 브래킷 -->
         <div class="hud-corner hud-tl"></div>
@@ -200,12 +200,12 @@
         <div class="hud-crosshair"></div>
 
         <!-- 하단 SPEER 인공지능공학연구반 레터링 HUD -->
-        <div class="absolute bottom-2 left-4 right-4 z-10 flex items-center justify-between text-[11px] sm:text-xs font-mono tracking-wider text-sky-400 pointer-events-none">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <div class="absolute bottom-1.5 left-3 right-3 z-10 flex items-center justify-between text-[10px] sm:text-xs font-mono tracking-wider text-sky-400 pointer-events-none">
+          <div class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             <span class="font-bold">SPEER 인공지능공학연구반 // CAM-01</span>
           </div>
-          <span class="hidden sm:inline text-slate-400">WIDE: 16:9 // ACTIVE</span>
+          <span class="hidden sm:inline text-slate-400 text-[10px]">WIDE: 16:9 // ACTIVE</span>
         </div>
 
         <!-- 웹캠 스트림 비디오 -->
@@ -215,72 +215,70 @@
         <div id="flashOverlay" class="absolute inset-0 bg-white pointer-events-none opacity-0 z-20"></div>
 
         <!-- 안내 상태 배지 -->
-        <div id="statusBadge" class="absolute top-3 left-4 z-10 flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1 border border-sky-500/40 text-xs sm:text-sm font-semibold text-white">
-          <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+        <div id="statusBadge" class="absolute top-2 left-3 z-10 flex items-center gap-1.5 bg-black/80 backdrop-blur-md px-2.5 py-0.5 border border-sky-500/40 text-[11px] sm:text-xs font-semibold text-white">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping"></span>
           <span id="statusText">카메라 준비 완료</span>
         </div>
 
         <!-- 컷수 카운팅 인디케이터 -->
-        <div id="shotStepIndicator" class="absolute top-3 right-4 z-10 hidden flex gap-1.5">
-          <div id="dot1" class="w-3.5 h-3.5 bg-slate-700 border border-slate-500"></div>
-          <div id="dot2" class="w-3.5 h-3.5 bg-slate-700 border border-slate-500"></div>
-          <div id="dot3" class="w-3.5 h-3.5 bg-slate-700 border border-slate-500"></div>
+        <div id="shotStepIndicator" class="absolute top-2 right-3 z-10 hidden flex gap-1">
+          <div id="dot1" class="w-3 h-3 bg-slate-700 border border-slate-500"></div>
+          <div id="dot2" class="w-3 h-3 bg-slate-700 border border-slate-500"></div>
+          <div id="dot3" class="w-3 h-3 bg-slate-700 border border-slate-500"></div>
         </div>
 
         <!-- 카운트다운 오버레이 -->
         <div id="countdownOverlay" class="absolute inset-0 z-30 bg-black/50 backdrop-blur-xs hidden flex-col items-center justify-center">
-          <span id="countdownNumber" class="text-7xl sm:text-9xl font-black text-white drop-shadow-[0_0_35px_rgba(56,189,248,1)] animate-bounce font-mono">
+          <span id="countdownNumber" class="text-6xl sm:text-8xl font-black text-white drop-shadow-[0_0_30px_rgba(56,189,248,1)] animate-bounce font-mono">
             3
           </span>
-          <p id="countdownMessage" class="text-sm sm:text-lg font-bold text-sky-300 mt-1">포즈를 취해주세요!</p>
+          <p id="countdownMessage" class="text-xs sm:text-sm font-bold text-sky-300 mt-1">포즈를 취해주세요!</p>
         </div>
       </div>
 
-      <!-- 하단 실시간 썸네일 스트립 (촬영된 컷 피드백) -->
-      <div id="thumbnailStrip" class="hidden w-full max-w-4xl flex items-center justify-center gap-2.5 flex-shrink-0">
-        <div id="slot1" class="w-20 h-12 sm:w-24 sm:h-14 border border-dashed border-slate-700 bg-slate-900/60 overflow-hidden flex items-center justify-center text-xs text-slate-500 font-mono font-bold">1컷</div>
-        <div id="slot2" class="w-20 h-12 sm:w-24 sm:h-14 border border-dashed border-slate-700 bg-slate-900/60 overflow-hidden flex items-center justify-center text-xs text-slate-500 font-mono font-bold">2컷</div>
-        <div id="slot3" class="w-20 h-12 sm:w-24 sm:h-14 border border-dashed border-slate-700 bg-slate-900/60 overflow-hidden flex items-center justify-center text-xs text-slate-500 font-mono font-bold">3컷</div>
+      <!-- 하단 실시간 썸네일 스트립 (촬영 중일 때만 표시) -->
+      <div id="thumbnailStrip" class="hidden w-full max-w-3xl flex items-center justify-center gap-2 flex-shrink-0 pt-0.5">
+        <div id="slot1" class="w-16 h-10 sm:w-20 sm:h-12 border border-dashed border-slate-700 bg-slate-900/60 overflow-hidden flex items-center justify-center text-[10px] text-slate-500 font-mono font-bold">1컷</div>
+        <div id="slot2" class="w-16 h-10 sm:w-20 sm:h-12 border border-dashed border-slate-700 bg-slate-900/60 overflow-hidden flex items-center justify-center text-[10px] text-slate-500 font-mono font-bold">2컷</div>
+        <div id="slot3" class="w-16 h-10 sm:w-20 sm:h-12 border border-dashed border-slate-700 bg-slate-900/60 overflow-hidden flex items-center justify-center text-[10px] text-slate-500 font-mono font-bold">3컷</div>
       </div>
     </div>
 
     <!-- ==============================================
          2. 결과 모드 (태블릿 최적화 좌우 분할 레이아웃)
-            - 왼쪽: 실물 비율 100% 보존되는 영수증 스티커 캔버스
-            - 오른쪽: 축하 문구 + 대형 [인쇄하기] & [다시 촬영] 버튼
          ============================================== -->
     <div id="resultView" class="hidden w-full h-full flex flex-row items-center justify-center gap-4 sm:gap-8 px-2 min-h-0 overflow-hidden">
       
       <!-- 좌측: 영수증 스티커 미리보기 카드 (절대 깨지지 않고 부모 높이에 맞춤) -->
-      <div class="h-full max-h-[64vh] sm:max-h-[68vh] p-2 bg-white receipt-paper flex items-center justify-center flex-shrink-0 border-t-4 border-slate-900 shadow-2xl">
-        <!-- 캔버스를 직접 표시하여 찌그러짐이나 이미지 인코딩 깨짐을 100% 방지 -->
+      <div class="h-full max-h-[66vh] sm:max-h-[70vh] p-2 bg-white receipt-paper flex items-center justify-center flex-shrink-0 border-t-4 border-slate-900 shadow-2xl">
+        <!-- 캔버스를 직접 표시하여 찌그러짐이나 인코딩 왜곡 방지 -->
         <canvas id="stickerDisplayCanvas" width="576" height="1350"></canvas>
       </div>
 
       <!-- 우측: 축하 메시지 및 액션 패널 -->
-      <div class="flex-1 max-w-sm flex flex-col justify-center items-start gap-3 sm:gap-4">
+      <div class="flex-1 max-w-sm flex flex-col justify-center items-start gap-2 sm:gap-3">
         <div>
-          <span class="inline-block px-2.5 py-1 rounded bg-sky-500/10 border border-sky-400/30 text-sky-400 text-xs font-bold font-mono uppercase tracking-wider">
+          <span class="inline-block px-2 py-0.5 rounded bg-sky-500/10 border border-sky-400/30 text-sky-400 text-[10px] sm:text-xs font-bold font-mono uppercase tracking-wider">
             Photo Ready
           </span>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-white mt-1 leading-tight">
+          <h2 class="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 leading-tight">
             🎉 스티커 사진이<br>완성되었습니다!
           </h2>
-          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+          <p class="text-[11px] sm:text-xs text-slate-400 mt-1">
             아래 <strong class="text-emerald-400">[인쇄하기]</strong>를 누르면 79mm 영수증 스티커로 즉시 출력됩니다.
           </p>
         </div>
 
         <!-- 결과 화면 전용 대형 버튼 그룹 -->
-        <div class="w-full flex flex-col gap-2.5 pt-1">
+        <div class="w-full flex flex-col gap-2 pt-1">
           <!-- 1) 인쇄하기 메인 버튼 -->
-          <button id="printBtn" onclick="printReceiptDirectly()" class="w-full min-h-[58px] sm:min-h-[64px] rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-lg sm:text-xl shadow-xl shadow-emerald-700/30 flex items-center justify-center gap-2.5 transition active:scale-[0.98]">
+          <button id="printBtn" onclick="printReceiptDirectly()" class="w-full min-h-[50px] sm:min-h-[58px] rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-base sm:text-xl shadow-xl shadow-emerald-700/30 flex items-center justify-center gap-2 transition active:scale-[0.98]">
             <i class="fa-solid fa-print"></i>
             <span id="printBtnText">🖨️ 인쇄하기</span>
           </button>
 
           <!-- 2) 다시 촬영하기 보조 버튼 -->
-          <button id="retryBtn" onclick="resetBooth()" class="w-full min-h-[48px] sm:min-h-[52px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-[0.98]">
+          <button id="retryBtn" onclick="resetBooth()" class="w-full min-h-[42px] sm:min-h-[46px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
             <i class="fa-solid fa-rotate-right"></i>
             <span>🔄 다시 촬영하기</span>
           </button>
@@ -290,9 +288,9 @@
 
   </main>
 
-  <!-- 하단 컨트롤 바 (카메라 모드일 때만 노출) -->
-  <footer id="cameraFooter" class="w-full max-w-4xl mx-auto flex-shrink-0 pt-1 pb-1">
-    <button id="startBtn" onclick="startPhotoBooth()" class="w-full min-h-[56px] sm:min-h-[64px] rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-lg sm:text-2xl shadow-xl shadow-sky-600/30 flex items-center justify-center gap-3 transition-transform active:scale-[0.98]">
+  <!-- 하단 컨트롤 바 (가로 모드 태블릿에서도 항상 한 화면에 고정 표시) -->
+  <footer id="cameraFooter" class="w-full max-w-3xl mx-auto flex-shrink-0 pt-1 pb-1">
+    <button id="startBtn" onclick="startPhotoBooth()" class="w-full min-h-[48px] sm:min-h-[56px] rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-base sm:text-xl shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]">
       <i class="fa-solid fa-camera"></i>
       <span>📸 3컷 촬영 시작하기</span>
     </button>
