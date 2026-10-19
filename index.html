@@ -509,56 +509,78 @@
       tempC.width = photoSize;
       tempC.height = photoSize;
       const tempCtx = tempC.getContext('2d');
+      // 뷰파인더에서 캡처된 원본 정방형 이미지를 정확히 배치
       tempCtx.drawImage(singleCapturedFrame, 0, 0, photoSize, photoSize);
 
-      // 1) 고품질 감열지 렌더링을 위한 흑백 변환 + 감마 보정 + 플로이드-스타인버그 오차확산 디더링
+      // 1) 고품질 인물 감열 렌더링: 농도 연화 + 이목구비 윤곽 보존 + 밝은 톤 디더링
       const imgData = tempCtx.getImageData(0, 0, photoSize, photoSize);
       const data = imgData.data;
       const w = photoSize;
       const h = photoSize;
 
-      // 그레이스케일 버퍼(Float32) 생성 및 사람 피부톤에 최적화된 휘도 가중치 & 감마 보정 적용
-      const grayBuffer = new Float32Array(w * h);
-      const gamma = 1.15; // 부드러운 중간톤(피부결) 보존을 위한 미세 감마 보정
+      // 원본 그레이스케일 버퍼(Float32) 생성
+      const rawGray = new Float32Array(w * h);
 
       for (let i = 0; i < data.length; i += 4) {
-        // Rec. 709 표준 가중치
-        let luma = data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
-        // 감마 커브 적용 (0~1 정규화 후 복원)
-        let normalized = Math.pow(luma / 255.0, 1 / gamma);
-        // 부드러운 콘트라스트 보정 (얼굴이 시커멓게 뭉개지는 현상 방지)
-        let adjusted = (normalized - 0.5) * 1.08 + 0.5;
-        grayBuffer[i / 4] = Math.min(255, Math.max(0, adjusted * 255));
+        // 인물 피부톤과 명암을 자연스럽게 살리는 표준 휘도 가중치
+        let luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        rawGray[i / 4] = luma;
       }
 
-      // 플로이드-스타인버그(Floyd-Steinberg) 오차 확산 디더링 적용
-      // 감열 프린터가 검정/흰색 도트만 찍을 때 부드러운 그라데이션과 사진 질감을 표현하는 핵심 알고리즘
+      // [A] 가벼운 언샤프 마스크(Unsharp Mask): 눈, 코, 입, 외곽선의 형체를 뚜렷하게 살림
+      const sharpened = new Float32Array(w * h);
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           const idx = y * w + x;
-          const oldPixel = grayBuffer[idx];
-          // 임계치 기준 (가장 자연스러운 점 밀도)
-          const newPixel = oldPixel < 128 ? 0 : 255;
-          grayBuffer[idx] = newPixel;
-          const quantError = oldPixel - newPixel;
-
-          // 주변 픽셀로 오차 확산
-          if (x + 1 < w) {
-            grayBuffer[idx + 1] += quantError * (7 / 16);
-          }
-          if (x - 1 >= 0 && y + 1 < h) {
-            grayBuffer[(y + 1) * w + (x - 1)] += quantError * (3 / 16);
-          }
-          if (y + 1 < h) {
-            grayBuffer[(y + 1) * w + x] += quantError * (5 / 16);
-          }
-          if (x + 1 < w && y + 1 < h) {
-            grayBuffer[(y + 1) * w + (x + 1)] += quantError * (1 / 16);
+          if (x > 0 && x < w - 1 && y > 0 && y < h - 1) {
+            // 주변 4방향 블러 계산
+            const blur = (rawGray[idx - 1] + rawGray[idx + 1] + rawGray[idx - w] + rawGray[idx + w]) * 0.25;
+            // 엣지 차이값을 원본에 더해 윤곽선을 또렷하게 만듦
+            const edge = rawGray[idx] - blur;
+            sharpened[idx] = rawGray[idx] + edge * 0.85;
+          } else {
+            sharpened[idx] = rawGray[idx];
           }
         }
       }
 
-      // 디더링 처리된 버퍼를 다시 이미지 픽셀 데이터에 주입
+      // [B] 농도 연화(밝기 리프팅 + 감마 톤업): 시커멓게 타지 않고 맑고 연한 피부톤 형성
+      const grayBuffer = new Float32Array(w * h);
+      const gamma = 1.35; // 감마 값을 올려 어두운 부분과 중간톤을 밝고 연하게 변환
+
+      for (let i = 0; i < w * h; i++) {
+        let val = Math.min(255, Math.max(0, sharpened[i]));
+        // 0~1 정규화 후 밝은 톤 커브 적용
+        let normalized = Math.pow(val / 255.0, 1.0 / gamma);
+        // 전체 농도를 약 12% 더 밝고 연하게 리프팅 (검은 도트 밀도를 줄여 연하고 맑게 출력)
+        normalized = normalized * 0.88 + 0.12;
+        grayBuffer[i] = Math.min(255, Math.max(0, normalized * 255));
+      }
+
+      // [C] 앳킨슨(Atkinson) 오차 확산 디더링:
+      // 기존 Floyd-Steinberg는 오차를 100% 확산시켜 감열지에서 검은 잉크가 번지는 현상이 생김.
+      // Atkinson 디더링은 오차의 75%만 확산시켜 흰색 여백과 연한 농도를 유지하고 사람의 이목구비 형태를 가장 정교하게 표현함.
+      const threshold = 138; // 임계값을 살짝 높여 검은 도트의 과다 발생 방지(연한 농도 유지)
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = y * w + x;
+          const oldPixel = grayBuffer[idx];
+          const newPixel = oldPixel < threshold ? 0 : 255;
+          grayBuffer[idx] = newPixel;
+          const quantError = (oldPixel - newPixel) / 8; // 오차를 8등분하여 분산
+
+          // Atkinson 6방향 확산 패턴
+          if (x + 1 < w) grayBuffer[idx + 1] += quantError;
+          if (x + 2 < w) grayBuffer[idx + 2] += quantError;
+          if (x - 1 >= 0 && y + 1 < h) grayBuffer[(y + 1) * w + (x - 1)] += quantError;
+          if (y + 1 < h) grayBuffer[(y + 1) * w + x] += quantError;
+          if (x + 1 < w && y + 1 < h) grayBuffer[(y + 1) * w + (x + 1)] += quantError;
+          if (y + 2 < h) grayBuffer[(y + 2) * w + x] += quantError;
+        }
+      }
+
+      // 디더링 처리된 버퍼를 이미지 데이터에 반영
       for (let i = 0; i < grayBuffer.length; i++) {
         const val = grayBuffer[i];
         const pIdx = i * 4;
@@ -665,10 +687,11 @@
       void cameraFlashOverlay.offsetWidth;
       cameraFlashOverlay.classList.add('flash-active');
 
+      // 뷰파인더(object-fit: cover, 정방형) 화면에 보이는 영역과 100% 동일하게 캡처
       const vw = webcamView.videoWidth || 1280;
       const vh = webcamView.videoHeight || 720;
 
-      // 1:1 정방형 크롭
+      // 뷰파인더 컨테이너 종횡비가 1:1이므로 비디오의 짧은 축을 기준으로 중앙 크롭
       const cropSize = Math.min(vw, vh);
       const cropX = (vw - cropSize) / 2;
       const cropY = (vh - cropSize) / 2;
@@ -680,7 +703,7 @@
       fCtx.imageSmoothingEnabled = true;
       fCtx.imageSmoothingQuality = 'high';
 
-      // 거울 모드 적용
+      // 거울 모드 적용: 뷰파인더에 거울처럼 비친 상태 그대로 캔버스에 정방향 캡처
       fCtx.translate(frameCanvas.width, 0);
       fCtx.scale(-1, 1);
       fCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, frameCanvas.width, frameCanvas.height);
