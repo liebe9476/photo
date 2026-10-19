@@ -419,8 +419,8 @@
         return;
       }
 
-      if (!navigator.bluetooth) {
-        showToast("이 브라우저는 Web Bluetooth를 지원하지 않습니다. Chrome을 사용해주세요.", "⚠️");
+      if (!navigator.bluetooth || typeof navigator.bluetooth.requestDevice !== 'function') {
+        showToast("현재 환경에서는 Web Bluetooth가 지원되지 않습니다. (Chrome 직접 접속 필요)", "⚠️");
         return;
       }
 
@@ -442,6 +442,10 @@
           ],
           acceptAllDevices: false
         }).catch(async (e) => {
+          // 보안 정책에 의해 거부된 경우 상위로 던져서 처리
+          if (e.name === 'SecurityError') {
+            throw e;
+          }
           // 이름 필터로 못 찾을 경우 모든 기기 검색 지원
           return await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
@@ -452,6 +456,10 @@
             ]
           });
         });
+
+        if (!bluetoothDevice) {
+          return;
+        }
 
         bluetoothDevice.addEventListener('gattserverdisconnected', onBluetoothDisconnected);
 
@@ -486,14 +494,17 @@
         btStatusBadge.className = "bt-badge bt-badge-connected";
         btDot.style.background = "#10b981";
         btStatusText.innerText = `BT 직결: ${bluetoothDevice.name || 'Epson'}`;
-        hudPrintType.innerText = "BT DIRECT DIRECT";
+        hudPrintType.innerText = "BT DIRECT";
         hudPrintType.style.color = "#10b981";
 
         showToast(`🎉 ${bluetoothDevice.name || '프린터'} 연결 성공! (팝업 없이 즉시 인쇄)`, "🖨️");
 
       } catch (err) {
-        console.error("Bluetooth Connect Error:", err);
-        if (err.name !== 'NotFoundError') { // 사용자가 취소한 경우가 아닐 때
+        if (err.name === 'SecurityError') {
+          console.warn("Permissions-Policy prevented Web Bluetooth in this embedded frame:", err.message);
+          showToast("현재 미리보기(iframe) 환경에서는 블루투스 권한이 제한됩니다. 일반 브라우저 탭에서 실행하거나 기본 인쇄 모드를 사용하세요.", "ℹ️");
+        } else if (err.name !== 'NotFoundError') { // 사용자가 취소한 경우가 아닐 때
+          console.error("Bluetooth Connect Error:", err);
           showToast("블루투스 연결 실패: " + err.message, "⚠️");
         }
         disconnectBluetooth();
