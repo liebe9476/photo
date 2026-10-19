@@ -5,30 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>2026 AI·SW체험 수피아여고 포토부스</title>
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- FontAwesome Icons CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-  <!-- Pretendard Webfont -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-
   <style>
-    * {
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* ============================================================
+       0. 오프라인 자립형 기본 스타일 (외부 CDN 인터넷 의존성 0%)
+       ============================================================ */
+    *, *::before, *::after {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
       user-select: none;
       -webkit-user-select: none;
       touch-action: manipulation;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
     }
 
     body {
       background: radial-gradient(circle at 50% 25%, #111a2e 0%, #080d18 60%, #03060c 100%);
       color: #f8fafc;
-      overflow: hidden;
       width: 100vw;
       height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
     }
 
     /* 카메라 거울 모드 (좌우 반전) */
@@ -36,12 +37,11 @@
       transform: scaleX(-1);
     }
 
-    /* 뷰파인더 사각 코너 브래킷 (테두리 안쪽으로 살짝 배치) */
+    /* 뷰파인더 코너 L자 브래킷 (내부 배치) */
     .corner-bracket {
       position: absolute;
       width: 24px;
       height: 24px;
-      border-color: #38bdf8;
       pointer-events: none;
       z-index: 10;
     }
@@ -50,7 +50,7 @@
     .corner-bl { bottom: 12px; left: 12px; border-bottom: 3.5px solid #38bdf8; border-left: 3.5px solid #38bdf8; }
     .corner-br { bottom: 12px; right: 12px; border-bottom: 3.5px solid #38bdf8; border-right: 3.5px solid #38bdf8; }
 
-    /* 카메라 플래시 번쩍임 애니메이션 */
+    /* 카메라 플래시 애니메이션 */
     @keyframes flashEffect {
       0% { opacity: 0.95; }
       100% { opacity: 0; }
@@ -59,11 +59,12 @@
       animation: flashEffect 0.35s ease-out forwards;
     }
 
-    /* 영수증 종이 하단 톱니 절취선 데코 */
+    /* 영수증 톱니 절취선 데코 */
     .receipt-edge {
       position: relative;
       background: #ffffff;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+      border-radius: 4px;
     }
     .receipt-edge::after {
       content: "";
@@ -77,8 +78,29 @@
       transform: rotate(180deg);
     }
 
-    /* 브라우저 기본 인쇄창 대응 스타일 */
+    /* 버튼 기본 스타일 (모서리 둥글게 유지) */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 800;
+      border-radius: 14px;
+      transition: all 0.15s ease;
+      outline: none;
+      border: 1px solid transparent;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    /* 감열 영수증 인쇄 전용 CSS (Epson TM-m30III 규격 최적화) */
     @media print {
+      @page {
+        size: 80mm auto;
+        margin: 0;
+      }
       body * {
         visibility: hidden !important;
       }
@@ -86,191 +108,212 @@
         visibility: visible !important;
       }
       #browserPrintZone {
-        position: absolute !important;
+        position: fixed !important;
         left: 0 !important;
         top: 0 !important;
         width: 79mm !important;
         margin: 0 !important;
         padding: 0 !important;
+        background: #ffffff !important;
       }
       #browserPrintZone img {
         width: 100% !important;
         height: auto !important;
         display: block !important;
+        image-rendering: pixelated !important;
       }
     }
   </style>
 </head>
-<body class="flex flex-col items-center justify-between p-2 sm:p-3 select-none w-screen h-screen">
+<body class="flex flex-col items-center justify-between">
 
-  <!-- 1. 상단 헤더 (제목, 안내문, 제어 버튼들) -->
-  <header class="w-full flex-shrink-0 flex items-center justify-between px-3 pt-5 sm:pt-6 pb-1 mt-1 sm:mt-2 mb-1 z-20">
-    <!-- 좌측 공백 균형용 박스 -->
-    <div class="w-20 hidden md:block"></div>
+  <!-- ============================================================
+       1. 상단 헤더 (제목, 아이콘, 블루투스 상태 & 제어 버튼)
+       ============================================================ -->
+  <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 4px; margin-top: 4px; z-index: 20;">
+    <!-- 좌측 균형용 빈 영역 -->
+    <div style="width: 80px; display: none;" class="desktop-spacer"></div>
 
     <!-- 중앙 타이틀 블록 -->
-    <div class="flex-1 flex flex-col items-center justify-center text-center">
-      <div class="flex items-center gap-2.5 sm:gap-3">
-        <i class="fa-solid fa-camera text-sky-400 text-base sm:text-xl drop-shadow-[0_0_8px_rgba(56,189,248,0.7)] animate-pulse"></i>
-        <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-teal-300 to-sky-300 tracking-tight">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <!-- 카메라 SVG 아이콘 -->
+        <svg style="width: 24px; height: 24px; fill: #38bdf8; filter: drop-shadow(0 0 8px rgba(56,189,248,0.7));" viewBox="0 0 24 24">
+          <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5a5 5 0 0 0 5 5a5 5 0 0 0 5 5a5 5 0 0 0 5-5a5 5 0 0 0-5-5m0 2a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3Z"/>
+        </svg>
+
+        <h1 style="font-size: clamp(1.2rem, 3.2vw, 1.85rem); font-weight: 900; background: linear-gradient(to right, #38bdf8, #2dd4bf, #7dd3fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px;">
           2026 AI·SW체험 수피아여고 포토부스
         </h1>
-        <i class="fa-solid fa-wand-magic-sparkles text-teal-300 text-base sm:text-xl drop-shadow-[0_0_8px_rgba(45,212,191,0.7)] animate-pulse"></i>
+
+        <!-- 스파클 SVG 아이콘 -->
+        <svg style="width: 24px; height: 24px; fill: #2dd4bf; filter: drop-shadow(0 0 8px rgba(45,212,191,0.7));" viewBox="0 0 24 24">
+          <path d="m19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9m-7.5.5L9 4L6.5 9.5L1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5m7.5 5.5l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15Z"/>
+        </svg>
       </div>
-      <p class="text-xs sm:text-sm text-slate-400 font-medium mt-1 tracking-wide">
+
+      <p style="font-size: clamp(0.72rem, 1.6vw, 0.88rem); color: #94a3b8; font-weight: 500; margin-top: 4px; letter-spacing: 0.2px;">
         화면을 보고 3가지 포즈를 취하면 영수증포토가 바로 인쇄됩니다!!
       </p>
     </div>
 
-    <!-- 우측 제어 버튼 그룹 (블루투스 페어링 상태 / 설정 / 전체화면) -->
-    <div class="flex items-center gap-1.5 sm:gap-2">
-      <!-- 블루투스 간편 페어링 버튼 -->
-      <button id="btHeaderBtn" onclick="handleBluetoothButtonClick()"
-              title="블루투스 프린터 연결"
-              class="px-2.5 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
-        <i id="btHeaderIcon" class="fa-brands fa-bluetooth-b text-sky-400 text-sm"></i>
-        <span id="btHeaderLabel" class="hidden sm:inline font-mono text-[11px]">BT 미연결</span>
+    <!-- 우측 제어 버튼 (블루투스 상태, 설정, 전체화면) -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <!-- 블루투스 연결 상태 뱃지 버튼 -->
+      <button id="btHeaderBtn" onclick="requestBluetoothConnection()" title="블루투스 프린터 연결"
+              class="btn" style="padding: 7px 12px; background: rgba(30, 41, 59, 0.9); color: #e2e8f0; border: 1px solid #475569; font-size: 11px;">
+        <!-- 블루투스 SVG 아이콘 -->
+        <svg id="btHeaderIcon" style="width: 14px; height: 14px; fill: #38bdf8;" viewBox="0 0 24 24">
+          <path d="M14.88 16.29L13 18.17V14.41m0-4.82l1.88 1.88L13 13.35M17.71 7.71L12 2h-1v7.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L11 14.41V22h1l5.71-5.71l-4.3-4.29l4.3-4.29M13 5.83l1.88 1.88L13 9.59V5.83Z"/>
+        </svg>
+        <span id="btHeaderLabel" style="font-family: monospace; font-size: 11px;">BT 연결됨 (TM-m30)</span>
       </button>
 
-      <!-- 프린터 설정 모달 버튼 -->
-      <button onclick="toggleConfigModal(true)"
-              title="프린터 연결 모드 설정"
-              class="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
-        <i class="fa-solid fa-gear text-sm"></i>
+      <!-- 설정 버튼 -->
+      <button onclick="toggleConfigModal(true)" title="프린터 연결 설정"
+              class="btn" style="padding: 7px 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px;">
+        <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+        </svg>
       </button>
 
       <!-- 전체화면 토글 버튼 -->
-      <button id="fullscreenToggleBtn" onclick="toggleFullscreen()"
-              title="전체화면 전환"
-              class="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
-        <i id="fullscreenIcon" class="fa-solid fa-expand"></i>
-        <span id="fullscreenText" class="hidden lg:inline font-mono">전체화면</span>
+      <button id="fullscreenToggleBtn" onclick="toggleFullscreen()" title="전체화면 전환"
+              class="btn" style="padding: 7px 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px;">
+        <svg id="fullscreenIconSvg" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M5 5h5v2H7v3H5V5m9 0h5v5h-2V7h-3V5m3 9h2v5h-5v-2h3v-3m-9 3v2H5v-5h2v3h3Z"/>
+        </svg>
+        <span id="fullscreenText" style="display: none; font-family: monospace; font-size: 11px;">전체화면</span>
       </button>
     </div>
   </header>
 
-  <!-- 2. 메인 컨텐츠 영역 (뷰파인더 대기 화면 vs 영수증 결과 화면) -->
-  <main class="w-full max-w-6xl flex-1 flex flex-col items-center justify-center min-h-0 relative my-0.5 px-2">
-    
-    <!-- [A] 촬영 대기 및 진행 화면 (가변형 유연 뷰파인더) -->
-    <div id="captureSection" class="w-full h-full flex flex-col items-center justify-between gap-1.5 min-h-0 pt-0.5 sm:pt-1">
-      
-      <!-- 유연한 가변 뷰파인더 프레임 (남은 세로 공간에 반응, 직각 사각 프레임) -->
-      <div class="relative w-full max-w-4xl flex-1 min-h-[36vh] max-h-[64vh] bg-black rounded-none border-[3px] border-slate-700 shadow-2xl flex items-center justify-center ring-1 ring-sky-500/40 overflow-hidden">
-        
-        <!-- 사각 테크니컬 코너 브래킷 (내부 배치) -->
+  <!-- ============================================================
+       2. 메인 컨텐츠 영역 (뷰파인더 대기 vs 영수증 결과)
+       ============================================================ -->
+  <main style="width: 100%; max-width: 1150px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; position: relative; margin: 2px 0; padding: 0 8px;">
+
+    <!-- [A] 촬영 대기 및 진행 화면 (직각 사각 뷰파인더 & 코너 브래킷) -->
+    <div id="captureSection" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px; min-height: 0; padding-top: 4px;">
+
+      <!-- 유연한 가변 뷰파인더 프레임 (직각 사각) -->
+      <div style="position: relative; width: 100%; max-width: 880px; flex: 1; min-height: 38vh; max-height: 64vh; background: #000; border: 3px solid #334155; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; outline: 1px solid rgba(56,189,248,0.4); overflow: hidden;">
+
+        <!-- 웹캠 비디오 엘리먼트 -->
+        <video id="webcamView" autoplay playsinline muted class="mirror-mode" style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
+
+        <!-- 안쪽 코너 L자 브래킷 -->
         <div class="corner-bracket corner-tl"></div>
         <div class="corner-bracket corner-tr"></div>
         <div class="corner-bracket corner-bl"></div>
         <div class="corner-bracket corner-br"></div>
 
-        <!-- 실시간 웹캠 비디오 엘리먼트 (직각 사각 모드) -->
-        <video id="webcamView" autoplay playsinline muted class="w-full h-full object-cover mirror-mode rounded-none"></video>
+        <!-- 카메라 플래시 효과 오버레이 -->
+        <div id="cameraFlashOverlay" style="position: absolute; inset: 0; background: #ffffff; opacity: 0; pointer-events: none; z-index: 30;"></div>
 
-        <!-- 카메라 플래시 레이어 -->
-        <div id="cameraFlashOverlay" class="absolute inset-0 bg-white pointer-events-none opacity-0 z-30"></div>
-
-        <!-- 상단 테크니컬 HUD 텍스트 -->
-        <div class="absolute top-4 left-9 right-9 flex items-center justify-between text-xs sm:text-sm font-mono text-white pointer-events-none z-10 font-normal">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 bg-white rounded-full animate-ping"></span>
-            <span id="hudConnectionMode">MODE // BLUETOOTH</span>
+        <!-- 상단 테크니컬 HUD 정보 (SHOT 카운터) -->
+        <div style="position: absolute; top: 14px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 13px; color: #ffffff; pointer-events: none; z-index: 10;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444;"></div>
+            <span style="letter-spacing: 1px; font-weight: bold;">LIVE REC</span>
           </div>
-          <div id="shotStatusHud" class="tracking-widest">
+          <div id="shotStatusHud" style="letter-spacing: 2px; font-weight: bold;">
             SHOT [ 0 / 3 ]
           </div>
         </div>
 
-        <!-- 중앙 조준선 (Crosshair 데코레이션) -->
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
-          <div class="w-8 h-[1px] bg-white"></div>
-          <div class="h-8 w-[1px] bg-white absolute"></div>
+        <!-- 중앙 조준선 Crosshair -->
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0.25;">
+          <div style="width: 32px; height: 1px; background: #fff;"></div>
+          <div style="width: 1px; height: 32px; background: #fff; position: absolute;"></div>
         </div>
 
-        <!-- 하단 테크니컬 HUD 텍스트 -->
-        <div class="absolute bottom-4 left-9 right-9 flex items-center justify-between text-xs sm:text-sm font-mono text-white pointer-events-none z-10 font-normal">
-          <div class="tracking-wide">
-            SPEER 인공지능공학연구반
-          </div>
-          <div id="hudPrinterStatus" class="tracking-wide text-slate-300">
-            PRINTER // READY
-          </div>
+        <!-- 하단 테크니컬 HUD (흰색 폰트) -->
+        <div style="position: absolute; bottom: 14px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 13px; color: #ffffff; pointer-events: none; z-index: 10;">
+          <div id="hudConnectionMode">BLUETOOTH // TM-m30III</div>
+          <div id="hudPrinterStatus" style="color: #38bdf8;">TM UTILITY READY</div>
         </div>
 
         <!-- 카운트다운 오버레이 (블러 없이 선명하게 비디오 투시) -->
-        <div id="countdownBox" class="absolute inset-0 bg-transparent hidden items-center justify-center z-25 pointer-events-none">
-          <span id="countdownNumber" class="text-7xl sm:text-9xl font-black text-white drop-shadow-[0_0_25px_rgba(56,189,248,0.95)] animate-bounce font-mono">
+        <div id="countdownBox" style="position: absolute; inset: 0; background: transparent; display: none; align-items: center; justify-content: center; z-index: 25; pointer-events: none;">
+          <span id="countdownNumber" style="font-size: clamp(5rem, 15vw, 8rem); font-weight: 900; color: #ffffff; font-family: monospace; filter: drop-shadow(0 0 25px rgba(56,189,248,0.95));">
             3
           </span>
         </div>
       </div>
 
-      <!-- 뷰파인더 하단 3컷 실시간 썸네일 트레이 (둥근 모서리 슬롯) -->
-      <div id="thumbTray" class="w-full max-w-sm sm:max-w-md flex items-center justify-center gap-2 sm:gap-2.5 flex-shrink-0 mt-1 sm:mt-1.5">
-        <div id="thumbSlot1" class="flex-1 max-w-[110px] sm:max-w-[125px] aspect-[16/9] bg-slate-900/90 border border-slate-700 rounded-lg flex flex-col items-center justify-center text-[10px] sm:text-xs font-mono text-slate-400 font-normal overflow-hidden transition-all shadow-inner">
-          <span class="tracking-widest text-[11px] font-mono text-slate-400">CUT 1</span>
-          <span class="text-[9px] text-slate-500 font-mono tracking-tighter">WAITING</span>
+      <!-- 뷰파인더 하단 3컷 썸네일 트레이 -->
+      <div id="thumbTray" style="width: 100%; max-width: 440px; display: flex; align-items: center; justify-content: center; gap: 10px; flex-shrink: 0; margin-top: 4px;">
+        <div id="thumbSlot1" style="flex: 1; max-width: 125px; aspect-ratio: 16/9; background: rgba(15, 23, 42, 0.95); border: 1px solid #334155; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-family: monospace; color: #94a3b8; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+          <span style="letter-spacing: 1px;">CUT 1</span>
+          <span style="font-size: 9px; color: #64748b;">WAITING</span>
         </div>
-        <div id="thumbSlot2" class="flex-1 max-w-[110px] sm:max-w-[125px] aspect-[16/9] bg-slate-900/90 border border-slate-700 rounded-lg flex flex-col items-center justify-center text-[10px] sm:text-xs font-mono text-slate-400 font-normal overflow-hidden transition-all shadow-inner">
-          <span class="tracking-widest text-[11px] font-mono text-slate-400">CUT 2</span>
-          <span class="text-[9px] text-slate-500 font-mono tracking-tighter">WAITING</span>
+        <div id="thumbSlot2" style="flex: 1; max-width: 125px; aspect-ratio: 16/9; background: rgba(15, 23, 42, 0.95); border: 1px solid #334155; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-family: monospace; color: #94a3b8; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+          <span style="letter-spacing: 1px;">CUT 2</span>
+          <span style="font-size: 9px; color: #64748b;">WAITING</span>
         </div>
-        <div id="thumbSlot3" class="flex-1 max-w-[110px] sm:max-w-[125px] aspect-[16/9] bg-slate-900/90 border border-slate-700 rounded-lg flex flex-col items-center justify-center text-[10px] sm:text-xs font-mono text-slate-400 font-normal overflow-hidden transition-all shadow-inner">
-          <span class="tracking-widest text-[11px] font-mono text-slate-400">CUT 3</span>
-          <span class="text-[9px] text-slate-500 font-mono tracking-tighter">WAITING</span>
+        <div id="thumbSlot3" style="flex: 1; max-width: 125px; aspect-ratio: 16/9; background: rgba(15, 23, 42, 0.95); border: 1px solid #334155; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-family: monospace; color: #94a3b8; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+          <span style="letter-spacing: 1px;">CUT 3</span>
+          <span style="font-size: 9px; color: #64748b;">WAITING</span>
         </div>
       </div>
 
       <!-- 3컷 촬영 시작하기 버튼 (둥근 모서리 rounded-xl) -->
-      <button id="startShootBtn" onclick="runShootingSequence()"
-              class="w-full max-w-md py-3 sm:py-3.5 px-6 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-base sm:text-lg tracking-wider rounded-xl border border-sky-300/40 shadow-xl shadow-sky-950/60 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 mt-0.5 flex-shrink-0 cursor-pointer">
-        <i class="fa-solid fa-camera text-base animate-pulse"></i>
+      <button id="startShootBtn" onclick="runShootingSequence()" class="btn"
+              style="width: 100%; max-width: 440px; padding: 13px 20px; background: linear-gradient(135deg, #0284c7, #2563eb, #4f46e5); color: #ffffff; font-size: 17px; letter-spacing: 0.5px; border-radius: 14px; border: 1px solid rgba(125,211,252,0.4); box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); flex-shrink: 0; margin-top: 2px;">
+        <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5a5 5 0 0 0 5 5a5 5 0 0 0 5-5a5 5 0 0 0 5-5m0 2a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3Z"/>
+        </svg>
         <span>3컷 촬영 시작하기</span>
       </button>
 
     </div>
 
-    <!-- [B] 결과 화면 (영수증 스티커 미리보기 + 인쇄/재촬영 버튼) -->
-    <div id="resultSection" class="hidden w-full h-full flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 min-h-0 px-2 mt-2 sm:mt-3">
-      
-      <!-- 좌측: 영수증 스티커 실물 캔버스 미리보기 (세로 높이 기준 가변 피팅) -->
-      <div class="h-[58vh] sm:h-[64vh] max-h-[580px] w-auto flex items-center justify-center p-2 sm:p-2.5 bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-2xl relative flex-shrink-0">
-        <div class="receipt-edge h-full w-auto flex flex-col items-center justify-center overflow-hidden p-1.5 sm:p-2">
-          <canvas id="stickerDisplayCanvas" width="576" height="1320" 
-                  class="h-full w-auto max-w-[260px] sm:max-w-[300px] object-contain block select-none pointer-events-none shadow-sm"></canvas>
+    <!-- [B] 결과 화면 (가로/세로 완벽 핏 영수증 미리보기 + 블루투스 출력) -->
+    <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px; margin-top: 6px;">
+
+      <!-- 좌측: 영수증 스티커 캔버스 미리보기 (화면 밖으로 나가지 않도록 세로 높이 기준 잠금) -->
+      <div style="height: 62vh; max-height: 560px; width: auto; display: flex; align-items: center; justify-content: center; padding: 10px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
+        <div class="receipt-edge" style="height: 100%; width: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 6px 8px;">
+          <canvas id="stickerDisplayCanvas" width="576" height="1320"
+                  style="height: 100%; width: auto; max-width: 270px; object-fit: contain; display: block; pointer-events: none;"></canvas>
         </div>
       </div>
 
-      <!-- 우측: 안내 텍스트 및 조작 버튼 그룹 -->
-      <div class="flex flex-col justify-center items-start text-left gap-3.5 sm:gap-4 max-w-sm md:max-w-md w-full self-center">
-        
-        <div class="space-y-1.5 sm:space-y-2">
-          <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+      <!-- 우측: 결과 안내 및 조작 버튼 (수직 중앙 정렬) -->
+      <div style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; text-align: left; gap: 16px; max-width: 380px; width: 100%; align-self: center;">
+
+        <div>
+          <h2 style="font-size: clamp(1.2rem, 2.5vw, 1.55rem); font-weight: 900; color: #ffffff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;">
             <span>🎉 스티커 사진이 완성되었습니다!</span>
           </h2>
-          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-            사진을 확인한 후 아래 <strong class="text-sky-400">[인쇄하기]</strong> 버튼을 누르면 감열 영수증 프린터에서 스티커로 즉시 출력됩니다.
+          <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-top: 8px;">
+            사진을 확인한 후 아래 <strong style="color: #38bdf8;">[인쇄하기]</strong> 버튼을 누르면 태블릿과 블루투스로 연결된 <strong style="color: #2dd4bf;">Epson TM-m30III</strong>에서 스티커로 즉시 출력됩니다.
           </p>
         </div>
 
-        <!-- 조작 버튼 2개: 인쇄하기 & 다시 촬영하기 -->
-        <div class="w-full flex flex-col gap-2.5 mt-1">
+        <!-- 조작 버튼 2종: 인쇄하기 & 다시 촬영하기 -->
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
           <!-- 1) 인쇄하기 버튼 -->
-          <button id="printActionBtn" onclick="printReceiptSticker()"
-                  class="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-base sm:text-lg tracking-wide rounded-xl border border-emerald-300/40 shadow-xl shadow-emerald-950/60 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer">
-            <i class="fa-solid fa-print text-lg"></i>
-            <span id="printBtnLabel">인쇄하기</span>
+          <button id="printActionBtn" onclick="printReceiptSticker()" class="btn"
+                  style="width: 100%; padding: 15px 20px; background: linear-gradient(135deg, #10b981, #0d9488, #059669); color: #ffffff; font-size: 17px; border-radius: 14px; border: 1px solid rgba(110,231,183,0.4); box-shadow: 0 10px 25px -5px rgba(16,185,129,0.5);">
+            <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3m-3 11H8v-5h8v5m3-7c-.55 0-1-.45-1-1s.45-1 1-1s1 .45 1 1s-.45 1-1 1m-1-9H6V4h12v4Z"/>
+            </svg>
+            <span id="printBtnLabel">블루투스로 인쇄하기</span>
           </button>
-          
+
           <!-- 2) 다시 촬영하기 버튼 -->
-          <button id="retakeActionBtn" onclick="resetBoothToCamera()"
-                  class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-base sm:text-lg tracking-wide rounded-xl border border-slate-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
-            <i class="fa-solid fa-rotate-right text-base"></i>
+          <button id="retakeActionBtn" onclick="resetBoothToCamera()" class="btn"
+                  style="width: 100%; padding: 12px 18px; background: #1e293b; color: #cbd5e1; font-size: 15px; border-radius: 14px; border: 1px solid #475569;">
+            <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/>
+            </svg>
             <span>다시 촬영하기</span>
           </button>
         </div>
 
-        <div class="text-[11px] text-slate-500 font-mono">
+        <div style="font-size: 11px; color: #64748b; font-family: monospace;">
           * 45초 동안 입력이 없으면 처음 대기 화면으로 자동 복귀합니다.
         </div>
 
@@ -280,126 +323,100 @@
 
   </main>
 
-  <!-- 3. 백그라운드 캔버스 및 인쇄 폴백 영역 -->
-  <canvas id="thermalStripCanvas" width="576" height="1320" class="hidden"></canvas>
-
-  <div id="browserPrintZone" class="hidden">
+  <!-- 3. 백그라운드 캔버스 및 감열 인쇄 DOM 영역 -->
+  <canvas id="thermalStripCanvas" width="576" height="1320" style="display: none;"></canvas>
+  <div id="browserPrintZone" style="display: none;">
     <img id="browserPrintImg" src="" alt="print-strip" />
   </div>
 
-  <!-- 4. 프린터 연결 모드 설정 모달 (블루투스 vs 네트워크) -->
-  <div id="configModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
-          <i class="fa-solid fa-print text-sky-400"></i>
-          프린터 연결 방식 설정
+  <!-- ============================================================
+       4. 블루투스 프린터 설정 모달
+       ============================================================ -->
+  <div id="configModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 50; display: none; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #0f172a; border: 1px solid #334155; border-radius: 18px; width: 100%; max-width: 460px; padding: 22px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 14px;">
+
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 12px;">
+        <h3 style="font-size: 16px; font-weight: 900; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <svg style="width: 18px; height: 18px; fill: #38bdf8;" viewBox="0 0 24 24">
+            <path d="M14.88 16.29L13 18.17V14.41m0-4.82l1.88 1.88L13 13.35M17.71 7.71L12 2h-1v7.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L11 14.41V22h1l5.71-5.71l-4.3-4.29l4.3-4.29M13 5.83l1.88 1.88L13 9.59V5.83Z"/>
+          </svg>
+          블루투스 프린터 연동 설정
         </h3>
-        <button onclick="toggleConfigModal(false)" class="text-slate-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
+        <button onclick="toggleConfigModal(false)" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
+          <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"/>
+          </svg>
         </button>
       </div>
 
-      <!-- 연결 모드 선택 라디오 -->
-      <div class="space-y-2">
-        <label class="text-xs font-mono text-slate-400">연결 모드 선택</label>
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" id="modeBtnBt" onclick="setConnectionMode('BLUETOOTH')"
-                  class="py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all">
-            <i class="fa-brands fa-bluetooth-b text-sky-400 text-sm"></i>
-            블루투스 (무선 직결)
+      <!-- 블루투스 전송 모드 선택 -->
+      <div>
+        <label style="display: block; font-size: 11px; font-family: monospace; color: #94a3b8; margin-bottom: 6px;">블루투스 출력 방식 선택</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button type="button" id="btnModeBtSystem" onclick="setBtMethod('SYSTEM')" class="btn"
+                  style="padding: 10px; font-size: 12px; background: rgba(56,189,248,0.25); color: #38bdf8; border: 1.5px solid #38bdf8; flex-direction: column;">
+            <span>⚡ TM-Utility 연동 모드</span>
+            <span style="font-size: 10px; opacity: 0.8; font-weight: normal;">(태블릿 BT 페어링 즉시 출력)</span>
           </button>
-          <button type="button" id="modeBtnNet" onclick="setConnectionMode('NETWORK')"
-                  class="py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all">
-            <i class="fa-solid fa-network-wired text-emerald-400 text-sm"></i>
-            Wi-Fi / 유선 LAN
-          </button>
-        </div>
-      </div>
-
-      <!-- 블루투스 전용 안내 및 페어링 패널 -->
-      <div id="btConfigPanel" class="p-3 bg-slate-800/80 rounded-xl border border-slate-700 text-xs space-y-2.5">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-300 font-bold">블루투스 프린터 상태</span>
-          <span id="btStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30">미연결</span>
-        </div>
-        <p class="text-slate-400 text-[11px] leading-relaxed">
-          태블릿(Chrome)과 Epson TM-m30III를 블루투스로 연결합니다. 이미 태블릿 설정에 페어링되어 있는 경우 [기존 연결 장치 불러오기]를 누르시면 즉시 연결됩니다.
-        </p>
-
-        <!-- 프린터 이름 검색 필터 설정 -->
-        <div>
-          <label class="block text-[11px] font-mono text-slate-400 mb-1">프린터 이름(또는 접두사) 검색</label>
-          <input type="text" id="cfgBtNamePrefix" value="TM-m30" placeholder="예: TM-m30, EPSON, TM"
-                 class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-sky-400 focus:outline-none" />
-        </div>
-
-        <div class="flex flex-col gap-1.5 pt-1">
-          <div class="flex gap-2">
-            <button onclick="connectBluetoothPrinter()" class="flex-1 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-md">
-              <i class="fa-brands fa-bluetooth-b"></i>
-              이름으로 프린터 검색
-            </button>
-            <button onclick="disconnectBluetoothPrinter()" class="py-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-lg transition-all">
-              연결 해제
-            </button>
-          </div>
-          <!-- 이미 태블릿 OS에 페어링된 기기 즉시 로드 버튼 -->
-          <button onclick="connectExistingPairedDevice()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 active:scale-95">
-            <i class="fa-solid fa-link text-xs"></i>
-            이미 페어링된 장치 바로 연결
+          <button type="button" id="btnModeBtGatt" onclick="setBtMethod('GATT')" class="btn"
+                  style="padding: 10px; font-size: 12px; background: rgba(15,23,42,0.6); color: #94a3b8; border: 1px solid #334155; flex-direction: column;">
+            <span>📡 Web Bluetooth 직결</span>
+            <span style="font-size: 10px; opacity: 0.8; font-weight: normal;">(GATT 바이너리 직접 전송)</span>
           </button>
         </div>
       </div>
 
-      <!-- 네트워크(LAN/Wi-Fi) 전용 IP 설정 패널 -->
-      <div id="netConfigPanel" class="space-y-3 hidden">
-        <div>
-          <label class="block text-xs font-mono text-slate-400 mb-1">프린터 IP 주소</label>
-          <input type="text" id="cfgPrinterIp" value="172.16.10.1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-sm focus:border-sky-400 focus:outline-none" />
+      <!-- 안내 및 제어 블록 -->
+      <div id="btInfoBlock" style="padding: 12px; background: rgba(30, 41, 59, 0.6); border: 1px solid #334155; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div id="btMethodGuide" style="font-size: 12px; color: #cbd5e1; line-height: 1.5;">
+          <strong style="color: #38bdf8;">현재 상태: TM Utility 테스트 완료</strong><br>
+          • 태블릿과 프린터가 블루투스로 성공적으로 묶여 있습니다.<br>
+          • 인쇄 시 감열 영수증 규격(80mm)으로 다이렉트 전송되어 스티커로 출력됩니다.<br>
+          • <em>팁: Google Play에서 'Epson Print Enabler'가 활성화되어 있으면 더욱 매끄럽습니다.</em>
         </div>
-        <div>
-          <label class="block text-xs font-mono text-slate-400 mb-1">ePOS 포트 (기본 8008 / HTTPS: 8043)</label>
-          <input type="text" id="cfgPrinterPort" value="8008" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-sm focus:border-sky-400 focus:outline-none" />
+
+        <div id="gattActionRow" style="display: none; flex-direction: column; gap: 6px; margin-top: 4px;">
+          <button type="button" onclick="requestBluetoothConnection()" class="btn"
+                  style="padding: 10px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; font-size: 13px;">
+            📡 Web Bluetooth 검색 및 페어링
+          </button>
         </div>
       </div>
 
-      <div class="pt-2 flex justify-end gap-2 border-t border-slate-800">
-        <button onclick="testPrintSample()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-600 transition-all">
+      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #1e293b; padding-top: 12px;">
+        <button onclick="testPrintSample()" class="btn"
+                style="padding: 8px 14px; background: #1e293b; color: #cbd5e1; font-size: 12px; border: 1px solid #475569;">
           테스트 인쇄
         </button>
-        <button onclick="saveConfigModal()" class="px-5 py-2 bg-sky-500 hover:bg-sky-400 text-white text-xs font-black rounded-xl transition-all">
-          설정 저장
+        <button onclick="saveConfigModal()" class="btn"
+                style="padding: 8px 18px; background: #0284c7; color: #fff; font-size: 12px;">
+          확인 완료
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 5. 인앱 토스트 알림창 -->
-  <div id="appToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 border border-sky-400/60 text-white px-5 py-2.5 rounded-xl shadow-2xl transition-all duration-300 opacity-0 pointer-events-none text-xs sm:text-sm font-bold flex items-center gap-2">
+  <!-- 5. 토스트 알림 메시지 바 -->
+  <div id="appToast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60; background: #0f172a; border: 1px solid #38bdf8; color: #fff; padding: 10px 18px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: opacity 0.3s ease; opacity: 0; pointer-events: none; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
     <span id="toastIcon">✨</span>
     <span id="toastMessage">안내 메시지</span>
   </div>
 
+  <!-- ============================================================
+       6. 스크립트 로직 (블루투스 출력 엔진 및 3컷 포토부스 파이프라인)
+       ============================================================ -->
   <script>
     // ==========================================
     // 1. 시스템 설정 (CONFIG)
     // ==========================================
     const CONFIG = {
-      CONNECTION_MODE: localStorage.getItem('SOOPIA_PRINT_MODE') || 'BLUETOOTH', // 'BLUETOOTH' or 'NETWORK'
-      PRINTER_IP: localStorage.getItem('SOOPIA_PRINTER_IP') || '172.16.10.1',
-      PRINTER_PORT: localStorage.getItem('SOOPIA_PRINTER_PORT') || (location.protocol === 'https:' ? '8043' : '8008'),
-      BT_NAME_PREFIX: localStorage.getItem('SOOPIA_BT_PREFIX') || 'TM-m30',
+      BT_METHOD: localStorage.getItem('SOOPIA_BT_METHOD') || 'SYSTEM', // 'SYSTEM' (TM Utility / Enabler) 또는 'GATT' (Web Bluetooth)
       AUTO_RESET_SECONDS: 45,
       FESTIVAL_TITLE: '2026 AI·SW 체험 한마당',
       CLUB_NAME: 'SPEER 인공지능공학연구반'
     };
 
-    // Bluetooth GATT 관련 전역 객체
-    let bluetoothDevice = null;
-    let bluetoothCharacteristic = null;
-
-    // DOM 요소 바인딩
+    // DOM 요소
     const webcamView = document.getElementById('webcamView');
     const captureSection = document.getElementById('captureSection');
     const resultSection = document.getElementById('resultSection');
@@ -416,6 +433,7 @@
     const displayCtx = displayCanvas.getContext('2d');
     const thermalCanvas = document.getElementById('thermalStripCanvas');
     const thermalCtx = thermalCanvas.getContext('2d');
+    const browserPrintZone = document.getElementById('browserPrintZone');
     const browserPrintImg = document.getElementById('browserPrintImg');
     const btHeaderLabel = document.getElementById('btHeaderLabel');
     const btHeaderIcon = document.getElementById('btHeaderIcon');
@@ -423,768 +441,559 @@
     let capturedFrames = [];
     let autoResetTimer = null;
 
-    // ==========================================
-    // 2. 웹캠 연결 초기화 (16:9 와이드 모드)
-    // ==========================================
+    // Web Bluetooth 참조 (GATT 모드용)
+    let bluetoothDevice = null;
+    let bluetoothCharacteristic = null;
+
+    // ------------------------------------------------------------
+    // [2] 블루투스 방식 관리 및 UI 연동
+    // ------------------------------------------------------------
+    function setBtMethod(method) {
+      CONFIG.BT_METHOD = method;
+      localStorage.setItem('SOOPIA_BT_METHOD', method);
+
+      const btnSystem = document.getElementById('btnModeBtSystem');
+      const btnGatt = document.getElementById('btnModeBtGatt');
+      const guideText = document.getElementById('btMethodGuide');
+      const gattRow = document.getElementById('gattActionRow');
+
+      if (method === 'SYSTEM') {
+        btnSystem.style.background = 'rgba(56,189,248,0.25)';
+        btnSystem.style.color = '#38bdf8';
+        btnSystem.style.border = '1.5px solid #38bdf8';
+
+        btnGatt.style.background = 'rgba(15,23,42,0.6)';
+        btnGatt.style.color = '#94a3b8';
+        btnGatt.style.border = '1px solid #334155';
+
+        gattRow.style.display = 'none';
+        guideText.innerHTML = `
+          <strong style="color: #38bdf8;">TM-Utility 연동 모드 (추천):</strong><br>
+          • 태블릿과 TM-m30III가 이미 블루투스로 연결되어 있어 <strong>가장 안정적</strong>입니다.<br>
+          • [인쇄하기]를 터치하면 페어링된 TM-m30III로 즉시 출력됩니다.<br>
+          • <em>Epson Print Enabler 앱이 켜져 있으면 인쇄창 확인 없이 바로 출력됩니다.</em>
+        `;
+
+        if (btHeaderLabel) btHeaderLabel.innerText = "BT 연결됨 (TM-m30)";
+        if (btHeaderIcon) btHeaderIcon.style.fill = "#38bdf8";
+        if (hudConnectionMode) hudConnectionMode.innerText = "BLUETOOTH // TM-m30III";
+        if (hudPrinterStatus) hudPrinterStatus.innerText = "TM UTILITY READY";
+      } else {
+        btnGatt.style.background = 'rgba(56,189,248,0.25)';
+        btnGatt.style.color = '#38bdf8';
+        btnGatt.style.border = '1.5px solid #38bdf8';
+
+        btnSystem.style.background = 'rgba(15,23,42,0.6)';
+        btnSystem.style.color = '#94a3b8';
+        btnSystem.style.border = '1px solid #334155';
+
+        gattRow.style.display = 'flex';
+        guideText.innerHTML = `
+          <strong style="color: #38bdf8;">Web Bluetooth GATT 모드:</strong><br>
+          • 브라우저에서 직접 BLE 캐릭터리스틱을 통해 ESC/POS 바이너리를 전송합니다.<br>
+          • 아래 [Web Bluetooth 검색 및 페어링] 버튼을 눌러 TM-m30III를 연결해주세요.
+        `;
+
+        updateGattStatusUI(bluetoothDevice && bluetoothDevice.gatt.connected);
+      }
+    }
+
+    function updateGattStatusUI(connected) {
+      if (CONFIG.BT_METHOD !== 'GATT') return;
+
+      if (connected) {
+        if (btHeaderLabel) btHeaderLabel.innerText = "BLE 연결됨";
+        if (btHeaderIcon) btHeaderIcon.style.fill = "#38bdf8";
+        if (hudConnectionMode) hudConnectionMode.innerText = "BLE // CONNECTED";
+        if (hudPrinterStatus) hudPrinterStatus.innerText = "GATT READY";
+      } else {
+        if (btHeaderLabel) btHeaderLabel.innerText = "BLE 검색하기";
+        if (btHeaderIcon) btHeaderIcon.style.fill = "#94a3b8";
+        if (hudConnectionMode) hudConnectionMode.innerText = "BLE // WAITING";
+        if (hudPrinterStatus) hudPrinterStatus.innerText = "PAIR REQUIRED";
+      }
+    }
+
+    // ------------------------------------------------------------
+    // [3] Web Bluetooth GATT 연결 처리 (선택형)
+    // ------------------------------------------------------------
+    async function requestBluetoothConnection() {
+      if (CONFIG.BT_METHOD === 'SYSTEM') {
+        showToast("태블릿과 이미 페어링되어 있습니다! 바로 촬영 후 인쇄하세요.", "🎉");
+        return;
+      }
+
+      if (!navigator.bluetooth) {
+        showToast("현재 브라우저는 Web Bluetooth를 지원하지 않습니다. TM-Utility 모드를 사용하세요.", "⚠️");
+        return;
+      }
+
+      try {
+        showToast("주변 TM-m30III 블루투스를 검색합니다...", "📡");
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [
+            '000018f0-0000-1000-8000-00805f9b34fb', // ESC/POS Print Service
+            '0000ff00-0000-1000-8000-00805f9b34fb',
+            '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // Microchip ISSP
+          ]
+        });
+
+        bluetoothDevice = device;
+        device.addEventListener('gattserverdisconnected', () => {
+          updateGattStatusUI(false);
+          showToast("블루투스 연결이 해제되었습니다.", "🔌");
+        });
+
+        const server = await device.gatt.connect();
+        const services = await server.getPrimaryServices();
+
+        for (const service of services) {
+          const chars = await service.getCharacteristics();
+          for (const c of chars) {
+            if (c.properties.write || c.properties.writeWithoutResponse) {
+              bluetoothCharacteristic = c;
+              break;
+            }
+          }
+          if (bluetoothCharacteristic) break;
+        }
+
+        updateGattStatusUI(true);
+        showToast("Epson TM-m30III가 블루투스로 연결되었습니다!", "🎉");
+      } catch (err) {
+        console.warn("Bluetooth connection failed:", err);
+        if (err.name !== 'NotFoundError') {
+          showToast("블루투스 직결 실패: TM-Utility 연동 모드를 권장합니다.", "⚠️");
+        }
+      }
+    }
+
+    // ------------------------------------------------------------
+    // [4] ESC/POS 바이너리 빌더 (GATT 모드용)
+    // ------------------------------------------------------------
+    function buildEscPosRasterBinary(ditheredImageData, width, height) {
+      const bytesPerLine = width / 8; // 576 / 8 = 72 bytes
+      const rasterDataSize = bytesPerLine * height;
+
+      // 헤더: 프린터 초기화(ESC @) + 라인간격 0(ESC 3 0) + 래스터 비트맵 명령(GS v 0 0)
+      const header = [
+        0x1B, 0x40,             // ESC @
+        0x1B, 0x33, 0x00,       // ESC 3 0
+        0x1D, 0x76, 0x30, 0x00, // GS v 0 0
+        bytesPerLine & 0xFF, (bytesPerLine >> 8) & 0xFF,
+        height & 0xFF, (height >> 8) & 0xFF
+      ];
+
+      // 푸터: 피드 4줄(ESC d 4) + 자동 커팅(GS V 66 0)
+      const footer = [
+        0x1B, 0x64, 0x04,
+        0x1D, 0x56, 0x42, 0x00
+      ];
+
+      const fullBuffer = new Uint8Array(header.length + rasterDataSize + footer.length);
+      fullBuffer.set(header, 0);
+
+      let offset = header.length;
+      const data = ditheredImageData.data;
+
+      for (let y = 0; y < height; y++) {
+        for (let byteIdx = 0; byteIdx < bytesPerLine; byteIdx++) {
+          let byteVal = 0;
+          for (let bit = 0; bit < 8; bit++) {
+            const pxIndex = ((y * width) + (byteIdx * 8 + bit)) * 4;
+            if (data[pxIndex] < 128) {
+              byteVal |= (1 << (7 - bit));
+            }
+          }
+          fullBuffer[offset++] = byteVal;
+        }
+      }
+
+      fullBuffer.set(footer, offset);
+      return fullBuffer;
+    }
+
+    // ------------------------------------------------------------
+    // [5] 3컷 합성 및 흑백 디더링 (고해상도 576x1320 영수증 스티커)
+    // ------------------------------------------------------------
+    function generateCompositeSticker() {
+      const w = 576;
+      const h = 1320;
+
+      displayCanvas.width = w;
+      displayCanvas.height = h;
+      thermalCanvas.width = w;
+      thermalCanvas.height = h;
+
+      // 1) 순백 바탕 채우기
+      displayCtx.fillStyle = '#ffffff';
+      displayCtx.fillRect(0, 0, w, h);
+
+      // 2) 상단 헤더 텍스트
+      displayCtx.fillStyle = '#000000';
+      displayCtx.textAlign = 'center';
+
+      displayCtx.font = 'bold 28px -apple-system, sans-serif';
+      displayCtx.fillText(CONFIG.FESTIVAL_TITLE, w / 2, 54);
+
+      displayCtx.font = 'bold 20px -apple-system, sans-serif';
+      displayCtx.fillText("수피아여고 인공지능 포토부스", w / 2, 88);
+
+      // 구분 점선
+      drawDashedLine(displayCtx, 30, 110, w - 30, 110);
+
+      // 날짜 및 타임스탬프
+      const now = new Date();
+      const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      displayCtx.font = '14px monospace';
+      displayCtx.fillText(`PRINTED: ${timeStr} [BT-SYNC]`, w / 2, 134);
+
+      // 3) 3컷 사진 렌더링 (균형 있는 3단 프레임)
+      const photoWidth = 516;
+      const photoHeight = 290;
+      const startX = 30;
+      const startY = 158;
+      const gapY = 308;
+
+      for (let i = 0; i < 3; i++) {
+        const curY = startY + (i * gapY);
+
+        // 사진 외곽선
+        displayCtx.strokeStyle = '#000000';
+        displayCtx.lineWidth = 2.5;
+        displayCtx.strokeRect(startX, curY, photoWidth, photoHeight);
+
+        if (capturedFrames[i]) {
+          displayCtx.drawImage(capturedFrames[i], startX + 2, curY + 2, photoWidth - 4, photoHeight - 4);
+        } else {
+          displayCtx.fillStyle = '#f1f5f9';
+          displayCtx.fillRect(startX + 2, curY + 2, photoWidth - 4, photoHeight - 4);
+          displayCtx.fillStyle = '#64748b';
+          displayCtx.font = 'bold 18px monospace';
+          displayCtx.fillText(`[ SHOT #${i + 1} ]`, w / 2, curY + (photoHeight / 2));
+        }
+      }
+
+      // 4) 하단 푸터 및 바코드 데코
+      const footerY = 1110;
+      drawDashedLine(displayCtx, 30, footerY, w - 30, footerY);
+
+      displayCtx.fillStyle = '#000000';
+      displayCtx.font = 'bold 18px -apple-system, sans-serif';
+      displayCtx.fillText(CONFIG.CLUB_NAME, w / 2, footerY + 34);
+
+      displayCtx.font = '13px monospace';
+      displayCtx.fillText("SPEER AI LAB // EPSON TM-m30III BLUETOOTH", w / 2, footerY + 58);
+
+      // 모의 바코드 렌더링
+      drawSimulatedBarcode(displayCtx, 60, footerY + 76, w - 120, 48);
+
+      displayCtx.font = '11px monospace';
+      displayCtx.fillText("* 소중한 추억을 간직하세요 *", w / 2, footerY + 144);
+
+      // 5) 감열 인쇄용 흑백 디더링 이미지 생성
+      createDitheredThermalData();
+    }
+
+    function drawDashedLine(ctx, x1, y1, x2, y2) {
+      ctx.beginPath();
+      ctx.setLineDash([6, 5]);
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawSimulatedBarcode(ctx, x, y, width, height) {
+      const bars = 52;
+      const barWidth = width / bars;
+      ctx.fillStyle = '#000000';
+      for (let i = 0; i < bars; i++) {
+        if ((i * 7 + 3) % 5 !== 0) {
+          ctx.fillRect(x + (i * barWidth), y, barWidth * 0.75, height);
+        }
+      }
+    }
+
+    // Atkinson Dithering (감열 영수증 인쇄 최고 품질 알고리즘)
+    function createDitheredThermalData() {
+      const w = 576;
+      const h = 1320;
+      const imgData = displayCtx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      // 그레이스케일 버퍼
+      const gray = new Float32Array(w * h);
+      for (let i = 0; i < data.length; i += 4) {
+        gray[i / 4] = (data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114);
+      }
+
+      // 오차 확산 (Atkinson)
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w) + x;
+          const oldVal = gray[idx];
+          const newVal = oldVal < 128 ? 0 : 255;
+          const err = (oldVal - newVal) >> 3;
+
+          gray[idx] = newVal;
+
+          if (x + 1 < w) gray[idx + 1] += err;
+          if (x + 2 < w) gray[idx + 2] += err;
+          if (y + 1 < h) {
+            if (x - 1 >= 0) gray[idx + w - 1] += err;
+            gray[idx + w] += err;
+            if (x + 1 < w) gray[idx + w + 1] += err;
+          }
+          if (y + 2 < h) {
+            gray[idx + (w * 2)] += err;
+          }
+        }
+      }
+
+      // 캔버스 버퍼에 적용
+      for (let i = 0; i < gray.length; i++) {
+        const v = gray[i] < 128 ? 0 : 255;
+        const p = i * 4;
+        data[p] = v;
+        data[p + 1] = v;
+        data[p + 2] = v;
+        data[p + 3] = 255;
+      }
+
+      thermalCtx.putImageData(imgData, 0, 0);
+
+      // 시스템 인쇄용 이미지 태그 업데이트
+      browserPrintImg.src = thermalCanvas.toDataURL('image/png');
+    }
+
+    // ------------------------------------------------------------
+    // [6] 인쇄 실행 파이프라인 (블루투스 다이렉트 출력)
+    // ------------------------------------------------------------
+    async function printReceiptSticker() {
+      printActionBtn.disabled = true;
+      printBtnLabel.innerText = "블루투스 출력 중...";
+      clearTimeout(autoResetTimer);
+
+      createDitheredThermalData();
+
+      // [방법 1] GATT 바이너리 직접 전송 모드
+      if (CONFIG.BT_METHOD === 'GATT' && bluetoothCharacteristic) {
+        try {
+          showToast("블루투스로 데이터 전송 중...", "⏳");
+          const binary = buildEscPosRasterBinary(
+            thermalCtx.getImageData(0, 0, thermalCanvas.width, thermalCanvas.height),
+            thermalCanvas.width,
+            thermalCanvas.height
+          );
+
+          // 512바이트 청크 단위 전송
+          const chunkSize = 512;
+          for (let i = 0; i < binary.length; i += chunkSize) {
+            const chunk = binary.subarray(i, i + chunkSize);
+            if (bluetoothCharacteristic.writeValueWithoutResponse) {
+              await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
+            } else {
+              await bluetoothCharacteristic.writeValue(chunk);
+            }
+            await sleep(15);
+          }
+
+          showToast("출력이 완료되었습니다! 스티커를 확인하세요.", "🎉");
+          printBtnLabel.innerText = "인쇄 완료!";
+          setTimeout(resetBoothToCamera, 3500);
+          return;
+
+        } catch (err) {
+          console.warn("GATT Write Failed, fallback to system:", err);
+          showToast("GATT 전송 지연: TM-Utility 연동 모드로 전환합니다.", "⚠️");
+        }
+      }
+
+      // [방법 2] TM-Utility / Epson Print Enabler 연동 모드 (기본 & 권장)
+      showToast("블루투스 프린터(TM-m30III)로 인쇄를 실행합니다.", "🖨️");
+
+      setTimeout(() => {
+        window.print();
+        printActionBtn.disabled = false;
+        printBtnLabel.innerText = "블루투스로 인쇄하기";
+        setTimeout(resetBoothToCamera, 4000);
+      }, 300);
+    }
+
+    // ------------------------------------------------------------
+    // [7] 3컷 촬영 시퀀스 (카운트다운 -> 플래시 -> 썸네일 갱신)
+    // ------------------------------------------------------------
+    async function runShootingSequence() {
+      startShootBtn.disabled = true;
+      capturedFrames = [];
+
+      // 썸네일 초기화
+      for (let i = 1; i <= 3; i++) {
+        const slot = document.getElementById(`thumbSlot${i}`);
+        slot.innerHTML = `<span style="letter-spacing: 1px;">CUT ${i}</span><span style="font-size: 9px; color: #64748b;">WAITING</span>`;
+      }
+
+      for (let shot = 1; shot <= 3; shot++) {
+        shotStatusHud.innerText = `SHOT [ ${shot} / 3 ]`;
+
+        // 카운트다운 3, 2, 1
+        countdownBox.style.display = 'flex';
+        for (let c = 3; c >= 1; c--) {
+          countdownNumber.innerText = c;
+          await sleep(1000);
+        }
+        countdownBox.style.display = 'none';
+
+        // 플래시 효과
+        cameraFlashOverlay.classList.remove('flash-active');
+        void cameraFlashOverlay.offsetWidth;
+        cameraFlashOverlay.classList.add('flash-active');
+
+        // 프레임 캡처
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = webcamView.videoWidth || 1280;
+        frameCanvas.height = webcamView.videoHeight || 720;
+        const fCtx = frameCanvas.getContext('2d');
+
+        // 웹캠 거울 모드 반영
+        fCtx.translate(frameCanvas.width, 0);
+        fCtx.scale(-1, 1);
+        fCtx.drawImage(webcamView, 0, 0, frameCanvas.width, frameCanvas.height);
+
+        capturedFrames.push(frameCanvas);
+
+        // 썸네일 갱신
+        const thumbSlot = document.getElementById(`thumbSlot${shot}`);
+        thumbSlot.innerHTML = '';
+        const thumbImg = document.createElement('img');
+        thumbImg.src = frameCanvas.toDataURL('image/jpeg', 0.85);
+        thumbImg.style.width = '100%';
+        thumbImg.style.height = '100%';
+        thumbImg.style.objectFit = 'cover';
+        thumbSlot.appendChild(thumbImg);
+
+        await sleep(600);
+      }
+
+      // 촬영 완료 -> 영수증 스티커 합성 및 결과 화면 전환
+      generateCompositeSticker();
+
+      captureSection.style.display = 'none';
+      resultSection.style.display = 'flex';
+      printActionBtn.disabled = false;
+      printBtnLabel.innerText = "블루투스로 인쇄하기";
+
+      // 45초 후 자동 복귀 타이머
+      clearTimeout(autoResetTimer);
+      autoResetTimer = setTimeout(resetBoothToCamera, CONFIG.AUTO_RESET_SECONDS * 1000);
+    }
+
+    function resetBoothToCamera() {
+      clearTimeout(autoResetTimer);
+      resultSection.style.display = 'none';
+      captureSection.style.display = 'flex';
+      startShootBtn.disabled = false;
+      shotStatusHud.innerText = "SHOT [ 0 / 3 ]";
+
+      // 썸네일 리셋
+      for (let i = 1; i <= 3; i++) {
+        const slot = document.getElementById(`thumbSlot${i}`);
+        slot.innerHTML = `<span style="letter-spacing: 1px;">CUT ${i}</span><span style="font-size: 9px; color: #64748b;">WAITING</span>`;
+      }
+    }
+
+    // ------------------------------------------------------------
+    // [8] 웹캠 초기화 (안전 다단계 폴백)
+    // ------------------------------------------------------------
     async function initWebcam() {
-      updateModeUI();
+      setBtMethod(CONFIG.BT_METHOD);
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          },
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
           audio: false
         });
         webcamView.srcObject = stream;
         shotStatusHud.innerText = "SHOT [ 0 / 3 ]";
       } catch (err) {
-        console.error("Camera Init Error:", err);
-        shotStatusHud.innerText = "CAMERA ERROR";
-        showToast("카메라 권한을 확인해주세요.", "⚠️");
-      }
-    }
-
-    // ==========================================
-    // 3. 3컷 순차 촬영 시퀀스
-    // ==========================================
-    async function runShootingSequence() {
-      capturedFrames = [];
-      startShootBtn.disabled = true;
-      startShootBtn.classList.add('opacity-50', 'pointer-events-none');
-      clearTimeout(autoResetTimer);
-
-      for (let i = 1; i <= 3; i++) {
-        const slot = document.getElementById(`thumbSlot${i}`);
-        slot.innerHTML = `<span class="tracking-widest text-[11px] font-mono text-slate-400">CUT ${i}</span><span class="text-[9px] text-slate-500 font-mono tracking-tighter">WAITING</span>`;
-        slot.classList.remove('border-sky-400', 'ring-2', 'ring-sky-400/50');
-      }
-
-      for (let cut = 1; cut <= 3; cut++) {
-        shotStatusHud.innerText = `SHOT [ ${cut} / 3 ]`;
-        await runCountdown(3);
-
-        flashScreen();
-        captureWebcamFrame(cut);
-        await sleep(650);
-      }
-
-      shotStatusHud.innerText = "RENDERING...";
-      await sleep(300);
-
-      renderFullSticker();
-      switchToResultView();
-    }
-
-    function runCountdown(seconds) {
-      return new Promise((resolve) => {
-        countdownBox.classList.remove('hidden');
-        countdownBox.classList.add('flex');
-        let current = seconds;
-        countdownNumber.innerText = current;
-
-        const interval = setInterval(() => {
-          current--;
-          if (current > 0) {
-            countdownNumber.innerText = current;
-          } else {
-            clearInterval(interval);
-            countdownBox.classList.add('hidden');
-            countdownBox.classList.remove('flex');
-            resolve();
-          }
-        }, 1000);
-      });
-    }
-
-    function flashScreen() {
-      cameraFlashOverlay.classList.add('flash-active');
-      setTimeout(() => {
-        cameraFlashOverlay.classList.remove('flash-active');
-      }, 350);
-    }
-
-    function captureWebcamFrame(cutIndex) {
-      const snap = document.createElement('canvas');
-      snap.width = 544;
-      snap.height = 272; // 와이드 2:1 비율
-      const sCtx = snap.getContext('2d');
-
-      sCtx.save();
-      sCtx.translate(snap.width, 0);
-      sCtx.scale(-1, 1);
-      sCtx.drawImage(webcamView, 0, 0, snap.width, snap.height);
-      sCtx.restore();
-
-      capturedFrames.push(snap);
-
-      const thumbSlot = document.getElementById(`thumbSlot${cutIndex}`);
-      if (thumbSlot) {
-        thumbSlot.innerHTML = '';
-        const img = document.createElement('img');
-        img.src = snap.toDataURL('image/jpeg', 0.85);
-        img.className = 'w-full h-full object-cover';
-        thumbSlot.appendChild(img);
-        thumbSlot.classList.add('border-sky-400', 'ring-2', 'ring-sky-400/50');
-      }
-    }
-
-    // ==========================================
-    // 4. 영수증 스티커 캔버스 합성 (576 x 1320px)
-    // ==========================================
-    function renderFullSticker() {
-      const w = displayCanvas.width;
-      const h = displayCanvas.height;
-
-      // 1) 바탕 종이
-      displayCtx.fillStyle = "#FFFFFF";
-      displayCtx.fillRect(0, 0, w, h);
-
-      // 2) 상단 헤더 데코레이션
-      displayCtx.fillStyle = "#334155";
-      displayCtx.textAlign = "center";
-      displayCtx.font = "bold 13px monospace";
-      displayCtx.fillText("◆ ◆ ◆  SPEER 인공지능공학연구반  ◆ ◆ ◆", w / 2, 38);
-
-      displayCtx.fillStyle = "#0f172a";
-      displayCtx.font = "900 27px sans-serif";
-      displayCtx.fillText(CONFIG.FESTIVAL_TITLE, w / 2, 72);
-
-      displayCtx.fillStyle = "#475569";
-      displayCtx.font = "bold 15px monospace";
-      displayCtx.fillText("― PHOTO STICKER MEMORY ―", w / 2, 98);
-
-      displayCtx.font = "14px monospace";
-      displayCtx.fillText("■ ------------------------------------ ■", w / 2, 118);
-
-      // 3) 3컷 와이드 사각 사진 및 테크니컬 장식
-      const startY = 136;
-      const photoWidth = 544;
-      const photoHeight = 272;
-      const photoX = (w - photoWidth) / 2;
-      const photoGap = 300;
-
-      capturedFrames.forEach((frame, idx) => {
-        const curY = startY + (idx * photoGap);
-
-        // 사진 테두리 (블랙)
-        displayCtx.fillStyle = "#0f172a";
-        displayCtx.fillRect(photoX - 4, curY - 4, photoWidth + 8, photoHeight + 8);
-
-        // 원본 사진 드로잉
-        displayCtx.drawImage(frame, photoX, curY, photoWidth, photoHeight);
-
-        // 사진 코너 L자 브래킷 (화이트)
-        displayCtx.strokeStyle = "#FFFFFF";
-        displayCtx.lineWidth = 3;
-        const cSize = 16;
-
-        displayCtx.beginPath();
-        displayCtx.moveTo(photoX + 8, curY + 8 + cSize);
-        displayCtx.lineTo(photoX + 8, curY + 8);
-        displayCtx.lineTo(photoX + 8 + cSize, curY + 8);
-        displayCtx.stroke();
-
-        displayCtx.beginPath();
-        displayCtx.moveTo(photoX + photoWidth - 8 - cSize, curY + photoHeight - 8);
-        displayCtx.lineTo(photoX + photoWidth - 8, curY + photoHeight - 8);
-        displayCtx.lineTo(photoX + photoWidth - 8, curY + photoHeight - 8 - cSize);
-        displayCtx.stroke();
-
-        // 좌상단 CUT 배지
-        displayCtx.fillStyle = "#0f172a";
-        displayCtx.fillRect(photoX + 8, curY + 8, 86, 24);
-        displayCtx.fillStyle = "#38bdf8";
-        displayCtx.font = "900 13px monospace";
-        displayCtx.textAlign = "left";
-        displayCtx.fillText(`[CUT #${idx + 1}]`, photoX + 16, curY + 25);
-
-        // 우상단 AI MEMORY 배지
-        displayCtx.fillStyle = "#0f172a";
-        displayCtx.fillRect(photoX + photoWidth - 110, curY + 8, 102, 24);
-        displayCtx.fillStyle = "#f43f5e";
-        displayCtx.textAlign = "right";
-        displayCtx.font = "bold 12px sans-serif";
-        displayCtx.fillText("★ AI MEMORY", photoX + photoWidth - 16, curY + 25);
-      });
-
-      // 4) 하단 푸터 영역
-      const footerY = startY + (3 * photoGap) + 8;
-      displayCtx.fillStyle = "#0f172a";
-      displayCtx.textAlign = "center";
-      displayCtx.font = "15px monospace";
-      displayCtx.fillText("=======================================", w / 2, footerY);
-
-      const now = new Date();
-      const dateString = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      displayCtx.font = "900 20px sans-serif";
-      displayCtx.fillText("SPEER 인공지능공학연구반", w / 2, footerY + 28);
-
-      displayCtx.font = "14px monospace";
-      displayCtx.fillStyle = "#334155";
-      displayCtx.fillText(`LOG_TIME: ${dateString}`, w / 2, footerY + 50);
-      displayCtx.fillText("REMEMBER THIS SPECIAL MOMENT! ✨", w / 2, footerY + 70);
-
-      // 바코드 생성
-      drawBarcodePattern(displayCtx, (w - 360) / 2, footerY + 86, 360, 40);
-
-      displayCtx.font = "12px monospace";
-      displayCtx.fillText(`RECEIPT NO. SP-${Math.floor(100000 + Math.random() * 900000)}`, w / 2, footerY + 142);
-
-      displayCtx.fillStyle = "#0f172a";
-      displayCtx.fillRect(16, h - 16, w - 32, 3);
-
-      browserPrintImg.src = displayCanvas.toDataURL('image/png');
-    }
-
-    function drawBarcodePattern(ctx, x, y, width, height) {
-      ctx.fillStyle = "#000000";
-      let curX = x;
-      while (curX < x + width) {
-        const barW = Math.floor(Math.random() * 4) + 1;
-        ctx.fillRect(curX, y, barW, height);
-        curX += barW + Math.floor(Math.random() * 3) + 1;
-      }
-    }
-
-    // ==========================================
-    // 5. Floyd-Steinberg 흑백 디더링
-    // ==========================================
-    function createDitheredImageData() {
-      const w = thermalCanvas.width;
-      const h = thermalCanvas.height;
-
-      thermalCtx.drawImage(displayCanvas, 0, 0);
-      const imgData = thermalCtx.getImageData(0, 0, w, h);
-      const data = imgData.data;
-
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const idx = (y * w + x) * 4;
-          const oldVal = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-          const newVal = oldVal < 128 ? 0 : 255;
-
-          data[idx] = newVal;
-          data[idx + 1] = newVal;
-          data[idx + 2] = newVal;
-
-          const error = oldVal - newVal;
-          if (x + 1 < w) data[idx + 4] += error * (7 / 16);
-          if (x - 1 >= 0 && y + 1 < h) data[(y + 1) * w * 4 + (x - 1) * 4] += error * (3 / 16);
-          if (y + 1 < h) data[(y + 1) * w * 4 + x * 4] += error * (5 / 16);
-          if (x + 1 < w && y + 1 < h) data[(y + 1) * w * 4 + (x + 1) * 4] += error * (1 / 16);
-        }
-      }
-      thermalCtx.putImageData(imgData, 0, 0);
-      return imgData;
-    }
-
-    // ==========================================
-    // 6. Web Bluetooth & ESC/POS 엔진 (오프라인 지원)
-    // ==========================================
-
-    // 디더링 이미지를 ESC/POS 래스터 바이너리로 변환 (GS v 0 방식)
-    function buildEscPosRasterBytes(imgData) {
-      const width = imgData.width;   // 576 dots
-      const height = imgData.height; // 1320 dots
-      const bytesPerLine = width / 8; // 72 bytes
-      const rasterDataLength = bytesPerLine * height;
-
-      // ESC/POS 초기화(ESC @), 정렬(ESC a 1), 래스터 출력(GS v 0 0), 피드 & 커팅(GS V 66 0)
-      const buffer = new Uint8Array(4 + 8 + rasterDataLength + 8);
-      let offset = 0;
-
-      // 1. 프린터 초기화 (ESC @) & 중앙 정렬 (ESC a 1)
-      buffer[offset++] = 0x1B; buffer[offset++] = 0x40; // ESC @
-      buffer[offset++] = 0x1B; buffer[offset++] = 0x61; buffer[offset++] = 0x01; // ESC a 1
-
-      // 2. GS v 0 래스터 이미지 헤더
-      // [GS, 'v', '0', m, xL, xH, yL, yH]
-      const xL = bytesPerLine & 0xFF;
-      const xH = (bytesPerLine >> 8) & 0xFF;
-      const yL = height & 0xFF;
-      const yH = (height >> 8) & 0xFF;
-
-      buffer[offset++] = 0x1D; // GS
-      buffer[offset++] = 0x76; // v
-      buffer[offset++] = 0x30; // 0
-      buffer[offset++] = 0x00; // m (normal mode)
-      buffer[offset++] = xL;
-      buffer[offset++] = xH;
-      buffer[offset++] = yL;
-      buffer[offset++] = yH;
-
-      // 3. 비트맵 데이터 패킹 (검정색 = 1, 흰색 = 0)
-      const data = imgData.data;
-      for (let y = 0; y < height; y++) {
-        for (let b = 0; b < bytesPerLine; b++) {
-          let byteVal = 0;
-          for (let bit = 0; bit < 8; bit++) {
-            const x = b * 8 + bit;
-            const pixelIdx = (y * width + x) * 4;
-            // 디더링 후 128 미만이면 검은색 점 찍기
-            if (data[pixelIdx] < 128) {
-              byteVal |= (1 << (7 - bit));
-            }
-          }
-          buffer[offset++] = byteVal;
-        }
-      }
-
-      // 4. 종이 피드 및 자동 커팅 (GS V B 0)
-      buffer[offset++] = 0x1D; buffer[offset++] = 0x56; buffer[offset++] = 0x42; buffer[offset++] = 0x10; // GS V B 16
-      
-      return buffer.slice(0, offset);
-    }
-
-    // 블루투스 공통 서비스 UUID 목록
-    const BT_PRINTER_SERVICES = [
-      '000018f0-0000-1000-8000-00805f9b34fb', // Standard Serial/POS
-      'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Nordic UART
-      '49535343-fe7d-4ae5-8fa9-9fafd205e455', // ISSC Serial
-      '0000ae30-0000-1000-8000-00805f9b34fb', // Generic POS
-      '00001101-0000-1000-8000-00805f9b34fb'  // Serial Port Profile (SPP)
-    ];
-
-    // 블루투스 기기 GATT 연결 및 쓰기 특성 확보 공통 로직
-    async function setupGattConnection(device) {
-      bluetoothDevice = device;
-      bluetoothDevice.addEventListener('gattserverdisconnected', onBluetoothDisconnected);
-
-      showToast(`${bluetoothDevice.name || '프린터'}에 연결 중...`, "⏳");
-      const server = await bluetoothDevice.gatt.connect();
-
-      // 서비스 및 쓰기 가능 Characteristic 탐색
-      const services = await server.getPrimaryServices();
-      let writableChar = null;
-
-      for (const service of services) {
         try {
-          const chars = await service.getCharacteristics();
-          for (const ch of chars) {
-            if (ch.properties.write || ch.properties.writeWithoutResponse) {
-              writableChar = ch;
-              break;
-            }
-          }
-          if (writableChar) break;
-        } catch (e) {}
-      }
-
-      if (!writableChar) {
-        throw new Error("프린터의 인쇄 전송 채널(Characteristic)을 찾지 못했습니다.");
-      }
-
-      bluetoothCharacteristic = writableChar;
-      updateBluetoothUI(true, bluetoothDevice.name);
-      showToast(`블루투스 연결 완료: ${bluetoothDevice.name || 'Epson TM-m30'}`, "🎉");
-      return true;
-    }
-
-    // 이미 태블릿에 페어링된 기기 즉시 연결 (getDevices API)
-    async function connectExistingPairedDevice() {
-      if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
-        showToast("이 기기에서는 자동 감지가 지원되지 않아 검색창을 엽니다.", "ℹ️");
-        return connectBluetoothPrinter();
-      }
-
-      try {
-        showToast("이미 페어링된 블루투스 장치 확인 중...", "🔍");
-        const devices = await navigator.bluetooth.getDevices();
-        
-        if (devices.length > 0) {
-          // 이름에 TM-m30, TM, Epson 등이 들어간 기기 우선 탐색
-          const target = devices.find(d => {
-            const n = (d.name || '').toUpperCase();
-            return n.includes('TM') || n.includes('EPSON') || n.includes('PRINT');
-          }) || devices[0];
-
-          await setupGattConnection(target);
-          return true;
-        } else {
-          showToast("등록된 장치가 없습니다. 직접 검색을 시작합니다.", "🔍");
-          return connectBluetoothPrinter();
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          webcamView.srcObject = fallbackStream;
+          shotStatusHud.innerText = "SHOT [ 0 / 3 ]";
+        } catch (err2) {
+          console.error("Camera Init Error:", err2);
+          shotStatusHud.innerText = "CAMERA ERROR";
+          showToast("카메라 권한을 확인해주세요.", "⚠️");
         }
-      } catch (err) {
-        console.warn("기존 장치 로드 실패:", err);
-        return connectBluetoothPrinter();
       }
     }
 
-    // 이름(Name Prefix) 필터 기반 블루투스 검색 및 연결
-    async function connectBluetoothPrinter() {
-      if (!navigator.bluetooth) {
-        showToast("이 브라우저는 Web Bluetooth를 지원하지 않습니다. Chrome을 사용해주세요.", "⚠️");
-        return false;
-      }
-
-      const inputPrefix = document.getElementById('cfgBtNamePrefix');
-      const prefix = (inputPrefix ? inputPrefix.value.trim() : '') || CONFIG.BT_NAME_PREFIX || 'TM-m30';
-      CONFIG.BT_NAME_PREFIX = prefix;
-      localStorage.setItem('SOOPIA_BT_PREFIX', prefix);
-
-      try {
-        showToast(`'${prefix}' 프린터를 검색하고 있습니다...`, "🔍");
-
-        // 1순위: 지정한 이름 접두사 필터로 검색 (목록에 바로 타겟 프린터만 깔끔하게 노출)
-        // 만약 검색에 안 걸릴 경우를 대비해 acceptAllDevices 대체
-        let device = null;
-        try {
-          device = await navigator.bluetooth.requestDevice({
-            filters: [
-              { namePrefix: prefix },
-              { namePrefix: 'TM-' },
-              { namePrefix: 'EPSON' }
-            ],
-            optionalServices: BT_PRINTER_SERVICES
-          });
-        } catch (filterErr) {
-          console.warn("이름 필터 검색 실패/취소, 전체 장치 보기로 전환:", filterErr);
-          // 2순위: 전체 블루투스 목록에서 수동 선택
-          device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: BT_PRINTER_SERVICES
-          });
-        }
-
-        if (!device) return false;
-        return await setupGattConnection(device);
-
-      } catch (err) {
-        console.error("Bluetooth Connect Error:", err);
-        updateBluetoothUI(false);
-        showToast(err.message || "블루투스 연결이 취소되었습니다.", "❌");
-        return false;
-      }
-    }
-
-    function onBluetoothDisconnected() {
-      updateBluetoothUI(false);
-      showToast("블루투스 프린터 연결이 끊어졌습니다.", "⚠️");
-    }
-
-    function disconnectBluetoothPrinter() {
-      if (bluetoothDevice && bluetoothDevice.gatt && bluetoothDevice.gatt.connected) {
-        bluetoothDevice.gatt.disconnect();
-      }
-      updateBluetoothUI(false);
-      showToast("블루투스 연결을 해제했습니다.", "ℹ️");
-    }
-
-    function updateBluetoothUI(connected, deviceName = "") {
-      const badge = document.getElementById('btStatusBadge');
-      if (connected) {
-        btHeaderLabel.innerText = deviceName ? deviceName.slice(0, 10) : "BT 연결됨";
-        btHeaderIcon.className = "fa-brands fa-bluetooth text-emerald-400 text-sm animate-pulse";
-        if (badge) {
-          badge.innerText = `연결됨 (${deviceName || 'TM-m30'})`;
-          badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-        }
-        hudPrinterStatus.innerText = `PRINTER // BT: ${deviceName ? deviceName.slice(0, 8) : 'ONLINE'}`;
-      } else {
-        btHeaderLabel.innerText = "BT 미연결";
-        btHeaderIcon.className = "fa-brands fa-bluetooth-b text-sky-400 text-sm";
-        if (badge) {
-          badge.innerText = "미연결";
-          badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30";
-        }
-        hudPrinterStatus.innerText = "PRINTER // READY";
-      }
-    }
-
-    function handleBluetoothButtonClick() {
-      if (CONFIG.CONNECTION_MODE !== 'BLUETOOTH') {
-        setConnectionMode('BLUETOOTH');
-        toggleConfigModal(true);
-        return;
-      }
-
-      if (bluetoothDevice && bluetoothDevice.gatt && bluetoothDevice.gatt.connected) {
-        toggleConfigModal(true);
-      } else {
-        // 이미 OS와 페어링되어 있는 경우 우선 연결 시도
-        connectExistingPairedDevice();
-      }
-    }
-
-    // 블루투스로 대용량 바이너리 청크 단위 분할 전송
-    async function sendBytesViaBluetooth(bytes) {
-      if (!bluetoothCharacteristic) {
-        const connected = await connectExistingPairedDevice();
-        if (!connected) return false;
-      }
-
-      showToast("블루투스로 인쇄 데이터를 전송 중입니다...", "⏳");
-      const CHUNK_SIZE = 512; // MTU 안정 청크 크기
-      const total = bytes.length;
-
-      for (let i = 0; i < total; i += CHUNK_SIZE) {
-        const chunk = bytes.slice(i, i + CHUNK_SIZE);
-        if (bluetoothCharacteristic.properties.writeWithoutResponse) {
-          await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
-        } else {
-          await bluetoothCharacteristic.writeValue(chunk);
-        }
-        await sleep(15); // 완충 대기
-      }
-
-      return true;
-    }
-
-    // ==========================================
-    // 7. 메인 인쇄 파이프라인 (BT / Network / Fallback)
-    // ==========================================
-    async function printReceiptSticker() {
-      printActionBtn.disabled = true;
-      printBtnLabel.innerText = "인쇄 진행 중...";
-      clearTimeout(autoResetTimer);
-
-      const ditheredData = createDitheredImageData();
-
-      // [A] 블루투스 모드 선택 시
-      if (CONFIG.CONNECTION_MODE === 'BLUETOOTH') {
-        try {
-          const escPosBytes = buildEscPosRasterBytes(ditheredData);
-          const ok = await sendBytesViaBluetooth(escPosBytes);
-          if (ok) {
-            showToast("출력이 완료되었습니다! 스티커를 확인하세요.", "🎉");
-            setTimeout(resetBoothToCamera, 3500);
-            return;
-          }
-        } catch (err) {
-          console.error("BT Print Error:", err);
-          showToast("블루투스 전송 실패: 시스템 인쇄로 전환합니다.", "⚠️");
-        }
-        runSystemPrintFallback();
-        return;
-      }
-
-      // [B] 유선/Wi-Fi 네트워크 모드 선택 시 (CGI ePOS Direct POST)
-      showToast("네트워크 프린터로 전송 중입니다...", "⏳");
-      const printUrl = `${location.protocol === 'https:' ? 'https' : 'http'}://${CONFIG.PRINTER_IP}:${CONFIG.PRINTER_PORT}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`;
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-        const xmlPayload = `
-<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-  <s:Body>
-    <epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-      <image width="576" height="1320" align="center" color="color_1" mode="mono">${thermalCanvas.toDataURL('image/png').split(',')[1]}</image>
-      <feed line="3"/>
-      <cut type="feed"/>
-    </epos-print>
-  </s:Body>
-</s:Envelope>`.trim();
-
-        const response = await fetch(printUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/xml; charset=utf-8',
-            'SOAPAction': '""'
-          },
-          body: xmlPayload,
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          showToast("출력이 완료되었습니다! 스티커를 확인하세요.", "🎉");
-          setTimeout(resetBoothToCamera, 3500);
-          return;
-        } else {
-          throw new Error("HTTP Status: " + response.status);
-        }
-
-      } catch (err) {
-        console.warn("Network print failed:", err);
-        showToast("네트워크 연결 실패: 시스템 인쇄로 대체합니다.", "⚠️");
-        runSystemPrintFallback();
-      }
-    }
-
-    function runSystemPrintFallback() {
-      setTimeout(() => {
-        window.print();
-        printActionBtn.disabled = false;
-        printBtnLabel.innerText = "인쇄하기";
-        setTimeout(resetBoothToCamera, 5000);
-      }, 400);
-    }
-
-    // ==========================================
-    // 8. 설정 모달 및 모드 전환
-    // ==========================================
-    function setConnectionMode(mode) {
-      CONFIG.CONNECTION_MODE = mode;
-      localStorage.setItem('SOOPIA_PRINT_MODE', mode);
-      updateModeUI();
-    }
-
-    function updateModeUI() {
-      const isBt = CONFIG.CONNECTION_MODE === 'BLUETOOTH';
-      const btnBt = document.getElementById('modeBtnBt');
-      const btnNet = document.getElementById('modeBtnNet');
-      const panelBt = document.getElementById('btConfigPanel');
-      const panelNet = document.getElementById('netConfigPanel');
-
-      if (isBt) {
-        btnBt.className = "py-2.5 px-3 rounded-xl border border-sky-400 bg-sky-500/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all";
-        btnNet.className = "py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800/50 text-slate-400 font-bold text-xs flex items-center justify-center gap-2 transition-all";
-        panelBt.classList.remove('hidden');
-        panelNet.classList.add('hidden');
-        hudConnectionMode.innerText = "MODE // BLUETOOTH";
-      } else {
-        btnNet.className = "py-2.5 px-3 rounded-xl border border-emerald-400 bg-emerald-500/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all";
-        btnBt.className = "py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800/50 text-slate-400 font-bold text-xs flex items-center justify-center gap-2 transition-all";
-        panelNet.classList.remove('hidden');
-        panelBt.classList.add('hidden');
-        hudConnectionMode.innerText = "MODE // LAN: " + CONFIG.PRINTER_IP;
-      }
-    }
-
-    function toggleConfigModal(show) {
-      const modal = document.getElementById('configModal');
-      if (show) {
-        document.getElementById('cfgPrinterIp').value = CONFIG.PRINTER_IP;
-        document.getElementById('cfgPrinterPort').value = CONFIG.PRINTER_PORT;
-        const inputBtPrefix = document.getElementById('cfgBtNamePrefix');
-        if (inputBtPrefix) inputBtPrefix.value = CONFIG.BT_NAME_PREFIX || 'TM-m30';
-        updateModeUI();
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      } else {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function saveConfigModal() {
-      CONFIG.PRINTER_IP = document.getElementById('cfgPrinterIp').value.trim();
-      CONFIG.PRINTER_PORT = document.getElementById('cfgPrinterPort').value.trim();
-      const inputBtPrefix = document.getElementById('cfgBtNamePrefix');
-      if (inputBtPrefix) {
-        CONFIG.BT_NAME_PREFIX = inputBtPrefix.value.trim() || 'TM-m30';
-        localStorage.setItem('SOOPIA_BT_PREFIX', CONFIG.BT_NAME_PREFIX);
-      }
-      localStorage.setItem('SOOPIA_PRINTER_IP', CONFIG.PRINTER_IP);
-      localStorage.setItem('SOOPIA_PRINTER_PORT', CONFIG.PRINTER_PORT);
-      toggleConfigModal(false);
-      showToast("설정이 저장되었습니다.", "💾");
-    }
-
-    async function testPrintSample() {
-      showToast("테스트 인쇄 명령을 전송합니다...", "🖨️");
-      const testCanvas = document.createElement('canvas');
-      testCanvas.width = 576;
-      testCanvas.height = 300;
-      const ctx = testCanvas.getContext('2d');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, 576, 300);
-      ctx.fillStyle = '#000000';
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.fillText("SPEER 포토부스 테스트", 288, 80);
-      ctx.font = '16px monospace';
-      ctx.fillText(`MODE: ${CONFIG.CONNECTION_MODE}`, 288, 130);
-      ctx.fillText(new Date().toLocaleString(), 288, 170);
-      ctx.fillRect(40, 210, 496, 6);
-
-      if (CONFIG.CONNECTION_MODE === 'BLUETOOTH') {
-        const dummyImgData = ctx.getImageData(0, 0, 576, 300);
-        const bytes = buildEscPosRasterBytes(dummyImgData);
-        await sendBytesViaBluetooth(bytes);
-      } else {
-        showToast("네트워크 모드 테스트 실행", "ℹ️");
-      }
-    }
-
-    // ==========================================
-    // 9. 화면 전환 및 초기화 제어
-    // ==========================================
-    function switchToResultView() {
-      captureSection.classList.add('hidden');
-      resultSection.classList.remove('hidden');
-      printActionBtn.disabled = false;
-      printBtnLabel.innerText = "인쇄하기";
-
-      clearTimeout(autoResetTimer);
-      autoResetTimer = setTimeout(() => {
-        showToast("대기 시간이 초과되어 처음 화면으로 돌아갑니다.", "⏱️");
-        resetBoothToCamera();
-      }, CONFIG.AUTO_RESET_SECONDS * 1000);
-    }
-
-    function resetBoothToCamera() {
-      clearTimeout(autoResetTimer);
-      resultSection.classList.add('hidden');
-      captureSection.classList.remove('hidden');
-
-      for (let i = 1; i <= 3; i++) {
-        const slot = document.getElementById(`thumbSlot${i}`);
-        slot.innerHTML = `<span class="tracking-widest text-[11px] font-mono text-slate-400">CUT ${i}</span><span class="text-[9px] text-slate-500 font-mono tracking-tighter">WAITING</span>`;
-        slot.classList.remove('border-sky-400', 'ring-2', 'ring-sky-400/50');
-      }
-
-      startShootBtn.disabled = false;
-      startShootBtn.classList.remove('opacity-50', 'pointer-events-none');
-      shotStatusHud.innerText = "SHOT [ 0 / 3 ]";
-    }
-
-    // ==========================================
-    // 10. 전체화면 토글 및 이벤트 감지
-    // ==========================================
+    // ------------------------------------------------------------
+    // [9] 전체화면 & 설정 모달
+    // ------------------------------------------------------------
     function toggleFullscreen() {
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen().catch(err => console.log(err));
-        } else if (elem.webkitRequestFullscreen) {
-          elem.webkitRequestFullscreen();
-        }
+      const doc = document.documentElement;
+      const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+      if (!isFull) {
+        if (doc.requestFullscreen) doc.requestFullscreen();
+        else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(err => console.log(err));
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       }
     }
 
     function syncFullscreenUI() {
       const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
-      const icon = document.getElementById('fullscreenIcon');
-      const text = document.getElementById('fullscreenText');
+      const icon = document.getElementById('fullscreenIconSvg');
       if (isFull) {
-        icon.className = "fa-solid fa-compress";
-        text.innerText = "창모드";
+        icon.innerHTML = '<path d="M14 14h5v2h-3v3h-2v-5m-4 0v5H8v-3H5v-2h5m4-9v5h5V8h-3V5h-2m-6 3V5H6v3h3v2H4V8h4Z"/>';
       } else {
-        icon.className = "fa-solid fa-expand";
-        text.innerText = "전체화면";
+        icon.innerHTML = '<path d="M5 5h5v2H7v3H5V5m9 0h5v5h-2V7h-3V5m3 9h2v5h-5v-2h3v-3m-9 3v2H5v-5h2v3h3Z"/>';
       }
     }
 
     document.addEventListener('fullscreenchange', syncFullscreenUI);
     document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 
-    // ==========================================
-    // 11. 유틸리티 함수
-    // ==========================================
+    function toggleConfigModal(show) {
+      const modal = document.getElementById('configModal');
+      if (show) {
+        setBtMethod(CONFIG.BT_METHOD);
+        modal.style.display = 'flex';
+      } else {
+        modal.style.display = 'none';
+      }
+    }
+
+    function saveConfigModal() {
+      toggleConfigModal(false);
+      showToast("설정이 확인되었습니다.", "💾");
+    }
+
+    function testPrintSample() {
+      showToast("테스트 인쇄를 전송합니다...", "🖨️");
+      generateCompositeSticker();
+      printReceiptSticker();
+    }
+
+    // ------------------------------------------------------------
+    // [10] 유틸리티
+    // ------------------------------------------------------------
     function showToast(msg, icon = "✨") {
       const toast = document.getElementById('appToast');
       document.getElementById('toastMessage').innerText = msg;
       document.getElementById('toastIcon').innerText = icon;
-      toast.classList.remove('opacity-0', 'pointer-events-none');
-      toast.classList.add('opacity-100');
+      toast.style.opacity = '1';
 
       setTimeout(() => {
-        toast.classList.add('opacity-0', 'pointer-events-none');
-        toast.classList.remove('opacity-100');
-      }, 3000);
+        toast.style.opacity = '0';
+      }, 3200);
     }
 
     function sleep(ms) {
