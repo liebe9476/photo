@@ -141,7 +141,7 @@
       /* 3. 영수증 이미지: 종이 폭 100% 가득 차게 렌더링 */
       #browserPrintZone img {
         width: 100% !important;
-        height: auto !important;
+        height: auto !important; /* 고정 높이 제거하여 세로 압축 왜곡 방지 */
         max-width: 100% !important;
         display: block !important;
         margin: 0 !important;
@@ -469,10 +469,9 @@
     // ------------------------------------------------------------
     function applyGrayscaleForThermalPrint() {
       if (!singleCapturedFrame) return finalColorDataUrl;
-
-      // 80mm 감열 헤드 576 dot과 1:1 매칭
+      
       const tw = 576;
-      const th = 750;
+      const th = 720; // 기존 800에서 720으로 줄여 세로 데이터 겹침 현상 방지
       thermalCanvas.width = tw;
       thermalCanvas.height = th;
 
