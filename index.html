@@ -146,6 +146,39 @@
         <!-- 촬영 플래시 레이어 -->
         <div id="flashLayer" class="absolute inset-0 bg-white pointer-events-none opacity-0 z-30"></div>
       </div>
+
+      <!-- 뷰파인더 하단: 3컷 촬영 실시간 썸네일 프리뷰 트레이 -->
+      <div class="w-full flex items-center justify-center gap-3 sm:gap-4 mt-2 sm:mt-2.5 px-2">
+        <!-- 컷 1 썸네일 -->
+        <div id="thumbSlot1" class="relative flex-1 max-w-[170px] aspect-[2/1] bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+          <canvas id="thumbCanvas1" class="w-full h-full object-cover hidden"></canvas>
+          <div id="thumbPlaceholder1" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
+            <span class="text-sky-400 font-medium">CUT 1</span>
+            <span class="text-[9px] text-slate-500">WAITING</span>
+          </div>
+          <span class="absolute top-1 left-1.5 text-[9px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag1">#01</span>
+        </div>
+
+        <!-- 컷 2 썸네일 -->
+        <div id="thumbSlot2" class="relative flex-1 max-w-[170px] aspect-[2/1] bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+          <canvas id="thumbCanvas2" class="w-full h-full object-cover hidden"></canvas>
+          <div id="thumbPlaceholder2" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
+            <span class="text-sky-400 font-medium">CUT 2</span>
+            <span class="text-[9px] text-slate-500">WAITING</span>
+          </div>
+          <span class="absolute top-1 left-1.5 text-[9px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag2">#02</span>
+        </div>
+
+        <!-- 컷 3 썸네일 -->
+        <div id="thumbSlot3" class="relative flex-1 max-w-[170px] aspect-[2/1] bg-slate-900/90 border border-sky-500/40 rounded-none overflow-hidden flex items-center justify-center transition-all duration-300 shadow-inner">
+          <canvas id="thumbCanvas3" class="w-full h-full object-cover hidden"></canvas>
+          <div id="thumbPlaceholder3" class="flex flex-col items-center justify-center text-slate-500 font-mono text-[10px] sm:text-xs tracking-wider">
+            <span class="text-sky-400 font-medium">CUT 3</span>
+            <span class="text-[9px] text-slate-500">WAITING</span>
+          </div>
+          <span class="absolute top-1 left-1.5 text-[9px] font-mono text-sky-400/80 pointer-events-none hidden" id="thumbTag3">#03</span>
+        </div>
+      </div>
     </div>
 
     <!-- (B) 촬영 완료 결과 화면 (좌측 영수증 스티커 / 우측 인쇄 버튼) -->
@@ -231,6 +264,51 @@
     const displayCanvas = document.getElementById('stickerDisplayCanvas');
     const monoCanvas = document.getElementById('thermalMonoCanvas');
 
+    // 썸네일 트레이 초기화 함수
+    function resetThumbnails() {
+      for (let i = 1; i <= 3; i++) {
+        const tCanvas = document.getElementById(`thumbCanvas${i}`);
+        const tPlaceholder = document.getElementById(`thumbPlaceholder${i}`);
+        const tTag = document.getElementById(`thumbTag${i}`);
+        const tSlot = document.getElementById(`thumbSlot${i}`);
+
+        if (tCanvas) {
+          tCanvas.classList.add('hidden');
+          const ctx = tCanvas.getContext('2d');
+          ctx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+        }
+        if (tPlaceholder) tPlaceholder.classList.remove('hidden');
+        if (tTag) tTag.classList.add('hidden');
+        if (tSlot) {
+          tSlot.classList.remove('border-emerald-400', 'shadow-[0_0_12px_rgba(52,211,153,0.5)]');
+          tSlot.classList.add('border-sky-500/40');
+        }
+      }
+    }
+
+    // 썸네일 슬롯에 촬영된 컷 반영
+    function updateThumbnailSlot(shotIndex, sourceCanvas) {
+      const tCanvas = document.getElementById(`thumbCanvas${shotIndex}`);
+      const tPlaceholder = document.getElementById(`thumbPlaceholder${shotIndex}`);
+      const tTag = document.getElementById(`thumbTag${shotIndex}`);
+      const tSlot = document.getElementById(`thumbSlot${shotIndex}`);
+
+      if (!tCanvas || !sourceCanvas) return;
+
+      tCanvas.width = sourceCanvas.width;
+      tCanvas.height = sourceCanvas.height;
+      const ctx = tCanvas.getContext('2d');
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      tCanvas.classList.remove('hidden');
+      if (tPlaceholder) tPlaceholder.classList.add('hidden');
+      if (tTag) tTag.classList.remove('hidden');
+      if (tSlot) {
+        tSlot.classList.remove('border-sky-500/40');
+        tSlot.classList.add('border-emerald-400', 'shadow-[0_0_12px_rgba(52,211,153,0.5)]');
+      }
+    }
+
     // 1. 전체화면 토글
     function toggleFullScreen() {
       try {
@@ -287,11 +365,12 @@
       if (isProcessing) return;
       isProcessing = true;
       capturedFrames = [];
+      resetThumbnails();
       startBtn.disabled = true;
 
       for (let shot = 1; shot <= 3; shot++) {
         cutTracker.innerText = `SHOT [ ${shot} / 3 ]`;
-        cutTracker.className = "text-sky-400 font-black tracking-widest drop-shadow-[0_0_10px_rgba(56,189,248,0.9)] animate-pulse";
+        cutTracker.className = "text-sky-400 font-normal tracking-widest";
 
         // 3초 카운트다운
         for (let c = 3; c >= 1; c--) {
@@ -306,7 +385,8 @@
 
         // 플래시 효과 & 프레임 캡처
         triggerFlash();
-        captureCurrentFrame();
+        const frameCanvas = captureCurrentFrame();
+        updateThumbnailSlot(shot, frameCanvas);
         await sleep(900);
       }
 
@@ -353,6 +433,7 @@
       sCtx.restore();
 
       capturedFrames.push(snapCanvas);
+      return snapCanvas;
     }
 
     // 4. 스티커 풀컬러 캔버스 그래픽 렌더링
@@ -466,7 +547,8 @@
       startBtnContainer.classList.remove('hidden');
 
       cutTracker.innerText = "SHOT [ 0 / 3 ]";
-      cutTracker.className = "text-white font-black tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]";
+      cutTracker.className = "text-white font-normal tracking-widest";
+      resetThumbnails();
       restorePrintBtn();
     }
 
