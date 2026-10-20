@@ -363,10 +363,10 @@
     let finalDitheredDataUrl = '';
 
     /**
-     * 감열 프린터 특화: 원거리 이목구비 정밀 보존 & 화사한 스튜디오 디더링 엔진
-     * - 고주파 하이패스 엣지 부스트로 원거리 눈·코·입·얼굴형·손가락 라인 선명화
-     * - 감마 리프트(0.60) + 베이스 밝기 부스트로 얼굴이 새까맣게 타는 현상 원천 차단
-     * - 감열지 Dot-Gain 방지 오차확산으로 뭉침 없이 은염 인화 수준의 맑은 톤 구현
+     * 감열 프린터 특화: 256단계 부드러운 그레이스케일(Smooth Grayscale) & 미세 하프톤 하이브리드 엔진
+     * - 거친 1비트 점망 대신 부드럽고 매끄러운 연속 계조(Continuous Tone) 렌더링
+     * - 부드러운 스튜디오 톤 매핑으로 멀리서 찍어도 얼룩 없이 화사한 피부 표현
+     * - 눈, 코, 입, 손가락 라인 미세 샤프닝 보존
      */
     function applyThermalPortraitDithering(sourceCanvas, targetWidth, targetHeight) {
       const ditherCanvas = document.createElement('canvas');
@@ -383,104 +383,92 @@
       const totalPixels = targetWidth * targetHeight;
 
       const rawLuma = new Float32Array(totalPixels);
-      const enhanced = new Float32Array(totalPixels);
+      const smoothLuma = new Float32Array(totalPixels);
 
-      // [1단계] 표준 BT.709 인지 휘도(Luminance) 변환
+      // [1단계] 정밀 BT.709 인지 휘도(Luminance) 변환
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
-      // [2단계] 원거리 촬영 특화 고주파 엣지 추출 (눈, 코, 입, 속눈썹, 윤곽선 강력 보존)
+      // [2단계] 미세 언샵 마스크(눈, 코, 입, 윤곽선만 얇고 선명하게 보존)
       for (let y = 1; y < targetHeight - 1; y++) {
         const row = y * targetWidth;
         for (let x = 1; x < targetWidth - 1; x++) {
           const idx = row + x;
 
-          // 3x3 주변 평균 블러 (블러 기반 언샵 마스크)
-          const blur = (
+          // 3x3 주변 평균
+          const avg = (
             rawLuma[idx - targetWidth - 1] + rawLuma[idx - targetWidth] + rawLuma[idx - targetWidth + 1] +
             rawLuma[idx - 1]               + rawLuma[idx]               + rawLuma[idx + 1] +
             rawLuma[idx + targetWidth - 1] + rawLuma[idx + targetWidth] + rawLuma[idx + targetWidth + 1]
           ) / 9.0;
 
-          // 고주파 성분(High-Pass Detail) 정밀 추출
-          const highPass = rawLuma[idx] - blur;
-
-          // 원거리에서도 눈/코/입/손가락 윤곽이 확실히 드러나도록 엣지 강조 비율 1.45 적용
-          let val = rawLuma[idx] + highPass * 1.45;
-
-          // [3단계] 톤 커브 보정: 얼굴이 검게 타지 않도록 피부 중간톤 대폭 리프트
-          // 베이스 밝기를 +34 올려 어둡게 뭉치는 현상 제거
-          val = Math.min(255, Math.max(0, val + 34));
-
-          // 감마 0.60으로 피부 영역을 맑고 화사하게 분리
-          let norm = val / 255.0;
-          norm = Math.pow(norm, 0.60);
-          val = norm * 255.0;
-
-          // 머리카락, 눈동자 등 깊은 블랙은 또렷하게 유지
-          if (val < 40) {
-            val = val * 0.85;
-          }
-
-          enhanced[idx] = Math.min(255, Math.max(0, val));
+          // 섬세한 엣지 컴포넌트 추출
+          const edgeDetail = rawLuma[idx] - avg;
+          // 과도한 노이즈 없이 핵심 이목구비만 뚜렷하게 부스트
+          smoothLuma[idx] = rawLuma[idx] + edgeDetail * 1.25;
         }
       }
 
-      // 가장자리 경계 1px 안전 패딩 복사
+      // 가장자리 1px 패딩 보정
       for (let x = 0; x < targetWidth; x++) {
-        enhanced[x] = rawLuma[x];
-        enhanced[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
+        smoothLuma[x] = rawLuma[x];
+        smoothLuma[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
       }
       for (let y = 0; y < targetHeight; y++) {
-        enhanced[y * targetWidth] = rawLuma[y * targetWidth];
-        enhanced[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
+        smoothLuma[y * targetWidth] = rawLuma[y * targetWidth];
+        smoothLuma[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
       }
 
-      // [4단계] 감열지 Dot-Gain 방지형 Atkinson 하프톤 디더링
-      // THRESHOLD를 148로 상향하여 얼굴/피부에 불필요한 검은 점 노이즈가 과도하게 끼는 것을 방지
-      const THRESHOLD = 148;
+      // [3단계] 부드러운 스튜디오 그레이스케일 톤 커브 (진한 농도 완전 해소)
+      // - 베이스 밝기 +46으로 중간 명암을 화사하게 끌어올림
+      // - 감마 0.58로 부드럽고 매끄러운 그라데이션 형성
+      // - 초미세 8x8 고밀도 오더드 디더 매트릭스로 거친 뭉침 없이 인화지 같은 매끄러운 계조 구현
+      const bayer8 = [
+         0, 32,  8, 40,  2, 34, 10, 42,
+        48, 16, 56, 24, 50, 18, 58, 26,
+        12, 44,  4, 36, 14, 46,  6, 38,
+        60, 28, 52, 20, 62, 30, 54, 22,
+         3, 35, 11, 43,  1, 33,  9, 41,
+        51, 19, 59, 27, 49, 17, 57, 25,
+        15, 47,  7, 39, 13, 45,  5, 37,
+        63, 31, 55, 23, 61, 29, 53, 21
+      ];
 
       for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
-        const next1 = (y + 1) * targetWidth;
-        const next2 = (y + 2) * targetWidth;
+        const bayerY = (y & 7) << 3;
 
         for (let x = 0; x < targetWidth; x++) {
           const idx = row + x;
-          const oldVal = enhanced[idx];
-          const newVal = oldVal < THRESHOLD ? 0 : 255;
-          enhanced[idx] = newVal;
+          let val = smoothLuma[idx];
 
-          // Atkinson 오차 확산 (6/8 분배로 점 뭉침과 지렁이 현상 차단)
-          const err = (oldVal - newVal) >> 3;
+          // 1) 맑은 피부톤을 위한 밝기 리프트
+          val = Math.min(255, Math.max(0, val + 46));
 
-          if (err !== 0) {
-            if (x + 1 < targetWidth) enhanced[idx + 1] += err;
-            if (x + 2 < targetWidth) enhanced[idx + 2] += err;
+          // 2) 부드러운 계조의 감마 커브 (0.58)
+          let norm = val / 255.0;
+          norm = Math.pow(norm, 0.58);
+          val = norm * 255.0;
 
-            if (y + 1 < targetHeight) {
-              if (x - 1 >= 0) enhanced[next1 + (x - 1)] += err;
-              enhanced[next1 + x] += err;
-              if (x + 1 < targetWidth) enhanced[next1 + (x + 1)] += err;
-            }
-
-            if (y + 2 < targetHeight) {
-              enhanced[next2 + x] += err;
-            }
+          // 3) 깊은 블랙 라인(눈동자, 속눈썹, 윤곽) 보존
+          if (val < 42) {
+            val = val * 0.85;
           }
-        }
-      }
 
-      // [5단계] 1-bit 순수 흑백 픽셀 버퍼 출력
-      for (let i = 0; i < totalPixels; i++) {
-        const idx = i * 4;
-        const c = enhanced[i] < 128 ? 0 : 255;
-        data[idx] = c;
-        data[idx + 1] = c;
-        data[idx + 2] = c;
-        data[idx + 3] = 255;
+          // 4) 초미세 고품질 그레이스케일 디더링 합성
+          // (Epson 감열 프린터가 가장 부드럽고 균일하게 수용하는 고운 계조)
+          const bayerThreshold = (bayer8[bayerY + (x & 7)] - 31.5) * 0.45;
+          const finalGray = Math.min(255, Math.max(0, Math.round(val + bayerThreshold)));
+
+          // 8비트 그레이스케일 버퍼 출력
+          const pixelIdx = idx * 4;
+          data[pixelIdx]     = finalGray;
+          data[pixelIdx + 1] = finalGray;
+          data[pixelIdx + 2] = finalGray;
+          data[pixelIdx + 3] = 255;
+        }
       }
 
       dCtx.putImageData(imgData, 0, 0);
