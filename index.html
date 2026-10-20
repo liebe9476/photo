@@ -473,7 +473,7 @@
       if (!singleCapturedFrame) return '';
 
       const tw = 800;
-      const th = 1160; // 상단 윗줄 여백 축소에 맞춰 세로 길이를 알맞게 최적화
+      const th = 1150; // 작은 글꼴 1줄 간격 복원에 맞춘 최적 높이
       thermalCanvas.width = tw;
       thermalCanvas.height = th;
 
@@ -574,10 +574,10 @@
         curBx += w;
       }
 
-      // 8) 바코드 밑 한 줄 여백 후 텍스트
+      // 8) 바코드 밑 작은 글꼴 1줄 분량 간격 삽입 후 텍스트 배치
       thermalCtx.font = 'bold 26px sans-serif';
       thermalCtx.fillStyle = '#111111';
-      thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 42);
+      thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 32);
 
       return thermalCanvas.toDataURL('image/png');
     }
