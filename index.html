@@ -348,9 +348,128 @@
     let finalDitheredDataUrl = '';
 
     /**
-     * 영수증 스티커 합성 렌더링 함수 (미리보기 및 인쇄 일치)
+     * 감열 프린터 특화 이목구비 보존 & 번짐 방지 디더링 알고리즘
+     * (BT.709 휘도 변환 + 라플라시안 엣지 강조 + 감마 보정 + Floyd-Steinberg 오차확산)
      */
-    function renderReceiptStrip(isDithered = false) {
+    function applyThermalPortraitDithering(sourceCanvas, targetWidth, targetHeight) {
+      const ditherCanvas = document.createElement('canvas');
+      ditherCanvas.width = targetWidth;
+      ditherCanvas.height = targetHeight;
+      const dCtx = ditherCanvas.getContext('2d');
+
+      dCtx.imageSmoothingEnabled = true;
+      dCtx.imageSmoothingQuality = 'high';
+      dCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+
+      const imgData = dCtx.getImageData(0, 0, targetWidth, targetHeight);
+      const data = imgData.data;
+      const totalPixels = targetWidth * targetHeight;
+
+      const rawLuma = new Float32Array(totalPixels);
+      const enhanced = new Float32Array(totalPixels);
+
+      // [1단계] 표준 BT.709 인지 휘도(Luminance) 추출
+      for (let i = 0; i < totalPixels; i++) {
+        const idx = i * 4;
+        rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
+      }
+
+      // [2단계] 눈·코·입 윤곽선(라플라시안 고주파 성분) 추출 & 샤프닝
+      const edge = new Float32Array(totalPixels);
+      for (let y = 1; y < targetHeight - 1; y++) {
+        const rowOffset = y * targetWidth;
+        for (let x = 1; x < targetWidth - 1; x++) {
+          const idx = rowOffset + x;
+          const center = rawLuma[idx];
+          const laplacian = (
+            rawLuma[idx - 1] + rawLuma[idx + 1] +
+            rawLuma[idx - targetWidth] + rawLuma[idx + targetWidth]
+          ) - (center * 4);
+
+          // 윤곽선(눈동자, 콧날, 입꼬리, 머릿결) 강조 가중치
+          edge[idx] = -laplacian * 0.42;
+        }
+      }
+
+      // [3단계] 감열지 열번짐(Dot-Gain) 차단 톤 커브
+      // 얼굴 피부가 까맣게 타는 현상을 막기 위해 감마 0.70으로 중간 톤을 뽀샤시하게 리프팅
+      for (let i = 0; i < totalPixels; i++) {
+        let v = rawLuma[i] + edge[i];
+
+        // 기본 밝기 상향(+20)
+        v = Math.min(255, Math.max(0, v + 20));
+
+        // 감마 0.70 보정 (얼굴 음영 뭉개짐 방지)
+        let norm = v / 255.0;
+        norm = Math.pow(norm, 0.70);
+        v = norm * 255.0;
+
+        // 배경 노이즈 제거 (벽면, 천장의 자잘한 잡티 제거)
+        if (v > 195) {
+          v = 255;
+        } else if (v > 160) {
+          const t = (v - 160) / (195 - 160);
+          v = 160 + (255 - 160) * (t * 1.15);
+        }
+
+        // 깊은 암부(동공, 눈썹)는 선명하게 유지
+        if (v < 35) {
+          v = v * 0.75;
+        }
+
+        enhanced[i] = Math.min(255, Math.max(0, v));
+      }
+
+      // [4단계] 감열 헤드 번짐을 감안한 댐핑 오차확산 (Floyd-Steinberg + Damping 0.68)
+      const DAMPING = 0.68;
+      const THRESHOLD = 138; // 얼굴이 밝게 나오는 적응형 임계값
+
+      for (let y = 0; y < targetHeight; y++) {
+        const rowOffset = y * targetWidth;
+        const nextRowOffset = (y + 1) * targetWidth;
+
+        for (let x = 0; x < targetWidth; x++) {
+          const idx = rowOffset + x;
+          const oldPixel = enhanced[idx];
+          const newPixel = oldPixel < THRESHOLD ? 0 : 255;
+          enhanced[idx] = newPixel;
+
+          const error = (oldPixel - newPixel) * DAMPING;
+
+          if (x + 1 < targetWidth) {
+            enhanced[idx + 1] += error * (7 / 16);
+          }
+          if (x - 1 >= 0 && y + 1 < targetHeight) {
+            enhanced[nextRowOffset + (x - 1)] += error * (3 / 16);
+          }
+          if (y + 1 < targetHeight) {
+            enhanced[nextRowOffset + x] += error * (5 / 16);
+          }
+          if (x + 1 < targetWidth && y + 1 < targetHeight) {
+            enhanced[nextRowOffset + (x + 1)] += error * (1 / 16);
+          }
+        }
+      }
+
+      // [5단계] 1-bit 순수 흑백 픽셀 버퍼 기록
+      for (let i = 0; i < totalPixels; i++) {
+        const idx = i * 4;
+        const val = enhanced[i] < 128 ? 0 : 255;
+        data[idx] = val;
+        data[idx + 1] = val;
+        data[idx + 2] = val;
+        data[idx + 3] = 255;
+      }
+
+      dCtx.putImageData(imgData, 0, 0);
+      return ditherCanvas;
+    }
+
+    /**
+     * 영수증 스티커 합성 렌더링 함수
+     * isDithered: true이면 감열 프린터 전용 이목구비 보존 흑백 디더링 적용
+     */
+    function renderReceiptStrip(isDithered = true) {
       if (!singleCapturedFrame) return '';
 
       const tw = 800;
@@ -369,7 +488,7 @@
       thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 88);
 
       thermalCtx.font = 'bold 22px sans-serif';
-      thermalCtx.fillStyle = '#333333';
+      thermalCtx.fillStyle = '#222222';
       thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 126);
 
       // 세련된 감열 영수증 데코선 함수
@@ -400,7 +519,13 @@
       const photoX = (tw - photoW) / 2;
       const photoY = 168;
 
-      thermalCtx.drawImage(singleCapturedFrame, photoX, photoY, photoW, photoH);
+      if (isDithered) {
+        // 감열 프린터 맞춤 이목구비 보존형 디더링 적용
+        const ditheredPhoto = applyThermalPortraitDithering(singleCapturedFrame, photoW, photoH);
+        thermalCtx.drawImage(ditheredPhoto, photoX, photoY, photoW, photoH);
+      } else {
+        thermalCtx.drawImage(singleCapturedFrame, photoX, photoY, photoW, photoH);
+      }
 
       // 사진 외곽선
       thermalCtx.strokeStyle = '#000000';
@@ -455,7 +580,7 @@
     }
 
     /**
-     * 감열 프린터 출력 파이프라인 (미리보기 화면 그대로 100% 일치 출력)
+     * 감열 프린터 출력 파이프라인 (미리보기 화면의 디더링 영수증 그대로 100% 일치 출력)
      */
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
@@ -465,13 +590,13 @@
       try {
         showToast("인쇄 준비 중...", "⚙️");
 
-        // [핵심] 사용자가 화면에서 보고 있는 미리보기 이미지 그대로 전달
-        if (!finalColorDataUrl) {
-          finalColorDataUrl = renderReceiptStrip(false);
+        // 사용자가 화면에서 보고 있는 디더링 영수증 이미지 그대로 전달
+        if (!finalDitheredDataUrl) {
+          finalDitheredDataUrl = renderReceiptStrip(true);
         }
 
         if (browserPrintImg) {
-          browserPrintImg.src = finalColorDataUrl;
+          browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
             try {
               await browserPrintImg.decode();
@@ -556,9 +681,9 @@
       singleCapturedFrame = frameCanvas;
       await sleep(200);
 
-      // 컬러 미리보기 생성 및 뷰 전환
-      finalColorDataUrl = renderReceiptStrip(false);
-      stickerPreviewImg.src = finalColorDataUrl;
+      // 감열지 특화 이목구비 보존 디더링 영수증 생성 및 미리보기 표시
+      finalDitheredDataUrl = renderReceiptStrip(true);
+      stickerPreviewImg.src = finalDitheredDataUrl;
 
       captureSection.style.display = 'none';
       resultSection.style.display = 'flex';
