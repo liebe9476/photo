@@ -409,19 +409,19 @@
           const highPass = rawLuma[idx] - blur;
 
           // 이목구비 윤곽만 자연스럽게 선명화 (과도한 굵은 외곽선 방지)
-          let val = rawLuma[idx] + highPass * 0.88;
+          let val = rawLuma[idx] + highPass * 0.90;
 
-          // [3단계] 한층 더 화사하고 맑은 인물 톤 리프팅
-          // 베이스 밝기를 +26으로 높여 얼굴과 배경의 어두운 그늘을 맑게 걷어냄
-          val = Math.min(255, Math.max(0, val + 26)); 
+          // [3단계] 한층 더 밝고 화사한 인물 톤 리프팅
+          // 베이스 밝기를 +38로 높여 피부와 배경의 어두운 그늘을 맑게 걷어냄
+          val = Math.min(255, Math.max(0, val + 38)); 
           let norm = val / 255.0;
-          // 감마값을 0.70으로 조정하여 중간톤(피부/옷)을 더욱 뽀샤시하고 밝게 개방
-          norm = Math.pow(norm, 0.70); 
+          // 감마값을 0.62로 낮추어 중간톤(얼굴, 볼, 목선)을 뽀샤시하게 개방
+          norm = Math.pow(norm, 0.62); 
           val = norm * 255.0;
 
           // 깊은 암부(눈동자, 입꼬리, 짙은 머리)의 또렷한 블랙 선명도 보호
-          if (val < 42) {
-            val = val * 0.86;
+          if (val < 40) {
+            val = val * 0.85;
           }
 
           processed[idx] = Math.min(255, Math.max(0, val));
@@ -433,6 +433,15 @@
         processed[x] = rawLuma[x];
         processed[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
       }
+      for (let y = 0; y < targetHeight; y++) {
+        processed[y * targetWidth] = rawLuma[y * targetWidth];
+        processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
+      }
+
+      // [4단계] Atkinson Dithering (점을 덜 빽빽하게 배치하여 더 밝고 맑은 피부톤 표현)
+      // THRESHOLD를 148 -> 162로 상향하여 밝은 영역의 검은 점 밀도를 쾌적하게 낮춤
+      const THRESHOLD = 162;
+
       for (let y = 0; y < targetHeight; y++) {
         processed[y * targetWidth] = rawLuma[y * targetWidth];
         processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
