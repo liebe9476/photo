@@ -264,7 +264,7 @@
 
       <!-- 좌측: 영수증 스티커 미리보기 -->
       <div style="height: 70vh; max-height: 560px; min-height: 380px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
-        <div class="receipt-edge" style="height: 100%; aspect-ratio: 800 / 1150; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0;">
+        <div class="receipt-edge" style="height: 100%; aspect-ratio: 800 / 1200; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0;">
           <img id="stickerPreviewImg" alt="실제 인쇄 영수증 미리보기"
                style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: pixelated; background: #ffffff;" />
         </div>
@@ -309,7 +309,7 @@
   </main>
 
   <!-- 캔버스 및 감열 인쇄 DOM 영역 -->
-  <canvas id="thermalStripCanvas" width="800" height="1150" style="display: none;"></canvas>
+  <canvas id="thermalStripCanvas" width="800" height="1200" style="display: none;"></canvas>
   <div id="browserPrintZone" style="display: none;">
     <img id="browserPrintImg" src="" alt="print-strip" />
   </div>
@@ -467,7 +467,7 @@
       if (!singleCapturedFrame) return '';
 
       const tw = 800;
-      const th = 1150; // 커진 폰트와 DATE 윗줄 띄움에 맞춘 넉넉한 롤 높이
+      const th = 1200; // 상단 제목 위 한 줄 여백 추가에 맞춘 롤 높이
       thermalCanvas.width = tw;
       thermalCanvas.height = th;
 
@@ -475,15 +475,15 @@
       thermalCtx.fillStyle = '#ffffff';
       thermalCtx.fillRect(0, 0, tw, th);
 
-      // 2) 상단 헤더 텍스트 (2단계 확대: 48px -> 54px, 24px -> 28px)
+      // 2) 상단 헤더 텍스트 (제목 위에 한 줄 띄움 적용: 94 -> 138)
       thermalCtx.textAlign = 'center';
       thermalCtx.fillStyle = '#000000';
       thermalCtx.font = '900 54px sans-serif';
-      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 94);
+      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 138);
 
       thermalCtx.font = 'bold 28px sans-serif';
       thermalCtx.fillStyle = '#222222';
-      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 138);
+      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 182);
 
       // 세련된 감열 영수증 데코선 함수
       const drawDecoLine = (y) => {
@@ -505,13 +505,13 @@
       };
 
       // 3) Speer Girl's~~ 다음 한 줄 여백 후 상단 구분선 배치
-      drawDecoLine(182);
+      drawDecoLine(226);
 
       // 4) 구분선과 사진 사이 한 줄 여백
       const photoW = 740;
       const photoH = 555;
       const photoX = (tw - photoW) / 2;
-      const photoY = 216;
+      const photoY = 260;
 
       if (isDithered) {
         // [인쇄 시]: 감열지 전용 부드러운 그레이스케일 디더링 렌더링
@@ -531,11 +531,11 @@
       const bottomLineY = photoY + photoH + 34;
       drawDecoLine(bottomLineY);
 
-      // 6) DATE 위쪽 한 줄 띄움 적용 + 날짜 / 감사 문구 2단계 확대 (23px -> 27px, 28px -> 33px)
+      // 6) DATE 위쪽 한 줄 띄움 적용 + 날짜 / 감사 문구 2단계 확대 유지
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-      const dateTextY = bottomLineY + 62; // 하단 구분선과 DATE 사이에 한 줄 여백(약 26px 추가) 띄움
+      const dateTextY = bottomLineY + 62;
       thermalCtx.font = 'bold 27px monospace';
       thermalCtx.fillStyle = '#000000';
       thermalCtx.fillText(`DATE: ${dateStr}`, tw / 2, dateTextY);
@@ -568,7 +568,7 @@
         curBx += w;
       }
 
-      // 8) 바코드 밑 한 줄 여백 후 텍스트 (2단계 확대: 22px -> 26px)
+      // 8) 바코드 밑 한 줄 여백 후 텍스트
       thermalCtx.font = 'bold 26px sans-serif';
       thermalCtx.fillStyle = '#111111';
       thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 42);
