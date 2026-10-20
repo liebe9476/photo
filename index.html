@@ -27,7 +27,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       padding: 10px;
     }
@@ -164,7 +164,7 @@
   <!-- ============================================================
        1. 상단 헤더 (제목, 아이콘, 전체화면 버튼)
        ============================================================ -->
-  <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 4px; margin-top: 4px; margin-bottom: 16px; z-index: 20;">
+  <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 0; margin-bottom: 12px; z-index: 20;">
     <!-- 좌측 균형용 빈 영역 -->
     <div style="width: 80px; display: none;" class="desktop-spacer"></div>
 
@@ -206,10 +206,10 @@
   <!-- ============================================================
        2. 메인 컨텐츠 영역 (뷰파인더 대기 vs 영수증 결과)
        ============================================================ -->
-  <main style="width: 100%; max-width: 1250px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 0; position: relative; margin: 0; padding: 2px 8px 10px;">
+  <main style="width: 100%; max-width: 1250px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; position: relative; margin: 0; padding: 0 8px;">
 
     <!-- [A] 촬영 대기 및 진행 화면 (가로 모드 태블릿 최적화 와이드 4:3 뷰파인더) -->
-    <div id="captureSection" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 20px; min-height: 0; padding: 6px 0;">
+    <div id="captureSection" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; min-height: 0; padding: 0;">
 
       <!-- 태블릿 가로 모드 전용 대형 4:3 뷰파인더 프레임 -->
       <div id="viewfinderFrame" style="position: relative; width: min(86vw, 68vh, 860px); aspect-ratio: 4 / 3; background: #000; border: 3.5px solid #38bdf8; box-shadow: 0 25px 60px -10px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.25); display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px;">
@@ -514,15 +514,15 @@
       thermalCtx.fillStyle = '#ffffff';
       thermalCtx.fillRect(0, 0, tw, th);
 
-      // 2) 상단 헤더 텍스트 (글꼴 크기 확대)
+      // 2) 상단 헤더 텍스트 (한 줄 정도 아래로 이동: 65px -> 88px, 102px -> 124px)
       thermalCtx.textAlign = 'center';
       thermalCtx.fillStyle = '#000000';
       thermalCtx.font = '900 46px sans-serif';
-      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 65);
+      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 88);
 
       thermalCtx.font = 'bold 22px sans-serif';
       thermalCtx.fillStyle = '#222222';
-      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 102);
+      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 124);
 
       // 세련된 감열 영수증 데코 구분선 렌더링 함수
       const drawDecoLine = (y) => {
@@ -543,14 +543,14 @@
         thermalCtx.restore();
       };
 
-      // 3) 상단 구분선
-      drawDecoLine(126);
+      // 3) 상단 구분선 (텍스트에 맞춰 126px -> 146px로 하향)
+      drawDecoLine(146);
 
       // 4) 1컷 4:3 와이드 사진 렌더링 (가로 폭 740, 세로 555)
       const photoW = 740;
       const photoH = 555; // 4:3 종횡비
       const photoX = (tw - photoW) / 2;
-      const photoY = 144;
+      const photoY = 160;
 
       if (isDithered) {
         // 인쇄용: Floyd-Steinberg Error Diffusion Dithering 적용
