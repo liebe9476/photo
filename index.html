@@ -374,7 +374,8 @@
     let finalDitheredDataUrl = '';
 
     // ------------------------------------------------------------
-    // [1] 고급 감열 최적화 부드러운 오차 확산 디더링 (Soft Dithering Engine)
+    // [1] 감열지 특화 초고화질 이목구비 보존 & 밝은 톤 디더링 엔진
+    //     (Dot Gain 열번짐 방지 + 화사한 피부톤 + 눈/코/입 또렷한 윤곽)
     // ------------------------------------------------------------
     function applyErrorDiffusionDithering(sourceCanvas, targetWidth, targetHeight) {
       const ditherCanvas = document.createElement('canvas');
@@ -389,91 +390,105 @@
       const imgData = dCtx.getImageData(0, 0, targetWidth, targetHeight);
       const data = imgData.data;
 
-      const gray = new Float32Array(targetWidth * targetHeight);
+      const rawLuma = new Float32Array(targetWidth * targetHeight);
+      const enhanced = new Float32Array(targetWidth * targetHeight);
 
-      // [단계 1] 밝기 계산 및 톤 커브 보정 (피부톤 보존 + 배경 노이즈 제거)
+      // [단계 1] 기본 휘도 추출 (인간 인지 BT.709 표준)
       for (let i = 0; i < targetWidth * targetHeight; i++) {
         const idx = i * 4;
         const r = data[idx];
         const g = data[idx + 1];
         const b = data[idx + 2];
-
-        // 정확한 인지 휘도 (ITU-R BT.601)
-        let luma = 0.299 * r + 0.587 * g + 0.114 * b;
-
-        // 1) 피부톤을 화사하게 살리는 부드러운 감마 보정 (어둡게 타는 현상 방지)
-        luma = 255 * Math.pow(luma / 255, 1.15);
-
-        // 2) 배경 하이라이트 클린업: 밝은 배경(천장/벽)의 지저분한 모래알 점 완전 제거
-        if (luma > 218) {
-          luma = 255;
-        } else if (luma > 175) {
-          // 자연스러운 화이트 롤오프 (경계선 부드럽게)
-          const t = (luma - 175) / (218 - 175);
-          luma = 175 + (255 - 175) * (t * t);
-        }
-
-        // 3) 어두운 영역 뭉개짐 방지 (암부 디테일 리프트)
-        if (luma < 35) {
-          luma = Math.max(0, luma * 0.85);
-        }
-
-        gray[i] = Math.min(255, Math.max(0, luma));
+        rawLuma[i] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       }
 
-      // [단계 2] 3x3 미세 에지 보존 스무딩 (인물 피부결 매끄럽게 정돈)
-      const smoothed = new Float32Array(gray);
+      // [단계 2] 이목구비 윤곽선(눈, 코, 입, 안경, 머리결) 또렷한 샤프닝 추출
+      //         (라플라시안 고주파 성분 추출 후 가산)
+      const edge = new Float32Array(targetWidth * targetHeight);
       for (let y = 1; y < targetHeight - 1; y++) {
         for (let x = 1; x < targetWidth - 1; x++) {
           const idx = y * targetWidth + x;
-          const center = gray[idx];
+          const center = rawLuma[idx];
+          const laplacian = (
+            rawLuma[idx - 1] + rawLuma[idx + 1] +
+            rawLuma[idx - targetWidth] + rawLuma[idx + targetWidth]
+          ) - (center * 4);
 
-          // 이목구비(안경테, 눈, 입술 등) 윤곽선은 유지하고 피부 평면 노이즈만 부드럽게 필터링
-          let sum = center * 4;
-          sum += gray[idx - 1] + gray[idx + 1] + gray[idx - targetWidth] + gray[idx + targetWidth];
-          const avg = sum / 8;
-
-          // 차이가 적은 영역(피부 등)만 블렌딩
-          if (Math.abs(center - avg) < 40) {
-            smoothed[idx] = center * 0.4 + avg * 0.6;
-          }
+          // 윤곽선 성분만 적정 강도(35%)로 추출
+          edge[idx] = -laplacian * 0.35;
         }
       }
 
-      // [단계 3] 댐핑(Damping 80%) 오차 확산 (거친 모래알 결 완화, 부드러운 그라데이션)
-      const DAMPING = 0.82; // 오차를 82%만 확산시켜 뭉침과 지렁이 노이즈 억제
+      // [단계 3] 감열지 Dot-Gain(열번짐) 방지 톤 커브
+      //         - 감마 0.70으로 중간 피부톤을 대폭 밝게 리프트 (까맣게 타는 현상 원천 차단)
+      //         - 하이라이트(벽, 천장) 노이즈 제로 클린업
+      //         - 암부(머리카락, 눈동자)는 선명하게 유지
+      for (let i = 0; i < targetWidth * targetHeight; i++) {
+        let v = rawLuma[i] + edge[i]; // 샤프닝 합성
+
+        // 1) 기본 베이스 밝기 +22 리프트 (전체적인 답답함 해소)
+        v = Math.min(255, Math.max(0, v + 22));
+
+        // 2) 맑고 화사한 피부톤을 위한 밝은 감마 커브 (0.72)
+        //    (기존 1.15는 어둡게 만드는 원인이었음 -> 0.72로 변경하여 중간톤을 뽀샤시하게 살림)
+        let norm = v / 255.0;
+        norm = Math.pow(norm, 0.72);
+        v = norm * 255.0;
+
+        // 3) 배경/천장 노이즈 100% 컷오프 (지저분한 얼룩 완전 방지)
+        if (v > 195) {
+          v = 255; // 순백색으로 클리어
+        } else if (v > 155) {
+          // 자연스러운 하이라이트 롤오프
+          const t = (v - 155) / (195 - 155);
+          v = 155 + (255 - 155) * (t * 1.2);
+        }
+
+        // 4) 깊은 암부 뭉개짐 방지 (최하단 블랙 리프트)
+        if (v < 30) {
+          v = v * 0.7; // 또렷한 순수 블랙 포인트는 유지
+        }
+
+        enhanced[i] = Math.min(255, Math.max(0, v));
+      }
+
+      // [단계 4] 감열지에 최적화된 부드러운 오차 확산 (Floyd-Steinberg + Dot-Gain Damping)
+      //         감열 헤드가 찍히면서 번지는 현상을 감안하여 확산 오차를 68%로 조절
+      const DAMPING = 0.68;
+      // 인쇄 시 과도하게 어두워지는 것을 방지하는 적응형 임계값 (140 기준)
+      const THRESHOLD = 140;
 
       for (let y = 0; y < targetHeight; y++) {
         for (let x = 0; x < targetWidth; x++) {
           const idx = y * targetWidth + x;
-          const oldPixel = smoothed[idx];
+          const oldPixel = enhanced[idx];
 
-          // 부드러운 임계값 판단 (128 기준)
-          const newPixel = oldPixel < 128 ? 0 : 255;
-          smoothed[idx] = newPixel;
+          // 140 이상이면 흰색(255), 미만이면 검은색(0)
+          const newPixel = oldPixel < THRESHOLD ? 0 : 255;
+          enhanced[idx] = newPixel;
 
           const error = (oldPixel - newPixel) * DAMPING;
 
-          // Floyd-Steinberg 확산 가중치 적용
+          // 오차 확산 가중치
           if (x + 1 < targetWidth) {
-            smoothed[idx + 1] += error * (7 / 16);
+            enhanced[idx + 1] += error * (7 / 16);
           }
           if (x - 1 >= 0 && y + 1 < targetHeight) {
-            smoothed[(y + 1) * targetWidth + (x - 1)] += error * (3 / 16);
+            enhanced[(y + 1) * targetWidth + (x - 1)] += error * (3 / 16);
           }
           if (y + 1 < targetHeight) {
-            smoothed[(y + 1) * targetWidth + x] += error * (5 / 16);
+            enhanced[(y + 1) * targetWidth + x] += error * (5 / 16);
           }
           if (x + 1 < targetWidth && y + 1 < targetHeight) {
-            smoothed[(y + 1) * targetWidth + (x + 1)] += error * (1 / 16);
+            enhanced[(y + 1) * targetWidth + (x + 1)] += error * (1 / 16);
           }
         }
       }
 
-      // [단계 4] 최종 1비트 흑백 픽셀 버퍼 기록
+      // [단계 5] 1-bit 순수 흑백 픽셀 버퍼 기록
       for (let i = 0; i < targetWidth * targetHeight; i++) {
         const idx = i * 4;
-        const val = smoothed[i] < 128 ? 0 : 255;
+        const val = enhanced[i] < 128 ? 0 : 255;
         data[idx] = val;
         data[idx + 1] = val;
         data[idx + 2] = val;
