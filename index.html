@@ -410,15 +410,15 @@
           let val = rawLuma[idx] + highPass * 0.88;
 
           // [3단계] 살짝 더 진하고 또렷한 인물 톤 밸런스 조정
-          // 베이스 밝기를 +28로 정돈하여 이목구비와 피부 계조를 더 선명하게 안착
-          val = Math.min(255, Math.max(0, val + 28)); 
+          // 베이스 밝기를 +28 -> +18로 낮춰 이목구비와 얼굴 음영을 더 탄탄하게 밀도감 있게 안착
+          val = Math.min(255, Math.max(0, val + 18)); 
           let norm = val / 255.0;
-          // 감마값을 0.68로 조정하여 지나친 날림 없이 균형 잡힌 명암비 구현
-          norm = Math.pow(norm, 0.68); 
+          // 감마값을 0.68 -> 0.74로 살짝 더 차분하게 조정하여 진하고 깊이 있는 명암비 구현
+          norm = Math.pow(norm, 0.74); 
           val = norm * 255.0;
 
           // 깊은 암부(눈동자, 입꼬리, 짙은 머리)의 또렷한 블랙 선명도 보호
-          if (val < 42) {
+          if (val < 45) {
             val = val * 0.85;
           }
 
@@ -436,8 +436,8 @@
         processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
       }
 
-      // [4단계] Atkinson Dithering (살짝 더 또렷한 명암 표현을 위해 THRESHOLD 150으로 조정)
-      const THRESHOLD = 150;
+      // [4단계] Atkinson Dithering (살짝 더 진하고 또렷한 명암 표현을 위해 THRESHOLD 140으로 조정)
+      const THRESHOLD = 140;
 
       for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
