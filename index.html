@@ -363,8 +363,10 @@
     let finalDitheredDataUrl = '';
 
     /**
-     * 감열 프린터 특화: 이목구비 선명 보존 + 부드러운 배경 그레이스케일 디더링
-     * (배경을 인위적으로 100% 흰색으로 날리지 않고, 부드러운 미세 하프톤 망점으로 계조를 살림)
+     * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
+     * - 고주파 언샵 마스크로 눈·코·입·머릿결 정밀 보존
+     * - 부드러운 S자 감마 곡선으로 피부톤 화사화 & 배경 계조 자연스러운 연결
+     * - Atkinson 오차 확산으로 점 뭉침 없이 은염 사진 같은 초미세 점망 구현
      */
     function applyThermalPortraitDithering(sourceCanvas, targetWidth, targetHeight) {
       const ditherCanvas = document.createElement('canvas');
@@ -381,7 +383,7 @@
       const totalPixels = targetWidth * targetHeight;
 
       const rawLuma = new Float32Array(totalPixels);
-      const enhanced = new Float32Array(totalPixels);
+      const processed = new Float32Array(totalPixels);
 
       // [1단계] 표준 BT.709 인지 휘도(Luminance) 변환
       for (let i = 0; i < totalPixels; i++) {
@@ -389,82 +391,95 @@
         rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
-      // [2단계] 눈·코·입 윤곽선(라플라시안 고주파 성분) 추출 & 자연스러운 샤프닝
-      const edge = new Float32Array(totalPixels);
+      // [2단계] 영수증 포토부스 전용 정밀 언샵 마스크 (눈, 코, 입, 속눈썹, 윤곽선 보존)
       for (let y = 1; y < targetHeight - 1; y++) {
-        const rowOffset = y * targetWidth;
+        const row = y * targetWidth;
         for (let x = 1; x < targetWidth - 1; x++) {
-          const idx = rowOffset + x;
-          const center = rawLuma[idx];
-          const laplacian = (
-            rawLuma[idx - 1] + rawLuma[idx + 1] +
-            rawLuma[idx - targetWidth] + rawLuma[idx + targetWidth]
-          ) - (center * 4);
+          const idx = row + x;
+          // 3x3 주변 평균 블러
+          const blur = (
+            rawLuma[idx - targetWidth - 1] + rawLuma[idx - targetWidth] + rawLuma[idx - targetWidth + 1] +
+            rawLuma[idx - 1]               + rawLuma[idx]               + rawLuma[idx + 1] +
+            rawLuma[idx + targetWidth - 1] + rawLuma[idx + targetWidth] + rawLuma[idx + targetWidth + 1]
+          ) / 9.0;
 
-          // 이목구비 윤곽선(동공, 콧날, 입술선) 강조 가중치
-          edge[idx] = -laplacian * 0.38;
+          // 고주파 디테일 추출
+          const highPass = rawLuma[idx] - blur;
+
+          // 이목구비 윤곽만 자연스럽게 선명화 (과도한 굵은 외곽선 방지)
+          let val = rawLuma[idx] + highPass * 0.85;
+
+          // [3단계] 샘플 영수증 특유의 화사한 인물 톤 커브
+          // 중간 피부톤을 뽀샤시하게 밝혀주고(감마 0.82), 어두운 곳도 차분하게 분리
+          val = Math.min(255, Math.max(0, val + 10)); // 베이스 밝기 보정
+          let norm = val / 255.0;
+          norm = Math.pow(norm, 0.82); // 부드러운 감마 리프트
+          val = norm * 255.0;
+
+          // 깊은 암부(눈동자, 입꼬리, 짙은 머리)의 또렷한 블랙 선명도 보호
+          if (val < 45) {
+            val = val * 0.88;
+          }
+
+          processed[idx] = Math.min(255, Math.max(0, val));
         }
       }
 
-      // [3단계] 부드러운 계조를 위한 연속 감마 톤 커브 (강제 화이트 컷오프 제거)
-      for (let i = 0; i < totalPixels; i++) {
-        let v = rawLuma[i] + edge[i];
-
-        // 기본 밝기 살짝 보정 (+14)
-        v = Math.min(255, Math.max(0, v + 14));
-
-        // 부드러운 감마 0.78 보정: 중간 피부톤은 화사하게 띄우고 밝은 배경도 자연스러운 계조 유지
-        let norm = v / 255.0;
-        norm = Math.pow(norm, 0.78);
-        v = norm * 255.0;
-
-        // 극단적인 암부(동공, 깊은 그림자) 선명도 보존
-        if (v < 25) {
-          v = v * 0.85;
-        }
-
-        enhanced[i] = Math.min(255, Math.max(0, v));
+      // 상하좌우 가장자리 1px 패딩 보정
+      for (let x = 0; x < targetWidth; x++) {
+        processed[x] = rawLuma[x];
+        processed[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
+      }
+      for (let y = 0; y < targetHeight; y++) {
+        processed[y * targetWidth] = rawLuma[y * targetWidth];
+        processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
       }
 
-      // [4단계] 유연한 오차 확산 (Floyd-Steinberg with Damping)
-      // 배경의 밝은 영역에도 미세한 점망이 고르게 퍼져서 부드러운 그라데이션 형성
-      const DAMPING = 0.75;
-      const THRESHOLD = 135;
+      // [4단계] Atkinson Dithering (샘플 영수증 사진과 동일한 초미세 하프톤 점망 생성)
+      // 오차의 6/8만 확산시키고 2/8를 버림으로써 점이 엉키거나 지렁이 모양으로 번지는 현상 원천 차단
+      const THRESHOLD = 132;
 
       for (let y = 0; y < targetHeight; y++) {
-        const rowOffset = y * targetWidth;
-        const nextRowOffset = (y + 1) * targetWidth;
+        const row = y * targetWidth;
+        const next1 = (y + 1) * targetWidth;
+        const next2 = (y + 2) * targetWidth;
 
         for (let x = 0; x < targetWidth; x++) {
-          const idx = rowOffset + x;
-          const oldPixel = enhanced[idx];
-          const newPixel = oldPixel < THRESHOLD ? 0 : 255;
-          enhanced[idx] = newPixel;
+          const idx = row + x;
+          const oldVal = processed[idx];
+          const newVal = oldVal < THRESHOLD ? 0 : 255;
+          processed[idx] = newVal;
 
-          const error = (oldPixel - newPixel) * DAMPING;
+          // Atkinson 오차 계산: 8분율 분배
+          const err = (oldVal - newVal) >> 3; // (oldVal - newVal) / 8
 
-          if (x + 1 < targetWidth) {
-            enhanced[idx + 1] += error * (7 / 16);
-          }
-          if (x - 1 >= 0 && y + 1 < targetHeight) {
-            enhanced[nextRowOffset + (x - 1)] += error * (3 / 16);
-          }
-          if (y + 1 < targetHeight) {
-            enhanced[nextRowOffset + x] += error * (5 / 16);
-          }
-          if (x + 1 < targetWidth && y + 1 < targetHeight) {
-            enhanced[nextRowOffset + (x + 1)] += error * (1 / 16);
+          if (err !== 0) {
+            // 오른쪽 1칸, 2칸
+            if (x + 1 < targetWidth) processed[idx + 1] += err;
+            if (x + 2 < targetWidth) processed[idx + 2] += err;
+
+            // 아래 1줄 (-1, 0, +1)
+            if (y + 1 < targetHeight) {
+              if (x - 1 >= 0) processed[next1 + (x - 1)] += err;
+              processed[next1 + x] += err;
+              if (x + 1 < targetWidth) processed[next1 + (x + 1)] += err;
+            }
+
+            // 아래 2줄 (0)
+            if (y + 2 < targetHeight) {
+              processed[next2 + x] += err;
+            }
           }
         }
       }
 
-      // [5단계] 1-bit 순수 흑백 감열 픽셀 버퍼 생성
+      // [5단계] 감열지 최적화 1-bit 순수 흑백 버퍼 기록
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
-        const val = enhanced[i] < 128 ? 0 : 255;
-        data[idx] = val;
-        data[idx + 1] = val;
-        data[idx + 2] = val;
+        const c = processed[i] < 128 ? 0 : 255;
+        data[idx] = c;
+        data[idx + 1] = c;
+        data[idx + 2] = c;
         data[idx + 3] = 255;
       }
 
