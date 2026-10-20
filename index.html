@@ -510,10 +510,40 @@
 
       thermalCtx.font = 'bold 22px monospace';
       thermalCtx.fillStyle = '#000000';
-      thermalCtx.fillText(`DATE: ${dateStr}`, tw / 2, photoY + photoSize + 62);
+      thermalCtx.fillText(`DATE: ${dateStr}`, tw / 2, photoY + photoSize + 55);
 
-      thermalCtx.font = 'bold 26px sans-serif';
-      thermalCtx.fillText('광주수피아여자고등학교 AI·SW 체험', tw / 2, photoY + photoSize + 100);
+      thermalCtx.font = 'bold 25px sans-serif';
+      thermalCtx.fillText('광주수피아여자고등학교 AI·SW 체험', tw / 2, photoY + photoSize + 88);
+
+      // 7) 하단 감열 바코드 그래픽 렌더링
+      const barcodeY = photoY + photoSize + 104;
+      const barcodeH = 42;
+      const barPattern = [
+        3,2,1,3,2,1,4,1,2,3,1,2,4,2,1,3,2,1,3,4,1,2,3,1,2,4,1,3,2,1,
+        2,3,1,4,2,1,3,2,1,3,2,4,1,2,3,1,3,2,4,1,2,1,3,2,4,1,3,2,1,2,
+        3,1,2,4,1,3,2,1,3,2,4,1,2,3,1,4,2,1,3,2,1,3,4,1,2,3,1,2,4,1
+      ];
+
+      // 바코드 총 너비 계산 및 중앙 정렬
+      let totalBarW = 0;
+      for (let i = 0; i < barPattern.length; i++) {
+        totalBarW += barPattern[i] * 2.8;
+      }
+      let curBx = (tw - totalBarW) / 2;
+
+      thermalCtx.fillStyle = '#000000';
+      for (let i = 0; i < barPattern.length; i++) {
+        const w = barPattern[i] * 2.8;
+        if (i % 2 === 0) {
+          thermalCtx.fillRect(curBx, barcodeY, w - 0.5, barcodeH);
+        }
+        curBx += w;
+      }
+
+      // 바코드 하단 시리얼 번호 텍스트
+      thermalCtx.font = 'bold 15px monospace';
+      thermalCtx.fillStyle = '#475569';
+      thermalCtx.fillText('* SPEER-2026-AI-PHOTO *', tw / 2, barcodeY + barcodeH + 16);
 
       return thermalCanvas.toDataURL('image/png');
     }
