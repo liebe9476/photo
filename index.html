@@ -374,7 +374,7 @@
     let finalDitheredDataUrl = '';
 
     // ------------------------------------------------------------
-    // [1] Floyd-Steinberg Error Diffusion Dithering 알고리즘
+    // [1] 고급 감열 최적화 부드러운 오차 확산 디더링 (Soft Dithering Engine)
     // ------------------------------------------------------------
     function applyErrorDiffusionDithering(sourceCanvas, targetWidth, targetHeight) {
       const ditherCanvas = document.createElement('canvas');
@@ -391,47 +391,89 @@
 
       const gray = new Float32Array(targetWidth * targetHeight);
 
+      // [단계 1] 밝기 계산 및 톤 커브 보정 (피부톤 보존 + 배경 노이즈 제거)
       for (let i = 0; i < targetWidth * targetHeight; i++) {
         const idx = i * 4;
-        let r = data[idx];
-        let g = data[idx + 1];
-        let b = data[idx + 2];
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
 
-        // 감마 보정 및 대비 최적화
+        // 정확한 인지 휘도 (ITU-R BT.601)
         let luma = 0.299 * r + 0.587 * g + 0.114 * b;
-        luma = 255 * Math.pow(luma / 255, 0.85);
-        luma = (luma - 128) * 1.25 + 128;
+
+        // 1) 피부톤을 화사하게 살리는 부드러운 감마 보정 (어둡게 타는 현상 방지)
+        luma = 255 * Math.pow(luma / 255, 1.15);
+
+        // 2) 배경 하이라이트 클린업: 밝은 배경(천장/벽)의 지저분한 모래알 점 완전 제거
+        if (luma > 218) {
+          luma = 255;
+        } else if (luma > 175) {
+          // 자연스러운 화이트 롤오프 (경계선 부드럽게)
+          const t = (luma - 175) / (218 - 175);
+          luma = 175 + (255 - 175) * (t * t);
+        }
+
+        // 3) 어두운 영역 뭉개짐 방지 (암부 디테일 리프트)
+        if (luma < 35) {
+          luma = Math.max(0, luma * 0.85);
+        }
+
         gray[i] = Math.min(255, Math.max(0, luma));
       }
 
-      // Floyd-Steinberg 오차 분산
-      for (let y = 0; y < targetHeight; y++) {
-        for (let x = 0; x < targetWidth; x++) {
+      // [단계 2] 3x3 미세 에지 보존 스무딩 (인물 피부결 매끄럽게 정돈)
+      const smoothed = new Float32Array(gray);
+      for (let y = 1; y < targetHeight - 1; y++) {
+        for (let x = 1; x < targetWidth - 1; x++) {
           const idx = y * targetWidth + x;
-          const oldPixel = gray[idx];
-          const newPixel = oldPixel < 128 ? 0 : 255;
-          gray[idx] = newPixel;
+          const center = gray[idx];
 
-          const error = oldPixel - newPixel;
+          // 이목구비(안경테, 눈, 입술 등) 윤곽선은 유지하고 피부 평면 노이즈만 부드럽게 필터링
+          let sum = center * 4;
+          sum += gray[idx - 1] + gray[idx + 1] + gray[idx - targetWidth] + gray[idx + targetWidth];
+          const avg = sum / 8;
 
-          if (x + 1 < targetWidth) {
-            gray[idx + 1] += error * (7 / 16);
-          }
-          if (x - 1 >= 0 && y + 1 < targetHeight) {
-            gray[(y + 1) * targetWidth + (x - 1)] += error * (3 / 16);
-          }
-          if (y + 1 < targetHeight) {
-            gray[(y + 1) * targetWidth + x] += error * (5 / 16);
-          }
-          if (x + 1 < targetWidth && y + 1 < targetHeight) {
-            gray[(y + 1) * targetWidth + (x + 1)] += error * (1 / 16);
+          // 차이가 적은 영역(피부 등)만 블렌딩
+          if (Math.abs(center - avg) < 40) {
+            smoothed[idx] = center * 0.4 + avg * 0.6;
           }
         }
       }
 
+      // [단계 3] 댐핑(Damping 80%) 오차 확산 (거친 모래알 결 완화, 부드러운 그라데이션)
+      const DAMPING = 0.82; // 오차를 82%만 확산시켜 뭉침과 지렁이 노이즈 억제
+
+      for (let y = 0; y < targetHeight; y++) {
+        for (let x = 0; x < targetWidth; x++) {
+          const idx = y * targetWidth + x;
+          const oldPixel = smoothed[idx];
+
+          // 부드러운 임계값 판단 (128 기준)
+          const newPixel = oldPixel < 128 ? 0 : 255;
+          smoothed[idx] = newPixel;
+
+          const error = (oldPixel - newPixel) * DAMPING;
+
+          // Floyd-Steinberg 확산 가중치 적용
+          if (x + 1 < targetWidth) {
+            smoothed[idx + 1] += error * (7 / 16);
+          }
+          if (x - 1 >= 0 && y + 1 < targetHeight) {
+            smoothed[(y + 1) * targetWidth + (x - 1)] += error * (3 / 16);
+          }
+          if (y + 1 < targetHeight) {
+            smoothed[(y + 1) * targetWidth + x] += error * (5 / 16);
+          }
+          if (x + 1 < targetWidth && y + 1 < targetHeight) {
+            smoothed[(y + 1) * targetWidth + (x + 1)] += error * (1 / 16);
+          }
+        }
+      }
+
+      // [단계 4] 최종 1비트 흑백 픽셀 버퍼 기록
       for (let i = 0; i < targetWidth * targetHeight; i++) {
         const idx = i * 4;
-        const val = gray[i] < 128 ? 0 : 255;
+        const val = smoothed[i] < 128 ? 0 : 255;
         data[idx] = val;
         data[idx + 1] = val;
         data[idx + 2] = val;
