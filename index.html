@@ -673,8 +673,11 @@
       fCtx.imageSmoothingEnabled = true;
       fCtx.imageSmoothingQuality = 'high';
 
-      // 인쇄 및 결과물: 글씨와 로고가 똑바로 읽히도록 원본 정방향(비반전)으로 캡처
+      // 뷰파인더에서 보던 거울 시각 그대로 좌우반전하여 캡처 및 인쇄
+      fCtx.translate(frameCanvas.width, 0);
+      fCtx.scale(-1, 1);
       fCtx.drawImage(webcamView, cropX, cropY, cropW, cropH, 0, 0, frameCanvas.width, frameCanvas.height);
+      fCtx.setTransform(1, 0, 0, 1, 0, 0);
 
       singleCapturedFrame = frameCanvas;
       await sleep(200);
