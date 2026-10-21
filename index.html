@@ -32,7 +32,7 @@
       padding: 0 10px 10px;
     }
 
-    /* 뷰파인더 웹캠: 거울처럼 자연스럽게 볼 수 있도록 좌우반전(scaleX -1) 적용 */
+    /* 뷰파인더 웹캠: 거울 모드 (scaleX -1) 적용 */
     #webcamView {
       transform: scaleX(-1) !important;
       -webkit-transform: scaleX(-1) !important;
@@ -199,7 +199,6 @@
 
     <!-- 우측 제어 버튼 (전체화면 토글) -->
     <div style="display: flex; align-items: center; gap: 8px;">
-      <!-- 전체화면 토글 버튼 -->
       <button id="fullscreenToggleBtn" type="button" onclick="toggleFullscreen()" title="전체화면 전환"
               class="btn" style="padding: 8px 12px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px; z-index: 50;">
         <svg id="fullscreenIconSvg" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
@@ -220,8 +219,8 @@
       <!-- 헤더와의 간격을 줄이고 크기를 확대한 직각 뷰파인더 -->
       <div id="viewfinderFrame" style="position: relative; width: min(92vw, 73vh, 1020px); aspect-ratio: 4 / 3; background: #000; border: 3.5px solid #38bdf8; box-shadow: 0 25px 60px -10px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.25); display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 0;">
 
-        <!-- 웹캠 비디오 엘리먼트 (글씨가 바르게 읽히도록 정방향) -->
-        <video id="webcamView" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(1); -webkit-transform: scaleX(1);"></video>
+        <!-- 웹캠 비디오 엘리먼트 (좌우 반전 거울 모드 scaleX(-1)) -->
+        <video id="webcamView" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); -webkit-transform: scaleX(-1);"></video>
 
         <!-- 코너 L자 브래킷 -->
         <div class="corner-bracket corner-tl"></div>
@@ -258,12 +257,12 @@
         <!-- 카운트다운 오버레이 -->
         <div id="countdownBox" style="position: absolute; inset: 0; background: transparent; display: none; align-items: center; justify-content: center; z-index: 25; pointer-events: none;">
           <span id="countdownNumber" style="font-size: clamp(4.5rem, 14vw, 7.5rem); font-weight: 900; color: #ffffff; font-family: monospace; filter: drop-shadow(0 0 25px rgba(56,189,248,0.95));">
-            4
+            3
           </span>
         </div>
       </div>
 
-      <!-- 1컷 촬영 시작하기 버튼 (한 줄 더 여유 있게 간격 확대) -->
+      <!-- 1컷 촬영 시작하기 버튼 -->
       <button id="startShootBtn" onclick="runShootingSequence()" class="btn"
               style="width: min(92vw, 73vh, 1020px); padding: 14px 20px; background: linear-gradient(135deg, #0284c7, #2563eb, #4f46e5); color: #ffffff; font-size: 18px; letter-spacing: 0.5px; border-radius: 14px; border: 1px solid rgba(125,211,252,0.4); box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); flex-shrink: 0; margin-top: 28px;">
         <svg style="width: 22px; height: 22px; fill: currentColor;" viewBox="0 0 24 24">
@@ -274,7 +273,7 @@
 
     </div>
 
-    <!-- [B] 결과 화면 (영수증 미리보기 + 블루투스 인쇄 컨트롤) -->
+    <!-- [B] 결과 화면 (영수증 미리보기 + 감열 인쇄) -->
     <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px;">
 
       <!-- 좌측: 영수증 스티커 미리보기 -->
@@ -292,7 +291,7 @@
             <span>🎉 영수증 사진이 완성되었습니다!</span>
           </h2>
           <p style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
-            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 대화상자 없이 블루투스로 즉시 인쇄됩니다.
+            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 부드러운 그레이스케일 디더링으로 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 즉시 인쇄됩니다.
           </p>
         </div>
 
@@ -389,7 +388,7 @@
         rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
-      // [2단계] 영수증 포토부스 전용 정밀 언샵 마스크
+      // [2단계] 영수증 포토부스 전용 정밀 언샵 마스크 (눈, 코, 입, 속눈썹, 윤곽선 보존)
       for (let y = 1; y < targetHeight - 1; y++) {
         const row = y * targetWidth;
         for (let x = 1; x < targetWidth - 1; x++) {
@@ -403,7 +402,7 @@
           const highPass = rawLuma[idx] - blur;
           let val = rawLuma[idx] + highPass * 0.88;
 
-          // [3단계] 살짝 더 진하고 또렷한 인물 톤 밸런스 조정
+          // [3단계] 또렷하고 진득한 명암비 톤 밸런스 조정
           val = Math.min(255, Math.max(0, val + 18)); 
           let norm = val / 255.0;
           norm = Math.pow(norm, 0.74); 
@@ -426,7 +425,7 @@
         processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
       }
 
-      // [4단계] Atkinson Dithering (THRESHOLD 140)
+      // [4단계] Atkinson Dithering (THRESHOLD = 140)
       const THRESHOLD = 140;
 
       for (let y = 0; y < targetHeight; y++) {
@@ -459,7 +458,7 @@
         }
       }
 
-      // [5단계] 감열지 최적화 1-bit 순수 흑백 버퍼 기록
+      // [5단계] 1-bit 순수 흑백 버퍼 기록
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         const c = processed[i] < 128 ? 0 : 255;
@@ -475,7 +474,6 @@
 
     /**
      * 영수증 스티커 합성 렌더링 함수
-     * Epson TM-m30III 80mm 용지 완벽 가득 채움 원본 레이아웃 규격
      */
     function renderReceiptStrip(isDithered = false) {
       if (!singleCapturedFrame) return '';
@@ -485,11 +483,9 @@
       thermalCanvas.width = tw;
       thermalCanvas.height = th;
 
-      // 1) 흰색 배경
       thermalCtx.fillStyle = '#ffffff';
       thermalCtx.fillRect(0, 0, tw, th);
 
-      // 2) 상단 헤더 텍스트
       thermalCtx.textAlign = 'center';
       thermalCtx.fillStyle = '#000000';
       thermalCtx.font = '900 54px sans-serif';
@@ -499,7 +495,6 @@
       thermalCtx.fillStyle = '#222222';
       thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 150);
 
-      // 세련된 감열 영수증 데코선 함수
       const drawDecoLine = (y) => {
         thermalCtx.save();
         thermalCtx.strokeStyle = '#000000';
@@ -518,10 +513,8 @@
         thermalCtx.restore();
       };
 
-      // 3) Speer Girl's~~ 다음 한 줄 여백 후 상단 구분선 배치
       drawDecoLine(194);
 
-      // 4) 구분선과 사진 사이 한 줄 여백
       const photoW = 740;
       const photoH = 555;
       const photoX = (tw - photoW) / 2;
@@ -534,16 +527,13 @@
         thermalCtx.drawImage(singleCapturedFrame, photoX, photoY, photoW, photoH);
       }
 
-      // 사진 외곽선
       thermalCtx.strokeStyle = '#000000';
       thermalCtx.lineWidth = 3;
       thermalCtx.strokeRect(photoX, photoY, photoW, photoH);
 
-      // 5) 사진 아래 한 줄 여백 후 하단 구분선 배치
       const bottomLineY = photoY + photoH + 34;
       drawDecoLine(bottomLineY);
 
-      // 6) DATE 위쪽 한 줄 띄움 적용 + 날짜 / 감사 문구 2단계 확대 유지
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
@@ -556,7 +546,6 @@
       thermalCtx.fillStyle = '#000000';
       thermalCtx.fillText('방문해주셔서 감사합니다!!', tw / 2, dateTextY + 46);
 
-      // 7) 바코드 그래픽
       const barcodeY = dateTextY + 70;
       const barcodeH = 40;
       const barPattern = [
@@ -580,7 +569,6 @@
         curBx += w;
       }
 
-      // 8) 바코드 밑 작은 글꼴 1줄 분량 간격 삽입 후 텍스트 배치
       thermalCtx.font = 'bold 26px sans-serif';
       thermalCtx.fillStyle = '#111111';
       thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 32);
@@ -597,13 +585,18 @@
       clearTimeout(autoResetTimer);
 
       try {
-        // 인쇄용 그레이스케일 디더링 캔버스 렌더링
+        showToast("감열 프린터 전용 디더링 변환 중...", "⚙️");
+
         finalDitheredDataUrl = renderReceiptStrip(true);
 
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
-            try { await browserPrintImg.decode(); } catch (e) {}
+            try {
+              await browserPrintImg.decode();
+            } catch (e) {
+              console.log("Image decode fallback", e);
+            }
           }
         }
 
@@ -611,6 +604,7 @@
 
         setTimeout(() => {
           window.print();
+
           printBtnLabel.innerText = "출력 완료!";
           showToast("영수증 인쇄가 시작되었습니다! ✨", "🎉");
 
@@ -623,14 +617,14 @@
 
       } catch (err) {
         console.error("Print Pipeline Error:", err);
-        showToast("인쇄 처리 오류: " + err.message, "⚠️");
+        showToast("인쇄 처리 중 오류: " + err.message, "⚠️");
         printActionBtn.disabled = false;
         printBtnLabel.innerText = "다시 인쇄 시도";
       }
     }
 
     /**
-     * 1컷 촬영 시퀀스
+     * 1컷 촬영 시퀀스 (뷰파인더 거울 모드 시각 반영)
      */
     async function runShootingSequence() {
       startShootBtn.disabled = true;
@@ -653,7 +647,6 @@
       const vw = webcamView.videoWidth || 1280;
       const vh = webcamView.videoHeight || 720;
 
-      // 4:3 뷰파인더 앵글 중앙 크롭 매핑
       const targetAspect = 4 / 3;
       let cropW, cropH;
       if (vw / vh > targetAspect) {
@@ -673,16 +666,15 @@
       fCtx.imageSmoothingEnabled = true;
       fCtx.imageSmoothingQuality = 'high';
 
-      // 뷰파인더에서 보던 거울 시각 그대로 좌우반전하여 캡처 및 인쇄
+      // [핵심]: 뷰파인더에서 보던 거울 시각(좌우 반전) 그대로 캡처
       fCtx.translate(frameCanvas.width, 0);
       fCtx.scale(-1, 1);
       fCtx.drawImage(webcamView, cropX, cropY, cropW, cropH, 0, 0, frameCanvas.width, frameCanvas.height);
-      fCtx.setTransform(1, 0, 0, 1, 0, 0);
 
       singleCapturedFrame = frameCanvas;
       await sleep(200);
 
-      // [미리보기]: 생생한 원본 컬러(isDithered = false)로 표시
+      // [미리보기]: 생생한 원본 컬러
       finalColorDataUrl = renderReceiptStrip(false);
       stickerPreviewImg.src = finalColorDataUrl;
 
@@ -705,7 +697,7 @@
     }
 
     /**
-     * 웹캠 하드웨어 초기화
+     * 웹캠 하드웨어 초기화 (뷰파인더 거울 모드 강제)
      */
     async function initWebcam() {
       try {
@@ -733,7 +725,7 @@
     }
 
     /**
-     * 전체화면 토글 (정상 진입 및 확실한 복귀 지원)
+     * 전체화면 토글
      */
     async function toggleFullscreen() {
       try {
@@ -811,7 +803,6 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // 윈도우 로드 시 웹캠 시동
     window.onload = initWebcam;
   </script>
 </body>
