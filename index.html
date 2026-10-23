@@ -378,13 +378,47 @@
     let currentPreviewMode = 'color';
 
     /**
-     * 상용 영수증 포토부스 전용 실사 인물 사진 엔진:
-     * 1) 인위적인 외곽선 펜선 필터(인물 파임 및 눈동자 실종 원인)를 걷어내고,
-     *    실제 사진의 은염 계조(하프톤 점)를 부드럽게 복원
-     * 2) 얼굴 화이트홀 방지: 볼, 이마, 콧대, 눈동자에 섬세한 미세 망점을 채워 볼륨감 표현
-     * 3) 머리카락/옷 블랙아웃 방지: 0~35 암부를 38~65로 완충하여 머릿결 및 옷 주름 분리
-     * 4) 배경 클린업: 밝은 벽면이나 천장의 지저분한 소금/후추 잡음(노이즈)을 깨끗하게 정리
-     * 5) Floyd-Steinberg 100% 오차 확산 (7/16, 3/16, 5/16, 1/16)
+     * 감열 프린터 출력 파이프라인 (아이패드 & 안드로이드 완벽 호환)
+     */
+    async function printReceiptSticker() {
+      printActionBtn.disabled = true;
+      printBtnLabel.innerText = "인쇄 전송 중...";
+      clearTimeout(autoResetTimer);
+
+      try {
+        // 인쇄용 고대비 바이너리 디더링 캔버스 렌더링
+        finalDitheredDataUrl = renderReceiptStrip(true);
+
+        if (browserPrintImg) {
+          browserPrintImg.src = finalDitheredDataUrl;
+          if (browserPrintImg.decode) {
+            try { await browserPrintImg.decode(); } catch (e) {}
+          }
+        }
+
+        // 아이패드 iOS Safari 최적화: 브라우저 인쇄 즉각 호출
+        setTimeout(() => {
+          window.print();
+          printBtnLabel.innerText = "인쇄 완료!";
+          showToast("영수증 인쇄가 시작되었습니다! ✨", "🎉");
+
+          setTimeout(() => {
+            printActionBtn.disabled = false;
+            printBtnLabel.innerText = "영수증 인쇄하기";
+            resetBoothToCamera();
+          }, 2500);
+        }, 120);
+
+      } catch (err) {
+        console.error("Print Pipeline Error:", err);
+        showToast("인쇄 처리 오류: " + err.message, "⚠️");
+        printActionBtn.disabled = false;
+        printBtnLabel.innerText = "다시 인쇄 시도";
+      }
+    }
+
+    /**
+     * 1컷 촬영 시퀀스
      */
     function applyCommercialThermalDithering(sourceCanvas, targetWidth, targetHeight) {
       const ditherCanvas = document.createElement('canvas');
