@@ -378,11 +378,13 @@
     let currentPreviewMode = 'color';
 
     /**
-     * 상용 영수증 포토부스 전용 1:1 도트 디더링 엔진:
-     * 1) Epson TM-m30III 가로 576 dots 물리 헤드 1:1 픽셀 매칭 (OS 재압축 방지)
-     * 2) 바이래터럴 피부 보정: 모공/잡티/불필요 음영은 부드럽게 펴서 뽀얗게 정리
-     * 3) 스마트 엣지 마스크: 눈, 코, 입술, 속눈썹, 헤어라인만 진한 펜선으로 추출
-     * 4) Floyd-Steinberg 100% 오차 확산 (7/16, 3/16, 5/16, 1/16): 풍부하고 부드러운 은염 사진 계조
+     * 상용 영수증 포토부스 전용 실사 인물 사진 엔진:
+     * 1) 인위적인 외곽선 펜선 필터(인물 파임 및 눈동자 실종 원인)를 걷어내고,
+     *    실제 사진의 은염 계조(하프톤 점)를 부드럽게 복원
+     * 2) 얼굴 화이트홀 방지: 볼, 이마, 콧대, 눈동자에 섬세한 미세 망점을 채워 볼륨감 표현
+     * 3) 머리카락/옷 블랙아웃 방지: 0~35 암부를 38~65로 완충하여 머릿결 및 옷 주름 분리
+     * 4) 배경 클린업: 밝은 벽면이나 천장의 지저분한 소금/후추 잡음(노이즈)을 깨끗하게 정리
+     * 5) Floyd-Steinberg 100% 오차 확산 (7/16, 3/16, 5/16, 1/16)
      */
     function applyCommercialThermalDithering(sourceCanvas, targetWidth, targetHeight) {
       const ditherCanvas = document.createElement('canvas');
@@ -401,65 +403,75 @@
       const rawLuma = new Float32Array(totalPixels);
       const processed = new Float32Array(totalPixels);
 
-      // [1단계] 표준 BT.709 휘도 변환
+      // [1단계] BT.709 정밀 인지 휘도 추출
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
-      // [2단계] 상용 포토부스 피부 뷰티 필터(스마트 블러) & 이목구비 고주파 에지 추출
+      // [2단계] 사진 계조 밸런스 (인물 하프톤 복원 & 톤 커브 매핑)
+      for (let i = 0; i < totalPixels; i++) {
+        let val = rawLuma[i];
+
+        // A. 배경 클린업: 밝은 벽면/천장(220 이상)의 자글자글한 잡티 점 제거
+        if (val > 222) {
+          // 아주 밝은 배경은 순백색으로 깔끔하게 비움
+          val = 222 + (val - 222) * 1.5;
+          processed[i] = Math.min(255, val);
+          continue;
+        }
+
+        // B. 어두운 머리카락/옷 떡짐 방지 (0~45 암부를 40~75로 올려 결을 살림)
+        if (val < 50) {
+          val = 36 + val * 0.75;
+        } 
+        // C. 얼굴 및 이목구비(눈동자, 볼, 코, 입술) 중간톤 영역:
+        // 기존처럼 255로 날리지 않고 감마 곡선(1.05)으로 눌러주어 부드러운 망점이 앉게 함
+        else if (val >= 50 && val <= 200) {
+          // 자연스러운 인물 계조 형성
+          let norm = (val - 50) / 150.0;
+          norm = Math.pow(norm, 1.08); // 살짝 콘트라스트를 주어 이목구비 윤곽 보존
+          val = 48 + norm * 152;
+        }
+
+        processed[i] = Math.min(255, Math.max(0, val));
+      }
+
+      // [3단계] 3x3 미세 언샵 마스크 (과도하지 않게 눈매, 속눈썹, 안경알 경계선만 부드럽게 0.35 가중치 선명화)
+      const sharpBuffer = new Float32Array(totalPixels);
       for (let y = 1; y < targetHeight - 1; y++) {
         const row = y * targetWidth;
         for (let x = 1; x < targetWidth - 1; x++) {
           const idx = row + x;
-          const orig = rawLuma[idx];
+          const orig = processed[idx];
 
-          // 3x3 주변 평균값 계산
           const blur = (
-            rawLuma[idx - targetWidth - 1] + rawLuma[idx - targetWidth] + rawLuma[idx - targetWidth + 1] +
-            rawLuma[idx - 1]               + orig                       + rawLuma[idx + 1] +
-            rawLuma[idx + targetWidth - 1] + rawLuma[idx + targetWidth] + rawLuma[idx + targetWidth + 1]
+            processed[idx - targetWidth - 1] + processed[idx - targetWidth] + processed[idx - targetWidth + 1] +
+            processed[idx - 1]               + orig                         + processed[idx + 1] +
+            processed[idx + targetWidth - 1] + processed[idx + targetWidth] + processed[idx + targetWidth + 1]
           ) / 9.0;
 
-          const edge = orig - blur; // 고주파(눈/코/입/외곽선)
-          const edgeMag = Math.abs(edge);
+          const diff = orig - blur;
+          // 너무 과한 테두리 왜곡 방지 및 자연스러운 디테일 보존
+          let sharpVal = orig + diff * 0.42;
 
-          let tonalBase;
-          if (edgeMag < 14) {
-            // [피부/볼/이마/배경]: 미세 잡티와 모공은 부드럽게 펴고 밝기를 화사하게 올려 뽀샤시 처리
-            tonalBase = blur + 16;
-            let norm = Math.min(255, Math.max(0, tonalBase)) / 255.0;
-            norm = Math.pow(norm, 0.75); // 감마 보정: 화사하고 밝은 피부톤
-            tonalBase = norm * 255.0;
-          } else {
-            // [눈/코/입/속눈썹/머리칼/옷선]: 펜선처럼 또렷하게 선명도 강화
-            tonalBase = orig + edge * 1.5;
-            if (tonalBase < 75) {
-              tonalBase = tonalBase * 0.85; // 짙은 눈동자와 헤어라인은 또렷한 딥 블랙
-            }
-          }
-
-          // 피부 그림자 떡짐 방지 완충 곡선
-          if (tonalBase > 80 && tonalBase < 170) {
-            tonalBase = 115 + (tonalBase - 80) * 0.95;
-          }
-
-          processed[idx] = Math.min(254, Math.max(15, tonalBase));
+          sharpBuffer[idx] = Math.min(255, Math.max(0, sharpVal));
         }
       }
 
       // 테두리 패딩 보정
       for (let x = 0; x < targetWidth; x++) {
-        processed[x] = rawLuma[x];
-        processed[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
+        sharpBuffer[x] = processed[x];
+        sharpBuffer[(targetHeight - 1) * targetWidth + x] = processed[(targetHeight - 1) * targetWidth + x];
       }
       for (let y = 0; y < targetHeight; y++) {
-        processed[y * targetWidth] = rawLuma[y * targetWidth];
-        processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
+        sharpBuffer[y * targetWidth] = processed[y * targetWidth];
+        sharpBuffer[y * targetWidth + (targetWidth - 1)] = processed[y * targetWidth + (targetWidth - 1)];
       }
 
-      // [3단계] 상용 규격 Floyd-Steinberg 100% 오차 확산 (7/16, 3/16, 5/16, 1/16)
-      const THRESHOLD = 136;
+      // [4단계] 표준 Floyd-Steinberg 100% 오차 확산 (7/16, 3/16, 5/16, 1/16)
+      // 최적 문턱값 THRESHOLD = 132 (흑백 균형점)
+      const THRESHOLD = 132;
 
       for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
@@ -467,33 +479,33 @@
 
         for (let x = 0; x < targetWidth; x++) {
           const idx = row + x;
-          const oldVal = processed[idx];
+          const oldVal = sharpBuffer[idx];
           const newVal = oldVal < THRESHOLD ? 0 : 255;
-          processed[idx] = newVal;
+          sharpBuffer[idx] = newVal;
 
           const err = oldVal - newVal;
 
           if (err !== 0) {
             if (x + 1 < targetWidth) {
-              processed[idx + 1] += (err * 7) / 16;
+              sharpBuffer[idx + 1] += (err * 7) / 16;
             }
             if (y + 1 < targetHeight) {
               if (x - 1 >= 0) {
-                processed[nextRow + (x - 1)] += (err * 3) / 16;
+                sharpBuffer[nextRow + (x - 1)] += (err * 3) / 16;
               }
-              processed[nextRow + x] += (err * 5) / 16;
+              sharpBuffer[nextRow + x] += (err * 5) / 16;
               if (x + 1 < targetWidth) {
-                processed[nextRow + (x + 1)] += (err * 1) / 16;
+                sharpBuffer[nextRow + (x + 1)] += (err * 1) / 16;
               }
             }
           }
         }
       }
 
-      // [4단계] 1-bit 순수 흑백 버퍼 기록
+      // [5단계] 1-bit 순수 흑백 버퍼 기록
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
-        const c = processed[i] < 128 ? 0 : 255;
+        const c = sharpBuffer[i] < 128 ? 0 : 255;
         data[idx] = c;
         data[idx + 1] = c;
         data[idx + 2] = c;
