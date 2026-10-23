@@ -279,7 +279,7 @@
       <!-- 좌측: 영수증 스티커 미리보기 & 토글 컨트롤 -->
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; flex-shrink: 0;">
         <div style="height: 68vh; max-height: 540px; min-height: 360px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);">
-          <div class="receipt-edge" style="height: 100%; aspect-ratio: 800 / 1080; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0;">
+          <div class="receipt-edge" style="height: 100%; aspect-ratio: 576 / 780; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0;">
             <img id="stickerPreviewImg" alt="실제 인쇄 영수증 미리보기"
                  style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: pixelated; background: #ffffff;" />
           </div>
@@ -336,8 +336,8 @@
     </div>
   </main>
 
-  <!-- 캔버스 및 감열 인쇄 DOM 영역 -->
-  <canvas id="thermalStripCanvas" width="800" height="1080" style="display: none;"></canvas>
+  <!-- 캔버스 및 감열 인쇄 DOM 영역 (Epson TM-m30III 576-dot 1:1 물리 해상도) -->
+  <canvas id="thermalStripCanvas" width="576" height="780" style="display: none;"></canvas>
   <div id="browserPrintZone" style="display: none;">
     <img id="browserPrintImg" src="" alt="print-strip" />
   </div>
@@ -378,46 +378,13 @@
     let currentPreviewMode = 'color';
 
     /**
-     * 미리보기 모드 전환 (컬러 원본 ↔ 실제 영수증 흑백 인쇄본)
+     * 상용 영수증 포토부스 전용 1:1 도트 디더링 엔진:
+     * 1) Epson TM-m30III 가로 576 dots 물리 헤드 1:1 픽셀 매칭 (OS 재압축 방지)
+     * 2) 바이래터럴 피부 보정: 모공/잡티/불필요 음영은 부드럽게 펴서 뽀얗게 정리
+     * 3) 스마트 엣지 마스크: 눈, 코, 입술, 속눈썹, 헤어라인만 진한 펜선으로 추출
+     * 4) Floyd-Steinberg 100% 오차 확산 (7/16, 3/16, 5/16, 1/16): 풍부하고 부드러운 은염 사진 계조
      */
-    function switchPreviewMode(mode) {
-      currentPreviewMode = mode;
-      const colorBtn = document.getElementById('toggleColorBtn');
-      const ditherBtn = document.getElementById('toggleDitherBtn');
-      const descEl = document.getElementById('previewModeDescription');
-
-      if (mode === 'dither') {
-        if (!finalDitheredDataUrl && singleCapturedFrame) {
-          finalDitheredDataUrl = renderReceiptStrip(true);
-        }
-        stickerPreviewImg.src = finalDitheredDataUrl;
-
-        colorBtn.style.background = 'transparent';
-        colorBtn.style.color = '#94a3b8';
-        ditherBtn.style.background = '#0284c7';
-        ditherBtn.style.color = '#fff';
-
-        descEl.innerHTML = '현재 <strong style="color: #38bdf8;">실제 인쇄본(뽀샤시 화사톤 디더링)</strong> 미리보기 중입니다. 얼굴 그늘과 칙칙함을 없애고 피부는 뽀얗게, 이목구비는 얇고 선명하게 인쇄됩니다.';
-      } else {
-        stickerPreviewImg.src = finalColorDataUrl;
-
-        colorBtn.style.background = '#0284c7';
-        colorBtn.style.color = '#fff';
-        ditherBtn.style.background = 'transparent';
-        ditherBtn.style.color = '#94a3b8';
-
-        descEl.innerHTML = '현재 <strong style="color: #38bdf8;">컬러 화면</strong> 미리보기 중입니다. [인쇄용 디더링] 버튼을 누르면 감열지에 찍힐 실제 203 DPI 흑백 망점 사진을 미리 확인하실 수 있습니다.';
-      }
-    }
-
-    /**
-     * 감열 프린터(Epson TM-m30III 203 DPI) 특화: 인물 뽀샤시 & 또렷한 이목구비 디더링 파이프라인
-     * - 얼굴이 시커멓게 뭉개지는 현상(숯검댕 방지)을 완벽 차단
-     * - 피부톤 고휘도 리프팅(High-Key Tone Lift)으로 뽀얗고 화사한 얼굴 표현
-     * - 눈·코·입술·속눈썹·헤어라인만 얇은 만화 데생처럼 선명하게 추출
-     * - 문턱값 상향(Threshold 148)으로 어두운 그늘이 무섭게 도배되는 현상 해결
-     */
-    function applyThermalPortraitDithering(sourceCanvas, targetWidth, targetHeight) {
+    function applyCommercialThermalDithering(sourceCanvas, targetWidth, targetHeight) {
       const ditherCanvas = document.createElement('canvas');
       ditherCanvas.width = targetWidth;
       ditherCanvas.height = targetHeight;
@@ -434,52 +401,54 @@
       const rawLuma = new Float32Array(totalPixels);
       const processed = new Float32Array(totalPixels);
 
-      // [1단계] 표준 BT.709 인지 휘도(Luminance) 변환
+      // [1단계] 표준 BT.709 휘도 변환
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
-      // [2단계] 피부톤 화사화(High-Key Lift) & 정밀 이목구비 언샵 마스크
+      // [2단계] 상용 포토부스 피부 뷰티 필터(스마트 블러) & 이목구비 고주파 에지 추출
       for (let y = 1; y < targetHeight - 1; y++) {
         const row = y * targetWidth;
         for (let x = 1; x < targetWidth - 1; x++) {
           const idx = row + x;
+          const orig = rawLuma[idx];
+
+          // 3x3 주변 평균값 계산
           const blur = (
             rawLuma[idx - targetWidth - 1] + rawLuma[idx - targetWidth] + rawLuma[idx - targetWidth + 1] +
-            rawLuma[idx - 1]               + rawLuma[idx]               + rawLuma[idx + 1] +
+            rawLuma[idx - 1]               + orig                       + rawLuma[idx + 1] +
             rawLuma[idx + targetWidth - 1] + rawLuma[idx + targetWidth] + rawLuma[idx + targetWidth + 1]
           ) / 9.0;
 
-          const orig = rawLuma[idx];
-          const highPass = orig - blur;
+          const edge = orig - blur; // 고주파(눈/코/입/외곽선)
+          const edgeMag = Math.abs(edge);
 
-          // 2-1. 피부톤 화사화: 전체 밝기를 시원하게 띄우고 감마(0.68)로 중간톤 그늘 제거
-          let brightened = Math.min(255, Math.max(0, orig + 24)); // 기본 베이스 밝기 +24 업
-          let norm = brightened / 255.0;
-          norm = Math.pow(norm, 0.68); // 피부톤을 밝은 하얀색 쪽으로 강하게 리프팅 (뽀샤시 효과)
-          let lifted = norm * 255.0;
-
-          // 2-2. 이목구비 정밀 윤곽선 보존: 눈, 눈썹, 입술, 헤어라인만 또렷하게 강조
-          let edgeMultiplier = 1.15;
-          if (orig < 70) {
-            edgeMultiplier = 1.4; // 짙은 눈동자/머리카락 경계는 확실하게
-          } else if (orig > 210) {
-            edgeMultiplier = 1.6; // 하얀 옷 경계선 보존
+          let tonalBase;
+          if (edgeMag < 14) {
+            // [피부/볼/이마/배경]: 미세 잡티와 모공은 부드럽게 펴고 밝기를 화사하게 올려 뽀샤시 처리
+            tonalBase = blur + 16;
+            let norm = Math.min(255, Math.max(0, tonalBase)) / 255.0;
+            norm = Math.pow(norm, 0.75); // 감마 보정: 화사하고 밝은 피부톤
+            tonalBase = norm * 255.0;
+          } else {
+            // [눈/코/입/속눈썹/머리칼/옷선]: 펜선처럼 또렷하게 선명도 강화
+            tonalBase = orig + edge * 1.5;
+            if (tonalBase < 75) {
+              tonalBase = tonalBase * 0.85; // 짙은 눈동자와 헤어라인은 또렷한 딥 블랙
+            }
           }
 
-          let sharpened = lifted + highPass * edgeMultiplier;
-
-          // 2-3. 얼굴 그늘 뭉침 방지 안전장치: 중간 명도(피부 그늘)가 까맣게 타는 것을 방지
-          if (sharpened > 90 && sharpened < 190) {
-            sharpened = 130 + (sharpened - 90) * 0.95; // 볼, 턱, 이마의 어두운 음영을 밝은 쪽으로 보정
+          // 피부 그림자 떡짐 방지 완충 곡선
+          if (tonalBase > 80 && tonalBase < 170) {
+            tonalBase = 115 + (tonalBase - 80) * 0.95;
           }
 
-          processed[idx] = Math.min(252, Math.max(22, sharpened));
+          processed[idx] = Math.min(254, Math.max(15, tonalBase));
         }
       }
 
-      // 가장자리 1px 패딩 보정
+      // 테두리 패딩 보정
       for (let x = 0; x < targetWidth; x++) {
         processed[x] = rawLuma[x];
         processed[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
@@ -489,13 +458,12 @@
         processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
       }
 
-      // [3단계] 감열지 최적화 앳킨슨 오차 확산 (Threshold를 148로 높여 어두운 점 과다 증식 방지)
-      const THRESHOLD = 148;
+      // [3단계] 상용 규격 Floyd-Steinberg 100% 오차 확산 (7/16, 3/16, 5/16, 1/16)
+      const THRESHOLD = 136;
 
       for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
-        const next1 = (y + 1) * targetWidth;
-        const next2 = (y + 2) * targetWidth;
+        const nextRow = (y + 1) * targetWidth;
 
         for (let x = 0; x < targetWidth; x++) {
           const idx = row + x;
@@ -503,20 +471,20 @@
           const newVal = oldVal < THRESHOLD ? 0 : 255;
           processed[idx] = newVal;
 
-          const err = (oldVal - newVal) >> 3; // Atkinson: 1/8 분배
+          const err = oldVal - newVal;
 
           if (err !== 0) {
-            if (x + 1 < targetWidth) processed[idx + 1] += err;
-            if (x + 2 < targetWidth) processed[idx + 2] += err;
-
-            if (y + 1 < targetHeight) {
-              if (x - 1 >= 0) processed[next1 + (x - 1)] += err;
-              processed[next1 + x] += err;
-              if (x + 1 < targetWidth) processed[next1 + (x + 1)] += err;
+            if (x + 1 < targetWidth) {
+              processed[idx + 1] += (err * 7) / 16;
             }
-
-            if (y + 2 < targetHeight) {
-              processed[next2 + x] += err;
+            if (y + 1 < targetHeight) {
+              if (x - 1 >= 0) {
+                processed[nextRow + (x - 1)] += (err * 3) / 16;
+              }
+              processed[nextRow + x] += (err * 5) / 16;
+              if (x + 1 < targetWidth) {
+                processed[nextRow + (x + 1)] += (err * 1) / 16;
+              }
             }
           }
         }
@@ -538,12 +506,14 @@
 
     /**
      * 영수증 스티커 합성 렌더링 함수
+     * Epson TM-m30III 80mm 용지 576 dots 물리 헤드 완벽 1:1 가득 채움 레이아웃
      */
     function renderReceiptStrip(isDithered = false) {
       if (!singleCapturedFrame) return '';
 
-      const tw = 800;
-      const th = 1080;
+      // Epson TM-m30III 80mm 규격 물리 헤드 정확히 576 도트
+      const tw = 576;
+      const th = 780;
       thermalCanvas.width = tw;
       thermalCanvas.height = th;
 
@@ -554,43 +524,43 @@
       // 2) 상단 헤더 텍스트
       thermalCtx.textAlign = 'center';
       thermalCtx.fillStyle = '#000000';
-      thermalCtx.font = '900 54px sans-serif';
-      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 106);
+      thermalCtx.font = '900 40px sans-serif';
+      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 74);
 
-      thermalCtx.font = 'bold 28px sans-serif';
+      thermalCtx.font = 'bold 21px sans-serif';
       thermalCtx.fillStyle = '#222222';
-      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 150);
+      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 108);
 
       // 감열 영수증 데코선 함수
       const drawDecoLine = (y) => {
         thermalCtx.save();
         thermalCtx.strokeStyle = '#000000';
-        thermalCtx.lineWidth = 1.5;
+        thermalCtx.lineWidth = 1.2;
         thermalCtx.beginPath();
-        thermalCtx.moveTo(30, y - 4);
-        thermalCtx.lineTo(tw - 30, y - 4);
+        thermalCtx.moveTo(20, y - 3);
+        thermalCtx.lineTo(tw - 20, y - 3);
         thermalCtx.stroke();
 
-        thermalCtx.lineWidth = 2.5;
-        thermalCtx.setLineDash([12, 6, 4, 6]);
+        thermalCtx.lineWidth = 2.0;
+        thermalCtx.setLineDash([9, 5, 3, 5]);
         thermalCtx.beginPath();
-        thermalCtx.moveTo(30, y + 2);
-        thermalCtx.lineTo(tw - 30, y + 2);
+        thermalCtx.moveTo(20, y + 2);
+        thermalCtx.lineTo(tw - 20, y + 2);
         thermalCtx.stroke();
         thermalCtx.restore();
       };
 
       // 3) 상단 구분선 배치
-      drawDecoLine(194);
+      drawDecoLine(138);
 
-      // 4) 사진 영역 배치
-      const photoW = 740;
-      const photoH = 555;
+      // 4) 사진 영역 배치 (576 폭에 최적화된 536 x 402, 4:3 비율)
+      const photoW = 536;
+      const photoH = 402;
       const photoX = (tw - photoW) / 2;
-      const photoY = 228;
+      const photoY = 162;
 
       if (isDithered) {
-        const ditheredPhoto = applyThermalPortraitDithering(singleCapturedFrame, photoW, photoH);
+        const ditheredPhoto = applyCommercialThermalDithering(singleCapturedFrame, photoW, photoH);
         thermalCtx.drawImage(ditheredPhoto, photoX, photoY, photoW, photoH);
       } else {
         thermalCtx.drawImage(singleCapturedFrame, photoX, photoY, photoW, photoH);
@@ -598,29 +568,29 @@
 
       // 사진 외곽선
       thermalCtx.strokeStyle = '#000000';
-      thermalCtx.lineWidth = 3;
+      thermalCtx.lineWidth = 2.5;
       thermalCtx.strokeRect(photoX, photoY, photoW, photoH);
 
       // 5) 하단 구분선 배치
-      const bottomLineY = photoY + photoH + 34;
+      const bottomLineY = photoY + photoH + 24;
       drawDecoLine(bottomLineY);
 
       // 6) 날짜 및 감사 문구
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-      const dateTextY = bottomLineY + 62;
-      thermalCtx.font = 'bold 27px monospace';
+      const dateTextY = bottomLineY + 44;
+      thermalCtx.font = 'bold 20px monospace';
       thermalCtx.fillStyle = '#000000';
       thermalCtx.fillText(`DATE: ${dateStr}`, tw / 2, dateTextY);
 
-      thermalCtx.font = 'bold 33px sans-serif';
+      thermalCtx.font = 'bold 24px sans-serif';
       thermalCtx.fillStyle = '#000000';
-      thermalCtx.fillText('방문해주셔서 감사합니다!!', tw / 2, dateTextY + 46);
+      thermalCtx.fillText('방문해주셔서 감사합니다!!', tw / 2, dateTextY + 34);
 
       // 7) 바코드 그래픽
-      const barcodeY = dateTextY + 70;
-      const barcodeH = 40;
+      const barcodeY = dateTextY + 52;
+      const barcodeH = 30;
       const barPattern = [
         3,2,1,3,2,1,4,1,2,3,1,2,4,2,1,3,2,1,3,4,1,2,3,1,2,4,1,3,2,1,
         2,3,1,4,2,1,3,2,1,3,2,4,1,2,3,1,3,2,4,1,2,1,3,2,4,1,3,2,1,2,
@@ -629,23 +599,23 @@
 
       let totalBarW = 0;
       for (let i = 0; i < barPattern.length; i++) {
-        totalBarW += barPattern[i] * 2.8;
+        totalBarW += barPattern[i] * 2.0;
       }
       let curBx = (tw - totalBarW) / 2;
 
       thermalCtx.fillStyle = '#000000';
       for (let i = 0; i < barPattern.length; i++) {
-        const w = barPattern[i] * 2.8;
+        const w = barPattern[i] * 2.0;
         if (i % 2 === 0) {
           thermalCtx.fillRect(curBx, barcodeY, w - 0.5, barcodeH);
         }
         curBx += w;
       }
 
-      // 8) 하단 연구반 문구
-      thermalCtx.font = 'bold 26px sans-serif';
+      // 8) 하단 동아리 문구
+      thermalCtx.font = 'bold 19px sans-serif';
       thermalCtx.fillStyle = '#111111';
-      thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 32);
+      thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 26);
 
       return thermalCanvas.toDataURL('image/png');
     }
@@ -659,7 +629,7 @@
       clearTimeout(autoResetTimer);
 
       try {
-        showToast("감열 프린터 전용 디더링 변환 중...", "⚙️");
+        showToast("감열 프린터 전용 고화질 디더링 변환 중...", "⚙️");
 
         finalDitheredDataUrl = renderReceiptStrip(true);
 
@@ -698,7 +668,9 @@
     }
 
     /**
-     * 1컷 촬영 시퀀스 (뷰파인더 거울 모드 시각 반영)
+     * 1컷 촬영 시퀀스:
+     * - 뷰파인더: 거울 모드 (scaleX(-1))로 포즈 잡기
+     * - 인쇄 & 결과: 글씨/로고/명찰이 똑바로 읽히는 정상 정방향으로 캡처
      */
     async function runShootingSequence() {
       startShootBtn.disabled = true;
@@ -736,15 +708,13 @@
       const cropY = (vh - cropH) / 2;
 
       const frameCanvas = document.createElement('canvas');
-      frameCanvas.width = 800;
-      frameCanvas.height = 600;
+      frameCanvas.width = 536;
+      frameCanvas.height = 402;
       const fCtx = frameCanvas.getContext('2d');
       fCtx.imageSmoothingEnabled = true;
       fCtx.imageSmoothingQuality = 'high';
 
-      // 뷰파인더에서 보던 거울 시각(좌우 반전) 그대로 캡처
-      fCtx.translate(frameCanvas.width, 0);
-      fCtx.scale(-1, 1);
+      // [핵심] 인쇄물은 옷의 영문이나 팻말 글씨가 바르게 읽히도록 정방향(비반전)으로 캡처
       fCtx.drawImage(webcamView, cropX, cropY, cropW, cropH, 0, 0, frameCanvas.width, frameCanvas.height);
 
       singleCapturedFrame = frameCanvas;
@@ -761,6 +731,48 @@
 
       clearTimeout(autoResetTimer);
       autoResetTimer = setTimeout(resetBoothToCamera, CONFIG.AUTO_RESET_SECONDS * 1000);
+    }
+
+    /**
+     * 미리보기 모드 전환 함수 (화면 컬러 ↔ 203 DPI 감열 디더링)
+     */
+    function switchPreviewMode(mode) {
+      currentPreviewMode = mode;
+      const toggleColorBtn = document.getElementById('toggleColorBtn');
+      const toggleDitherBtn = document.getElementById('toggleDitherBtn');
+      const descEl = document.getElementById('previewModeDescription');
+
+      if (mode === 'color') {
+        if (!finalColorDataUrl) {
+          finalColorDataUrl = renderReceiptStrip(false);
+        }
+        stickerPreviewImg.src = finalColorDataUrl;
+
+        if (toggleColorBtn && toggleDitherBtn) {
+          toggleColorBtn.style.background = '#0284c7';
+          toggleColorBtn.style.color = '#ffffff';
+          toggleDitherBtn.style.background = 'transparent';
+          toggleDitherBtn.style.color = '#94a3b8';
+        }
+        if (descEl) {
+          descEl.innerHTML = '현재 <strong style="color: #38bdf8;">컬러 화면</strong> 미리보기 중입니다. [인쇄용 디더링] 버튼을 누르면 감열지에 찍힐 실제 203 DPI 흑백 망점 사진을 미리 확인하실 수 있습니다.';
+        }
+      } else {
+        if (!finalDitheredDataUrl) {
+          finalDitheredDataUrl = renderReceiptStrip(true);
+        }
+        stickerPreviewImg.src = finalDitheredDataUrl;
+
+        if (toggleColorBtn && toggleDitherBtn) {
+          toggleDitherBtn.style.background = '#0284c7';
+          toggleDitherBtn.style.color = '#ffffff';
+          toggleColorBtn.style.background = 'transparent';
+          toggleColorBtn.style.color = '#94a3b8';
+        }
+        if (descEl) {
+          descEl.innerHTML = '현재 <strong style="color: #38bdf8;">실제 인쇄용 흑백 디더링</strong> 미리보기 중입니다. Epson TM-m30III 감열지에 인쇄될 203 DPI 고화질 망점 그대로입니다.';
+        }
+      }
     }
 
     function resetBoothToCamera() {
