@@ -159,7 +159,7 @@
 <body>
 
   <!-- ============================================================
-       1. 상단 헤더 (제목, 아이콘, 블루투스 연결, 전체화면 버튼)
+       1. 상단 헤더 (제목, 아이콘, 전체화면 버튼)
        ============================================================ -->
   <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 68px 16px 0; margin-bottom: 4px; z-index: 100; position: relative;">
     <div style="width: 80px; display: none;" class="desktop-spacer"></div>
@@ -570,15 +570,19 @@
      * Epson TM-m30III 전용 ESC/POS XML 인쇄 패킷 생성 (TM Print Assistant 직통)
      */
     function buildEpsonPrintAssistantPayload(imageDataUrl) {
-      const base64Data = imageDataUrl.replace(/^data:image\/png;base64,/, '');
+      // 1) base64 순수 데이터만 추출
+      const base64Data = imageDataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+
+      // 2) 엡손 TM Print Assistant 공식 ePOS-Print XML 규격 (헤더 + 네임스페이스 + 피드 + 컷)
       const xml = '<?xml version="1.0" encoding="utf-8"?>' +
         '<PrintData>' +
           '<epos-print xmlns="http://www.epson-pos.com/schemas/2014/03/epos-print">' +
             '<image width="800" height="1080" color="color_1" mode="mono">' + base64Data + '</image>' +
-            '<feed unit="24"/>' +
+            '<feed unit="30"/>' +
             '<cut type="feed"/>' +
           '</epos-print>' +
         '</PrintData>';
+
       return encodeURIComponent(xml);
     }
 
