@@ -15,7 +15,6 @@
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
-      touch-action: manipulation;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
     }
 
@@ -92,9 +91,27 @@
       transition: all 0.15s ease;
       outline: none;
       border: 1px solid transparent;
+      touch-action: manipulation;
+      pointer-events: auto !important;
     }
     .btn:active {
-      transform: scale(0.97);
+      transform: scale(0.95);
+      opacity: 0.85;
+    }
+
+    /* 헤더 컨트롤 버튼 전용 터치 최적화 */
+    .header-icon-btn {
+      min-width: 42px;
+      min-height: 42px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      pointer-events: auto !important;
+      z-index: 100;
     }
 
     /* ============================================================
@@ -114,8 +131,6 @@
       html, body {
         width: 100% !important;
         height: auto !important;
-        min-height: 0 !important;
-        max-height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -125,46 +140,18 @@
 
       body > *:not(#browserPrintZone) {
         display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        max-height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
       }
 
       #browserPrintZone {
         display: block !important;
-        visibility: visible !important;
-        position: static !important;
         width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
-        background: #ffffff !important;
-        line-height: 0 !important;
-        font-size: 0 !important;
-        overflow: hidden !important;
-        page-break-before: avoid !important;
-        page-break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-before: avoid !important;
-        break-inside: avoid !important;
-        break-after: avoid !important;
       }
 
       #browserPrintZone img {
         width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
         display: block !important;
-        vertical-align: top !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
       }
     }
   </style>
@@ -172,12 +159,12 @@
 <body>
 
   <!-- ============================================================
-       1. 상단 헤더 (제목, 아이콘, 전체화면 버튼)
+       1. 상단 헤더 (제목, 아이콘, 블루투스 연결, 전체화면 버튼)
        ============================================================ -->
-  <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 68px 16px 0; margin-bottom: 4px; z-index: 20;">
+  <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 68px 16px 0; margin-bottom: 4px; z-index: 100; position: relative;">
     <div style="width: 80px; display: none;" class="desktop-spacer"></div>
 
-    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: 0;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: 0; pointer-events: none;">
       <div style="display: flex; align-items: center; gap: 10px;">
         <svg style="width: 24px; height: 24px; fill: #38bdf8; filter: drop-shadow(0 0 8px rgba(56,189,248,0.7));" viewBox="0 0 24 24">
           <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5a5 5 0 0 0 5 5a5 5 0 0 0 5 5a5 5 0 0 0 5-5a5 5 0 0 0 5-5m0 2a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3Z"/>
@@ -197,20 +184,21 @@
       </p>
     </div>
 
-    <!-- 우측 제어 버튼 (블루투스 페어링 상태 및 전체화면 토글) -->
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <!-- 우측 제어 버튼: 블루투스 연결 + 전체화면 토글 -->
+    <div style="display: flex; align-items: center; gap: 8px; position: relative; z-index: 101;">
       <!-- 블루투스 프린터 연결 버튼 -->
-      <button id="bleConnectBtn" type="button" onclick="connectBluetoothPrinter()" title="블루투스 프린터 연결"
-              class="btn" style="padding: 8px 10px; background: rgba(30, 41, 59, 0.9); color: #38bdf8; border: 1px solid #0284c7; font-size: 12px; z-index: 50;">
-        <svg id="bleStatusIcon" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
+      <button id="bleConnectBtn" type="button" onclick="handleBluetoothButtonClick(event)" title="블루투스 프린터 연결"
+              class="btn header-icon-btn" style="background: rgba(30, 41, 59, 0.95); color: #38bdf8; border: 1.5px solid #0284c7; box-shadow: 0 4px 12px rgba(2,132,199,0.3);">
+        <svg id="bleStatusIcon" style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24">
           <path d="M14.88 16.29L13 18.17V14.41m0-4.82l1.88 1.88L13 13.35M7 12l4-4V2.5l5.5 5.5L12.5 12l4 4l-5.5 5.5V16l-4-4m4-11v6.17l2.09-2.08L11 3.08v4.09M11 16.83V20.9l2.09-2.09L11 16.83Z"/>
         </svg>
+        <span id="bleBtnText" style="font-size: 11px; font-weight: bold; letter-spacing: 0.3px;">프린터</span>
       </button>
 
       <!-- 전체화면 토글 버튼 -->
       <button id="fullscreenToggleBtn" type="button" onclick="toggleFullscreen()" title="전체화면 전환"
-              class="btn" style="padding: 8px 12px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px; z-index: 50;">
-        <svg id="fullscreenIconSvg" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
+              class="btn header-icon-btn" style="background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569;">
+        <svg id="fullscreenIconSvg" style="width: 15px; height: 15px; fill: currentColor;" viewBox="0 0 24 24">
           <path d="M5 5h5v2H7v3H5V5m9 0h5v5h-2V7h-3V5m3 9h2v5h-5v-2h3v-3m-9 3v2H5v-5h2v3h3Z"/>
         </svg>
       </button>
@@ -228,7 +216,7 @@
       <!-- 헤더와의 간격을 줄이고 크기를 확대한 직각 뷰파인더 -->
       <div id="viewfinderFrame" style="position: relative; width: min(92vw, 73vh, 1020px); aspect-ratio: 4 / 3; background: #000; border: 3.5px solid #38bdf8; box-shadow: 0 25px 60px -10px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.25); display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 0;">
 
-        <!-- 웹캠 비디오 엘리먼트 (아이패드 Safari 인라인 재생 지원) -->
+        <!-- 웹캠 비디오 엘리먼트 (거울 모드 scaleX -1) -->
         <video id="webcamView" autoplay playsinline webkit-playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); -webkit-transform: scaleX(-1);"></video>
 
         <!-- 코너 L자 브래킷 -->
@@ -271,7 +259,7 @@
         </div>
       </div>
 
-      <!-- 1컷 촬영 시작하기 버튼 (한 줄 더 여유 있게 간격 확대) -->
+      <!-- 1컷 촬영 시작하기 버튼 -->
       <button id="startShootBtn" onclick="runShootingSequence()" class="btn"
               style="width: min(92vw, 73vh, 1020px); padding: 14px 20px; background: linear-gradient(135deg, #0284c7, #2563eb, #4f46e5); color: #ffffff; font-size: 18px; letter-spacing: 0.5px; border-radius: 14px; border: 1px solid rgba(125,211,252,0.4); box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); flex-shrink: 0; margin-top: 28px;">
         <svg style="width: 22px; height: 22px; fill: currentColor;" viewBox="0 0 24 24">
@@ -282,7 +270,7 @@
 
     </div>
 
-    <!-- [B] 결과 화면 (영수증 미리보기 + 블루투스/와이파이 인쇄 컨트롤) -->
+    <!-- [B] 결과 화면 (영수증 미리보기 + 블루투스 직통 인쇄) -->
     <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px;">
 
       <!-- 좌측: 영수증 스티커 미리보기 -->
@@ -299,8 +287,8 @@
           <h2 style="font-size: clamp(1.2rem, 2.5vw, 1.55rem); font-weight: 900; color: #ffffff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;">
             <span>🎉 영수증 사진이 완성되었습니다!</span>
           </h2>
-          <p id="resultGuideText" style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
-            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 크롬 블루투스 직통 통신으로 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 대화상자 없이 바로 인쇄됩니다.
+          <p style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
+            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 블루투스 직통 통신으로 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 대화상자 없이 바로 인쇄됩니다.
           </p>
         </div>
 
@@ -338,8 +326,8 @@
   </div>
 
   <!-- 토스트 알림 메시지 바 -->
-  <div id="appToast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60; background: #0f172a; border: 1px solid #38bdf8; color: #fff; padding: 10px 18px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: opacity 0.3s ease; opacity: 0; pointer-events: none; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-    <span id="toastIcon">✨</span>
+  <div id="appToast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; background: #0f172a; border: 1.5px solid #38bdf8; color: #fff; padding: 12px 20px; border-radius: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.9); transition: opacity 0.3s ease; opacity: 0; pointer-events: none; font-size: 13.5px; font-weight: bold; display: flex; align-items: center; gap: 10px; max-width: 90vw; text-align: center;">
+    <span id="toastIcon" style="font-size: 18px;">✨</span>
     <span id="toastMessage">안내 메시지</span>
   </div>
 
@@ -365,6 +353,9 @@
     const thermalCanvas = document.getElementById('thermalStripCanvas');
     const thermalCtx = thermalCanvas.getContext('2d');
     const browserPrintImg = document.getElementById('browserPrintImg');
+    const bleConnectBtn = document.getElementById('bleConnectBtn');
+    const bleStatusIcon = document.getElementById('bleStatusIcon');
+    const bleBtnText = document.getElementById('bleBtnText');
 
     let singleCapturedFrame = null;
     let autoResetTimer = null;
@@ -375,6 +366,28 @@
     // Web Bluetooth GATT 변수
     let bluetoothDevice = null;
     let bluetoothCharacteristic = null;
+
+    /**
+     * 상단 블루투스 버튼 명시적 클릭 핸들러
+     */
+    async function handleBluetoothButtonClick(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      if (!navigator.bluetooth) {
+        showToast("이 브라우저는 웹 블루투스를 지원하지 않습니다. Bluefy 앱에서 열어주세요!", "⚠️");
+        return;
+      }
+
+      if (bluetoothCharacteristic && bluetoothDevice && bluetoothDevice.gatt.connected) {
+        showToast("이미 TM-m30III 프린터와 연결되어 있습니다! 🟢", "🖨️");
+        return;
+      }
+
+      await connectBluetoothPrinter();
+    }
 
     /**
      * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
@@ -617,7 +630,6 @@
       buffer.push(0x1B, 0x33, 0x00);
 
       // 3) GS v 0 래스터 그래픽 출력 (GS v 0 m xL xH yL yH d1...dk)
-      // m = 0 (정배율), xL/xH = 가로 바이트 수(72, 0), yL/yH = 세로 픽셀 수
       const xL = bytesPerLine & 0xFF;
       const xH = (bytesPerLine >> 8) & 0xFF;
       const yL = printH & 0xFF;
@@ -632,7 +644,6 @@
           for (let bit = 0; bit < 8; bit++) {
             const x = (b << 3) + bit;
             const idx = (row + x) * 4;
-            // 흑색 픽셀(휘도 128 미만)이면 1bit 마킹
             if (pixels[idx] < 128) {
               byteVal |= (1 << (7 - bit));
             }
@@ -650,16 +661,15 @@
 
     /**
      * Web Bluetooth를 통한 Epson TM-m30III 연결
-     * 크롬 브라우저 전용: 대화상자 없이 직통 출력 가능
      */
     async function connectBluetoothPrinter() {
       if (!navigator.bluetooth) {
-        showToast("이 브라우저는 Web Bluetooth를 지원하지 않습니다. (Chrome 권장)", "⚠️");
+        showToast("이 브라우저는 웹 블루투스를 지원하지 않습니다. Bluefy 앱을 사용해주세요!", "⚠️");
         return null;
       }
 
       try {
-        showToast("TM-m30III 블루투스 검색 중...", "🔍");
+        showToast("TM-m30III 프린터 검색 중...", "🔍");
 
         const device = await navigator.bluetooth.requestDevice({
           filters: [
@@ -668,13 +678,15 @@
             { namePrefix: 'TM-m30' }
           ],
           optionalServices: [
-            '000018f0-0000-1000-8000-00805f9b34fb', // Serial / Printer Service
-            'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Epson Custom Service
-            '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Standard BLE POS
-            0xFF00, 0xFFE0
+            '000018f0-0000-1000-8000-00805f9b34fb',
+            'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+            '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+            '0000ffe0-0000-1000-8000-00805f9b34fb',
+            '0000ff00-0000-1000-8000-00805f9b34fb'
           ]
         });
 
+        showToast("프린터와 연결하는 중...", "⏳");
         const server = await device.gatt.connect();
         bluetoothDevice = device;
 
@@ -694,30 +706,36 @@
         }
 
         if (bluetoothCharacteristic) {
-          const btn = document.getElementById('bleConnectBtn');
-          if (btn) btn.style.color = '#10b981';
-          showToast("블루투스 프린터 연결 성공! ✨", "🖨️");
+          if (bleConnectBtn) {
+            bleConnectBtn.style.color = '#10b981';
+            bleConnectBtn.style.borderColor = '#10b981';
+            bleConnectBtn.style.boxShadow = '0 0 15px rgba(16,185,129,0.5)';
+          }
+          if (bleBtnText) {
+            bleBtnText.innerText = "연결됨";
+          }
+          showToast("TM-m30III 블루투스 연결 완료! 🟢", "🖨️");
           return bluetoothCharacteristic;
         } else {
           throw new Error("쓰기 가능한 블루투스 특성을 찾지 못했습니다.");
         }
       } catch (err) {
-        console.warn("Bluetooth connection cancelled or failed:", err);
+        console.warn("Bluetooth connection failed or cancelled:", err);
         showToast("블루투스 연결 취소 또는 실패: " + err.message, "⚠️");
         return null;
       }
     }
 
     /**
-     * 블루투스 청크 전송 (BLE MTU 크기에 맞춰 100~512바이트 분할 전송)
+     * 블루투스 패킷 분할 전송 (BLE MTU 크기에 맞춘 안정적 스트리밍)
      */
     async function sendBytesToBluetooth(bytes) {
-      if (!bluetoothCharacteristic) {
+      if (!bluetoothCharacteristic || !bluetoothDevice || !bluetoothDevice.gatt.connected) {
         const char = await connectBluetoothPrinter();
         if (!char) throw new Error("프린터가 연결되지 않았습니다.");
       }
 
-      const chunkSize = 128; // BLE 안정 전송 패킷 단위
+      const chunkSize = 128;
       for (let i = 0; i < bytes.length; i += chunkSize) {
         const chunk = bytes.slice(i, i + chunkSize);
         if (bluetoothCharacteristic.writeValueWithoutResponse) {
@@ -725,7 +743,7 @@
         } else {
           await bluetoothCharacteristic.writeValue(chunk);
         }
-        await sleep(15); // 패킷 버퍼 플러시 딜레이
+        await sleep(15);
       }
     }
 
@@ -738,16 +756,12 @@
       clearTimeout(autoResetTimer);
 
       try {
-        // 인쇄용 그레이스케일 디더링 캔버스 렌더링
         finalDitheredDataUrl = renderReceiptStrip(true);
 
-        showToast("블루투스로 직통 인쇄 중...", "🖨️");
-
-        // 1) ESC/POS 바이너리 생성
-        const rawBytes = generateEscPosRasterBytes(thermalCanvas);
-
-        // 2) 크롬 Web Bluetooth 직통 스트리밍 (대화상자 0.001초도 없음)
+        // 1) Web Bluetooth 직통 스트리밍 (Bluefy / Chrome)
         if (navigator.bluetooth) {
+          showToast("블루투스로 직통 인쇄 중...", "🖨️");
+          const rawBytes = generateEscPosRasterBytes(thermalCanvas);
           await sendBytesToBluetooth(rawBytes);
 
           printBtnLabel.innerText = "출력 완료!";
@@ -761,12 +775,12 @@
           return;
         }
 
-        // Web Bluetooth 미지원 환경 안전 폴백
-        throw new Error("Web Bluetooth 미지원 브라우저");
+        // 2) Web Bluetooth 미지원 환경 안전 안내
+        throw new Error("웹 블루투스 미지원 브라우저");
 
       } catch (err) {
-        console.warn("Bluetooth Direct Print fallback:", err);
-        showToast("표준 인쇄 모드로 전환합니다.", "ℹ️");
+        console.warn("Direct Bluetooth Print failed:", err);
+        showToast("Bluefy 앱에서 열면 대화상자 없이 바로 인쇄됩니다.", "💡");
 
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
@@ -778,7 +792,7 @@
           window.print();
           printActionBtn.disabled = false;
           printBtnLabel.innerText = "영수증 인쇄하기";
-        }, 300);
+        }, 400);
       }
     }
 
@@ -806,7 +820,6 @@
       const vw = webcamView.videoWidth || 1280;
       const vh = webcamView.videoHeight || 720;
 
-      // 4:3 뷰파인더 앵글 중앙 크롭 매핑
       const targetAspect = 4 / 3;
       let cropW, cropH;
       if (vw / vh > targetAspect) {
@@ -826,13 +839,13 @@
       fCtx.imageSmoothingEnabled = true;
       fCtx.imageSmoothingQuality = 'high';
 
-      // 인쇄 및 결과물: 글씨와 로고가 똑바로 읽히도록 원본 정방향(비반전)으로 캡처
+      // 정방향(비반전) 캡처
       fCtx.drawImage(webcamView, cropX, cropY, cropW, cropH, 0, 0, frameCanvas.width, frameCanvas.height);
 
       singleCapturedFrame = frameCanvas;
       await sleep(200);
 
-      // [미리보기]: 생생한 원본 컬러(isDithered = false)로 표시
+      // 생생한 원본 컬러로 미리보기
       finalColorDataUrl = renderReceiptStrip(false);
       stickerPreviewImg.src = finalColorDataUrl;
 
@@ -855,7 +868,7 @@
     }
 
     /**
-     * 웹캠 하드웨어 초기화 (iPadOS Safari 오프라인 완벽 구동)
+     * 웹캠 하드웨어 초기화 (iPadOS Safari & Bluefy 오프라인 구동)
      */
     async function initWebcam() {
       if (currentMediaStream) {
@@ -906,7 +919,7 @@
           await webcamView.play();
           shotStatusHud.innerText = "SHOT [ 0 / 1 ]";
         } catch (playErr) {
-          console.warn("Autoplay deferred by iPadOS gesture policy", playErr);
+          console.warn("Autoplay deferred by iOS gesture policy", playErr);
           shotStatusHud.innerText = "TOUCH TO START";
         }
       } else {
@@ -993,7 +1006,7 @@
 
       setTimeout(() => {
         toast.style.opacity = '0';
-      }, 3200);
+      }, 3500);
     }
 
     function sleep(ms) {
