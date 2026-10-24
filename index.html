@@ -326,7 +326,8 @@
     const CONFIG = {
       AUTO_RESET_SECONDS: 45,
       FESTIVAL_TITLE: '2026 AI·SW 체험 한마당',
-      CLUB_NAME: "Speer Girl's High School"
+      CLUB_NAME: "Speer Girl's High School",
+      PRINTER_TARGET_NAME: 'TM-m30III_001242'
     };
 
     // DOM 요소 캐싱
@@ -350,10 +351,6 @@
     let finalColorDataUrl = '';
     let finalDitheredDataUrl = '';
     let currentMediaStream = null;
-
-    // Web Bluetooth GATT 변수
-    let bluetoothDevice = null;
-    let bluetoothCharacteristic = null;
 
     /**
      * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
@@ -570,168 +567,23 @@
     }
 
     /**
-     * Epson TM-m30III 전용 1-bit 순수 ESC/POS 바이너리 커맨드 생성
-     * 유효 인쇄 폭 576 dots (80mm 롤 용지 표준 규격)
+     * Epson TM-m30III 전용 ESC/POS XML 인쇄 패킷 생성 (TM Print Assistant 직통)
      */
-    function generateEscPosRasterBytes(canvas) {
-      const printW = 576;
-      const printH = Math.round(canvas.height * (printW / canvas.width));
-
-      const scaled = document.createElement('canvas');
-      scaled.width = printW;
-      scaled.height = printH;
-      const sCtx = scaled.getContext('2d');
-      sCtx.drawImage(canvas, 0, 0, printW, printH);
-
-      const imgData = sCtx.getImageData(0, 0, printW, printH);
-      const pixels = imgData.data;
-
-      const bytesPerLine = printW >> 3; // 72 바이트
-      const buffer = [];
-
-      // 1) 프린터 초기화 (ESC @)
-      buffer.push(0x1B, 0x40);
-
-      // 2) 줄간격 0 설정 (ESC 3 0)
-      buffer.push(0x1B, 0x33, 0x00);
-
-      // 3) GS v 0 래스터 그래픽 출력 (GS v 0 m xL xH yL yH d1...dk)
-      const xL = bytesPerLine & 0xFF;
-      const xH = (bytesPerLine >> 8) & 0xFF;
-      const yL = printH & 0xFF;
-      const yH = (printH >> 8) & 0xFF;
-
-      buffer.push(0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH);
-
-      for (let y = 0; y < printH; y++) {
-        const row = y * printW;
-        for (let b = 0; b < bytesPerLine; b++) {
-          let byteVal = 0;
-          for (let bit = 0; bit < 8; bit++) {
-            const x = (b << 3) + bit;
-            const idx = (row + x) * 4;
-            if (pixels[idx] < 128) {
-              byteVal |= (1 << (7 - bit));
-            }
-          }
-          buffer.push(byteVal);
-        }
-      }
-
-      // 4) 출력 후 용지 피드 및 자동 절단 (GS V 66 0)
-      buffer.push(0x1B, 0x64, 0x04); // 피드 4줄 (ESC d 4)
-      buffer.push(0x1D, 0x56, 0x42, 0x00); // 완전 컷 (GS V B 0)
-
-      return new Uint8Array(buffer);
+    function buildEpsonPrintAssistantPayload(imageDataUrl) {
+      const base64Data = imageDataUrl.replace(/^data:image\/png;base64,/, '');
+      const xml = '<?xml version="1.0" encoding="utf-8"?>' +
+        '<PrintData>' +
+          '<epos-print xmlns="http://www.epson-pos.com/schemas/2014/03/epos-print">' +
+            '<image width="800" height="1080" color="color_1" mode="mono">' + base64Data + '</image>' +
+            '<feed unit="24"/>' +
+            '<cut type="feed"/>' +
+          '</epos-print>' +
+        '</PrintData>';
+      return encodeURIComponent(xml);
     }
 
     /**
-     * Web Bluetooth를 통한 Epson TM-m30III 연결
-     */
-    async function connectBluetoothPrinter() {
-      if (!navigator.bluetooth) {
-        showToast("이 브라우저는 웹 블루투스를 지원하지 않습니다. Bluefy 앱을 사용해주세요!", "⚠️");
-        return null;
-      }
-
-      try {
-        showToast("TM-m30III 프린터 검색 중...", "🔍");
-
-        // acceptAllDevices: true 옵션으로 주변의 모든 블루투스 기기(TM-m30III)를 무조건 감지하도록 개선
-        const device = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: [
-            '000018f0-0000-1000-8000-00805f9b34fb',
-            'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-            '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-            '0000ffe0-0000-1000-8000-00805f9b34fb',
-            '0000ff00-0000-1000-8000-00805f9b34fb',
-            '0000af00-0000-1000-8000-00805f9b34fb'
-          ]
-        });
-
-        showToast("프린터와 연결하는 중...", "⏳");
-        const server = await device.gatt.connect();
-        bluetoothDevice = device;
-
-        device.addEventListener('gattserverdisconnected', () => {
-          bluetoothDevice = null;
-          bluetoothCharacteristic = null;
-          showToast("프린터 연결이 해제되었습니다.", "ℹ️");
-        });
-
-        // 사용 가능한 서비스 및 특성(Characteristic) 탐색
-        const services = await server.getPrimaryServices();
-        let targetCharacteristic = null;
-
-        for (const service of services) {
-          try {
-            const characteristics = await service.getCharacteristics();
-            for (const char of characteristics) {
-              const props = char.properties;
-              if (props.writeWithoutResponse || props.write) {
-                targetCharacteristic = char;
-                break;
-              }
-            }
-            if (targetCharacteristic) break;
-          } catch (e) {
-            console.warn("Service characteristic scan fallback:", e);
-          }
-        }
-
-        if (targetCharacteristic) {
-          bluetoothCharacteristic = targetCharacteristic;
-          showToast("TM-m30III 블루투스 연결 완료! 🟢", "🖨️");
-          return bluetoothCharacteristic;
-        } else {
-          throw new Error("쓰기 가능한 블루투스 통신 채널을 찾지 못했습니다.");
-        }
-      } catch (err) {
-        console.warn("Bluetooth connection failed or cancelled:", err);
-        showToast("블루투스 연결 취소 또는 실패: " + err.message, "⚠️");
-        return null;
-      }
-    }
-
-    /**
-     * 블루투스 패킷 분할 전송 (BLE 버퍼 오버플로우 방지 100바이트 스트리밍)
-     */
-    async function sendBytesToBluetooth(bytes) {
-      if (!bluetoothCharacteristic || !bluetoothDevice || !bluetoothDevice.gatt.connected) {
-        const char = await connectBluetoothPrinter();
-        if (!char) throw new Error("프린터가 연결되지 않았습니다.");
-      }
-
-      const chunkSize = 100;
-      const totalChunks = Math.ceil(bytes.length / chunkSize);
-
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.slice(i, i + chunkSize);
-        
-        try {
-          if (bluetoothCharacteristic.properties.writeWithoutResponse) {
-            await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
-          } else {
-            await bluetoothCharacteristic.writeValue(chunk);
-          }
-        } catch (writeErr) {
-          // 일시적 버퍼 지연 시 재시도
-          await sleep(25);
-          if (bluetoothCharacteristic.writeValueWithoutResponse) {
-            await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
-          } else {
-            await bluetoothCharacteristic.writeValue(chunk);
-          }
-        }
-
-        // 안정적인 전송을 위한 미세 딜레이
-        await sleep(12);
-      }
-    }
-
-    /**
-     * 감열 프린터 출력 파이프라인 (대화상자 0초 즉시 출력)
+     * 블루투스 페어링된 TM-m30III 직통 인쇄 파이프라인
      */
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
@@ -741,12 +593,17 @@
       try {
         finalDitheredDataUrl = renderReceiptStrip(true);
 
-        // 1) Web Bluetooth 직통 스트리밍 (Bluefy / Chrome)
-        if (navigator.bluetooth) {
-          showToast("블루투스로 직통 인쇄 중...", "🖨️");
-          const rawBytes = generateEscPosRasterBytes(thermalCanvas);
-          await sendBytesToBluetooth(rawBytes);
+        showToast("TM-m30III_001242로 영수증 전송 중...", "🖨️");
 
+        // 1) 아이패드 시스템에 페어링된 TM-m30III로 대화상자 없이 직통 출력 (Epson TM Print Assistant Protocol)
+        const xmlPayload = buildEpsonPrintAssistantPayload(finalDitheredDataUrl);
+        const epsonAssistantUri = 'epson-tmassistant://print?data=' + xmlPayload;
+
+        const launchTime = Date.now();
+        window.location.href = epsonAssistantUri;
+
+        // 보조 앱 호출 후 정상 복귀 타이머
+        setTimeout(() => {
           printBtnLabel.innerText = "출력 완료!";
           showToast("영수증이 즉시 출력되었습니다! ✨", "🎉");
 
@@ -754,18 +611,14 @@
             printActionBtn.disabled = false;
             printBtnLabel.innerText = "영수증 인쇄하기";
             resetBoothToCamera();
-          }, 3000);
-          return;
-        }
-
-        // 2) Web Bluetooth 미지원 환경 안전 안내
-        throw new Error("웹 블루투스 미지원 브라우저");
+          }, 2500);
+        }, 1200);
 
       } catch (err) {
-        console.warn("Direct Bluetooth Print failed:", err);
-        showToast("인쇄 전송 오류: " + err.message, "⚠️");
-
-        // 브라우저 인쇄 백업
+        console.warn("Print error fallback:", err);
+        showToast("인쇄 처리 오류: " + err.message, "⚠️");
+        
+        // 비상 안전 브라우저 인쇄
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
@@ -776,7 +629,7 @@
           window.print();
           printActionBtn.disabled = false;
           printBtnLabel.innerText = "영수증 인쇄하기";
-        }, 500);
+        }, 300);
       }
     }
 
@@ -852,7 +705,7 @@
     }
 
     /**
-     * 웹캠 하드웨어 초기화 (iPadOS Safari & Bluefy 오프라인 구동)
+     * 웹캠 하드웨어 초기화 (iPadOS Safari 오프라인 구동)
      */
     async function initWebcam() {
       if (currentMediaStream) {
