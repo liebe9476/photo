@@ -372,23 +372,8 @@
     let finalDitheredDataUrl = '';
     let currentMediaStream = null;
 
-    // 프린터 IP: 기본값을 192.168.0.78로 영구 설정
-    let printerIp = localStorage.getItem('epson_tm_ip') || '192.168.0.78';
-    localStorage.setItem('epson_tm_ip', printerIp);
-
-    function promptPrinterIp() {
-      const current = printerIp || '192.168.0.78';
-      const input = window.prompt("Epson TM-m30III 프린터 IP 주소 설정\n(대화상자 없이 바로 인쇄됩니다)", current);
-      if (input !== null) {
-        printerIp = input.trim();
-        localStorage.setItem('epson_tm_ip', printerIp);
-        if (printerIp) {
-          showToast(`프린터 IP [${printerIp}] 설정 완료!`, "🖨️");
-        } else {
-          showToast("IP 해제: AirPrint 대화상자로 전환됩니다.", "ℹ️");
-        }
-      }
-    }
+    // 프린터 직접 접속 IP (방금 확인된 프린터 자체 Wi-Fi IP)
+    const PRINTER_DIRECT_IP = '172.16.10.1';
 
     /**
      * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
@@ -430,7 +415,7 @@
           const highPass = rawLuma[idx] - blur;
           let val = rawLuma[idx] + highPass * 0.88;
 
-          // [3단계] 살짝 더 진하고 또렷한 인물 톤 밸런스 조정
+          // [3단계] 또렷한 인물 톤 밸런스 조정
           val = Math.min(255, Math.max(0, val + 18)); 
           let norm = val / 255.0;
           norm = Math.pow(norm, 0.74); 
@@ -453,7 +438,7 @@
         processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
       }
 
-      // [4단계] Atkinson Dithering (THRESHOLD 140)
+      // [4단계] Atkinson Dithering
       const THRESHOLD = 140;
 
       for (let y = 0; y < targetHeight; y++) {
@@ -486,7 +471,7 @@
         }
       }
 
-      // [5단계] 감열지 최적화 1-bit 순수 흑백 버퍼 기록
+      // [5단계] 1-bit 순수 흑백 버퍼 기록
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         const c = processed[i] < 128 ? 0 : 255;
@@ -605,73 +590,69 @@
     }
 
     /**
-     * Epson ePOS-Print Direct HTTP 바이너리 전송 (대화상자 완전 0초 우회 엔진)
+     * Epson TM-m30III 전용 1-bit 래스터 그래픽 데이터 패킹 및 ePOS 직통 전송
+     * 사파리 인쇄창을 100% 우회하여 대화상자 없이 1초 만에 인쇄합니다.
      */
-    async function printDirectToEpson(ipAddress) {
-      // 576 픽셀 표준 너비로 1비트 흑백 래스터 생성
+    async function printDirectToEpsonPOS(targetIp) {
+      // 576 도트 (80mm 롤 용지 표준 유효 인쇄 폭)
       const printW = 576;
-      const scaleRatio = printW / thermalCanvas.width;
-      const printH = Math.round(thermalCanvas.height * scaleRatio);
+      const printH = Math.round(thermalCanvas.height * (printW / thermalCanvas.width));
 
-      const scaledCanvas = document.createElement('canvas');
-      scaledCanvas.width = printW;
-      scaledCanvas.height = printH;
-      const sCtx = scaledCanvas.getContext('2d');
+      const scaled = document.createElement('canvas');
+      scaled.width = printW;
+      scaled.height = printH;
+      const sCtx = scaled.getContext('2d');
       sCtx.drawImage(thermalCanvas, 0, 0, printW, printH);
 
       const imgData = sCtx.getImageData(0, 0, printW, printH);
       const pixels = imgData.data;
 
-      // 1-bit raster 데이터 패킹
+      // 1비트 흑백 래스터 바이트 배열 생성
       const bytesPerLine = printW >> 3;
       const rasterBytes = new Uint8Array(bytesPerLine * printH);
 
       for (let y = 0; y < printH; y++) {
-        const rowOffset = y * printW;
-        const targetRowOffset = y * bytesPerLine;
+        const row = y * printW;
+        const targetRow = y * bytesPerLine;
         for (let x = 0; x < printW; x++) {
-          const pIdx = (rowOffset + x) * 4;
-          // 어두운 점(흑색)이면 1, 백색이면 0
-          if (pixels[pIdx] < 128) {
-            const byteIndex = targetRowOffset + (x >> 3);
-            const bitOffset = 7 - (x & 7);
-            rasterBytes[byteIndex] |= (1 << bitOffset);
+          const idx = (row + x) * 4;
+          // 흑색 픽셀이면 1bit 세팅
+          if (pixels[idx] < 128) {
+            rasterBytes[targetRow + (x >> 3)] |= (1 << (7 - (x & 7)));
           }
         }
       }
 
       // Base64 인코딩
-      let binaryStr = '';
+      let binary = '';
       const chunk = 8192;
       for (let i = 0; i < rasterBytes.length; i += chunk) {
-        binaryStr += String.fromCharCode.apply(null, rasterBytes.subarray(i, i + chunk));
+        binary += String.fromCharCode.apply(null, rasterBytes.subarray(i, i + chunk));
       }
-      const rasterBase64 = btoa(binaryStr);
+      const base64Data = btoa(binary);
 
-      // Epson ePOS-Print XML SOAP 패킷
-      const soapBody = 
+      // Epson ePOS-Print XML 규격 패킷
+      const soapBody =
         '<?xml version="1.0" encoding="utf-8"?>' +
         '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">' +
           '<s:Body>' +
             '<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">' +
-              `<image width="${printW}" height="${printH}" color="color_1" mode="mono">${rasterBase64}</image>` +
+              `<image width="${printW}" height="${printH}" color="color_1" mode="mono">${base64Data}</image>` +
               '<feed unit="30"/>' +
               '<cut type="feed"/>' +
             '</epos-print>' +
           '</s:Body>' +
         '</s:Envelope>';
 
-      // TM-m30III의 표준 포트(8008, 80) 순차 시도
-      const endpoints = [
-        `http://${ipAddress}:8008/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`,
-        `http://${ipAddress}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`
+      // TM-m30III ePOS 포트 (8008, 80 순차 전송)
+      const urls = [
+        `http://${targetIp}:8008/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`,
+        `http://${targetIp}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`
       ];
 
-      let sentSuccess = false;
-      for (const endpoint of endpoints) {
+      for (const url of urls) {
         try {
-          // Safari CORS 차단 방지를 위해 no-cors 모드 병행
-          const response = await fetch(endpoint, {
+          await fetch(url, {
             method: 'POST',
             mode: 'no-cors',
             headers: {
@@ -680,17 +661,12 @@
             },
             body: soapBody
           });
-          sentSuccess = true;
-          break;
-        } catch (e) {
-          console.warn("Direct port attempt failed, trying next port:", e);
+          return true;
+        } catch (err) {
+          console.warn("Port attempt failed:", url, err);
         }
       }
-
-      if (!sentSuccess) {
-        throw new Error("Direct ePOS network timeout");
-      }
-      return true;
+      throw new Error("ePOS connection timeout");
     }
 
     /**
@@ -705,50 +681,36 @@
         // 인쇄용 그레이스케일 디더링 캔버스 렌더링
         finalDitheredDataUrl = renderReceiptStrip(true);
 
-        // 1. IP가 등록되어 있다면(기본값 192.168.0.78) -> 대화상자 0.001초도 없이 직통 ePOS 인쇄
-        if (printerIp) {
-          try {
-            await printDirectToEpson(printerIp);
-            printBtnLabel.innerText = "출력 완료!";
-            showToast("영수증이 즉시 출력되었습니다! ✨", "🎉");
+        showToast("프린터로 직접 전송 중...", "🖨️");
 
-            setTimeout(() => {
-              printActionBtn.disabled = false;
-              printBtnLabel.innerText = "영수증 인쇄하기";
-              resetBoothToCamera();
-            }, 2500);
-            return;
-          } catch (directErr) {
-            console.warn("Direct ePOS failed:", directErr);
-            showToast("직통 전송 지연 -> 표준 인쇄로 전환합니다.", "⚠️");
-          }
-        }
+        // 확인된 프린터 IP (172.16.10.1)로 대화상자 없이 바로 직통 전송
+        await printDirectToEpsonPOS(PRINTER_DIRECT_IP);
 
-        // 2. 직통 전송 실패 또는 IP 미설정 시에만 AirPrint 대화상자 호출
+        printBtnLabel.innerText = "출력 완료!";
+        showToast("영수증이 즉시 출력되었습니다! ✨", "🎉");
+
+        setTimeout(() => {
+          printActionBtn.disabled = false;
+          printBtnLabel.innerText = "영수증 인쇄하기";
+          resetBoothToCamera();
+        }, 3000);
+
+      } catch (err) {
+        console.error("Direct ePOS Error:", err);
+        showToast("직통 전송 지연 -> 표준 인쇄로 시도합니다.", "ℹ️");
+
+        // 만약 직통 ePOS가 응답하지 않을 경우에만 브라우저 인쇄로 전환
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
             try { await browserPrintImg.decode(); } catch (e) {}
           }
         }
-
         setTimeout(() => {
           window.print();
-          printBtnLabel.innerText = "출력 완료!";
-          showToast("영수증 인쇄가 시작되었습니다! ✨", "🎉");
-
-          setTimeout(() => {
-            printActionBtn.disabled = false;
-            printBtnLabel.innerText = "영수증 인쇄하기";
-            resetBoothToCamera();
-          }, 3000);
-        }, 200);
-
-      } catch (err) {
-        console.error("Print Pipeline Error:", err);
-        showToast("인쇄 처리 오류: " + err.message, "⚠️");
-        printActionBtn.disabled = false;
-        printBtnLabel.innerText = "다시 인쇄 시도";
+          printActionBtn.disabled = false;
+          printBtnLabel.innerText = "영수증 인쇄하기";
+        }, 300);
       }
     }
 
@@ -907,8 +869,6 @@
             await target.mozRequestFullScreen();
           } else if (target.msRequestFullscreen) {
             await target.msRequestFullscreen();
-          } else {
-            showToast("아이패드: 홈 화면에 추가를 권장합니다.", "📱");
           }
         } else {
           if (document.exitFullscreen) {
@@ -922,7 +882,7 @@
           }
         }
       } catch (err) {
-        console.warn("Fullscreen toggle warning:", err);
+        console.warn("Fullscreen toggle error:", err);
       }
     }
 
@@ -972,9 +932,7 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // 초기화 시 자동 실행
-    window.addEventListener('DOMContentLoaded', initWebcam);
-    window.addEventListener('load', initWebcam);
+    window.onload = initWebcam;
   </script>
 </body>
 </html>
