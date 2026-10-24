@@ -3,1314 +3,813 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Receipt Photo Printer for TM-m30III</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Phosphor Icons -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <title>2026 AI·SW체험 한마당 수피아여고 포토부스</title>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
-    
-    body {
-      font-family: 'Pretendard', sans-serif;
+    /* ============================================================
+       0. 오프라인 자립형 기본 스타일 (외부 CDN 인터넷 의존성 0%)
+       ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
       touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
     }
-    .font-mono-receipt {
-      font-family: 'Space Mono', monospace;
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #111a2e 0%, #080d18 60%, #03060c 100%);
+      color: #f8fafc;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 0 10px 10px;
     }
-    /* 영수증 종이 텍스처 효과 */
-    .receipt-paper {
-      background: #faf8f5;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+    /* 뷰파인더 웹캠: 거울처럼 자연스럽게 볼 수 있도록 좌우반전(scaleX -1) 적용 */
+    #webcamView {
+      transform: scaleX(-1) !important;
+      -webkit-transform: scaleX(-1) !important;
+      will-change: transform;
+    }
+
+    /* 뷰파인더 코너 L자 브래킷 */
+    .corner-bracket {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .corner-tl { top: 12px; left: 12px; border-top: 3.5px solid #38bdf8; border-left: 3.5px solid #38bdf8; }
+    .corner-tr { top: 12px; right: 12px; border-top: 3.5px solid #38bdf8; border-right: 3.5px solid #38bdf8; }
+    .corner-bl { bottom: 12px; left: 12px; border-bottom: 3.5px solid #38bdf8; border-left: 3.5px solid #38bdf8; }
+    .corner-br { bottom: 12px; right: 12px; border-bottom: 3.5px solid #38bdf8; border-right: 3.5px solid #38bdf8; }
+
+    /* 카메라 플래시 애니메이션 */
+    @keyframes flashEffect {
+      0% { opacity: 0.95; }
+      100% { opacity: 0; }
+    }
+    .flash-active {
+      animation: flashEffect 0.35s ease-out forwards;
+    }
+
+    /* 영수증 톱니 절취선 데코 */
+    .receipt-edge {
       position: relative;
+      background: #ffffff;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+      border-radius: 4px;
     }
-    .receipt-zigzag-bottom {
-      background: linear-gradient(135deg, transparent 9px, #faf8f5 9px), 
-                  linear-gradient(225deg, transparent 9px, #faf8f5 9px);
-      background-size: 16px 16px;
-      background-repeat: repeat-x;
+    .receipt-edge::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 10px;
+      background: radial-gradient(circle, transparent, transparent 50%, #ffffff 50%, #ffffff 100%);
+      background-size: 14px 14px;
+      transform: rotate(180deg);
     }
-    /* 캔버스 픽셀 렌더링 선명하게 */
-    .pixelated {
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
+
+    /* 버튼 기본 스타일 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 800;
+      border-radius: 14px;
+      transition: all 0.15s ease;
+      outline: none;
+      border: 1px solid transparent;
     }
-    /* 인쇄 전용 스타일 */
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ============================================================
+       감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 완벽 가득 채움)
+       ============================================================ */
+    @page {
+      size: 80mm auto;
+      margin: 0 !important;
+    }
+
     @media print {
-      body * {
-        visibility: hidden;
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
-      #printArea, #printArea * {
-        visibility: visible;
+
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        overflow: hidden !important;
       }
-      #printArea {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 72mm;
-        margin: 0;
-        padding: 0;
+
+      body > *:not(#browserPrintZone) {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+
+      #browserPrintZone {
+        display: block !important;
+        visibility: visible !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        line-height: 0 !important;
+        font-size: 0 !important;
+        overflow: hidden !important;
+        page-break-before: avoid !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-before: avoid !important;
+        break-inside: avoid !important;
+        break-after: avoid !important;
+      }
+
+      #browserPrintZone img {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        vertical-align: top !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-white">
+<body>
 
-  <!-- 상단 네비게이션 헤더 -->
-  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/60 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-amber-500/20">
-        <i class="ph-bold ph-receipt text-xl"></i>
-      </div>
-      <div>
-        <h1 class="text-base font-bold text-white leading-tight flex items-center gap-2">
-          Receipt Cam <span class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-amber-400 border border-amber-400/30 font-normal">TM-m30III</span>
+  <!-- ============================================================
+       1. 상단 헤더 (제목, 아이콘, 전체화면 버튼)
+       ============================================================ -->
+  <header style="width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 68px 16px 0; margin-bottom: 4px; z-index: 20;">
+    <div style="width: 80px; display: none;" class="desktop-spacer"></div>
+
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: 0;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <svg style="width: 24px; height: 24px; fill: #38bdf8; filter: drop-shadow(0 0 8px rgba(56,189,248,0.7));" viewBox="0 0 24 24">
+          <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5a5 5 0 0 0 5 5a5 5 0 0 0 5 5a5 5 0 0 0 5-5a5 5 0 0 0 5-5m0 2a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3Z"/>
+        </svg>
+
+        <h1 style="font-size: clamp(1.2rem, 3.2vw, 1.85rem); font-weight: 900; background: linear-gradient(to right, #38bdf8, #2dd4bf, #7dd3fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px;">
+          2026 AI·SW체험 수피아여고 포토부스
         </h1>
-        <p class="text-xs text-slate-400">초고화질 감열식 영수증 포토 인쇄 시스템</p>
+
+        <svg style="width: 24px; height: 24px; fill: #2dd4bf; filter: drop-shadow(0 0 8px rgba(45,212,191,0.7));" viewBox="0 0 24 24">
+          <path d="m19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9m-7.5.5L9 4L6.5 9.5L1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5m7.5 5.5l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15Z"/>
+        </svg>
       </div>
+
+      <p style="font-size: clamp(0.75rem, 1.6vw, 0.9rem); color: #94a3b8; font-weight: 500; margin-top: 4px; letter-spacing: 0.2px;">
+        화면을 보고 멋진 포즈를 취하면 영수증포토가 바로 인쇄됩니다!!
+      </p>
     </div>
 
-    <!-- 연결 상태 및 연결 버튼 -->
-    <div class="flex items-center space-x-2">
-      <div id="connectionBadge" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">
-        <span id="connStatusDot" class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-        <span id="connStatusText">블루투스 미연결</span>
-      </div>
-
-      <button id="btnConnectBT" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium text-xs transition shadow-md shadow-indigo-600/30">
-        <i class="ph-bold ph-bluetooth"></i>
-        <span>프린터 연결</span>
-      </button>
-
-      <button id="btnNetSettings" class="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition" title="IP 네트워크 인쇄 설정">
-        <i class="ph-bold ph-wifi-high text-lg"></i>
-      </button>
-
-      <button id="btnInfoModal" class="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition" title="도움말">
-        <i class="ph-bold ph-question text-lg"></i>
+    <!-- 우측 제어 버튼 (전체화면 토글) -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <!-- 전체화면 토글 버튼 -->
+      <button id="fullscreenToggleBtn" type="button" onclick="toggleFullscreen()" title="전체화면 전환"
+              class="btn" style="padding: 8px 12px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px; z-index: 50;">
+        <svg id="fullscreenIconSvg" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M5 5h5v2H7v3H5V5m9 0h5v5h-2V7h-3V5m3 9h2v5h-5v-2h3v-3m-9 3v2H5v-5h2v3h3Z"/>
+        </svg>
       </button>
     </div>
   </header>
 
-  <!-- 메인 레이아웃 -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-    
-    <!-- 좌측/상단: 사진 입력 및 조절 컨트롤 패널 (7 cols) -->
-    <div class="lg:col-span-7 space-y-5">
-      
-      <!-- 1. 촬영/업로드 영역 -->
-      <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-            <i class="ph-bold ph-camera"></i> 사진 입력
+  <!-- ============================================================
+       2. 메인 컨텐츠 영역
+       ============================================================ -->
+  <main style="width: 100%; max-width: 1350px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 0; position: relative; margin: 0; padding: 0 8px;">
+
+    <!-- [A] 촬영 대기 및 진행 화면 (4:3 비율 최적화 와이드 대형 뷰파인더) -->
+    <div id="captureSection" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; min-height: 0; padding: 0; margin-top: 14px;">
+
+      <!-- 헤더와의 간격을 줄이고 크기를 확대한 직각 뷰파인더 -->
+      <div id="viewfinderFrame" style="position: relative; width: min(92vw, 73vh, 1020px); aspect-ratio: 4 / 3; background: #000; border: 3.5px solid #38bdf8; box-shadow: 0 25px 60px -10px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.25); display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 0;">
+
+        <!-- 웹캠 비디오 엘리먼트 (글씨가 바르게 읽히도록 정방향) -->
+        <video id="webcamView" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(1); -webkit-transform: scaleX(1);"></video>
+
+        <!-- 코너 L자 브래킷 -->
+        <div class="corner-bracket corner-tl"></div>
+        <div class="corner-bracket corner-tr"></div>
+        <div class="corner-bracket corner-bl"></div>
+        <div class="corner-bracket corner-br"></div>
+
+        <!-- 카메라 플래시 효과 오버레이 -->
+        <div id="cameraFlashOverlay" style="position: absolute; inset: 0; background: #ffffff; opacity: 0; pointer-events: none; z-index: 30;"></div>
+
+        <!-- 상단 HUD -->
+        <div style="position: absolute; top: 16px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 12px; color: #ffffff; pointer-events: none; z-index: 10;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444;"></div>
+            <span style="letter-spacing: 1px; font-weight: bold;">LIVE REC</span>
+          </div>
+          <div id="shotStatusHud" style="letter-spacing: 2px; font-weight: bold;">
+            SHOT [ 0 / 1 ]
+          </div>
+        </div>
+
+        <!-- 중앙 조준선 Crosshair -->
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0.25;">
+          <div style="width: 32px; height: 1px; background: #fff;"></div>
+          <div style="width: 1px; height: 32px; background: #fff; position: absolute;"></div>
+        </div>
+
+        <!-- 하단 HUD -->
+        <div style="position: absolute; bottom: 16px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 11px; color: #ffffff; pointer-events: none; z-index: 10;">
+          <div>SPEER GIRL'S HIGH SCHOOL</div>
+          <div style="color: #38bdf8; font-weight: bold; letter-spacing: 1px;">AI·SW</div>
+        </div>
+
+        <!-- 카운트다운 오버레이 -->
+        <div id="countdownBox" style="position: absolute; inset: 0; background: transparent; display: none; align-items: center; justify-content: center; z-index: 25; pointer-events: none;">
+          <span id="countdownNumber" style="font-size: clamp(4.5rem, 14vw, 7.5rem); font-weight: 900; color: #ffffff; font-family: monospace; filter: drop-shadow(0 0 25px rgba(56,189,248,0.95));">
+            4
           </span>
-          <div class="flex items-center space-x-1 text-xs">
-            <button id="btnCameraMode" class="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition">카메라 촬영</button>
-            <button id="btnUploadMode" class="px-3 py-1 rounded-lg bg-slate-700 text-slate-300 hover:text-white transition">앨범 사진</button>
-          </div>
-        </div>
-
-        <!-- 카메라 뷰파인더 -->
-        <div id="cameraContainer" class="relative rounded-xl overflow-hidden bg-black aspect-[3/4] max-h-[380px] flex items-center justify-center border border-slate-700">
-          <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover"></video>
-          <canvas id="captureCanvas" class="hidden"></canvas>
-          
-          <div class="absolute inset-0 pointer-events-none border-2 border-dashed border-amber-400/40 m-4 rounded-lg flex flex-col justify-between p-2">
-            <span class="text-[10px] text-amber-300/70 font-mono">FRAME GUIDE (TM-m30III 576px)</span>
-            <div class="flex justify-center items-center">
-              <i class="ph-thin ph-crosshair text-4xl text-amber-300/30"></i>
-            </div>
-            <span class="text-[10px] text-right text-amber-300/70 font-mono">EPSON 80mm OPTIMIZED</span>
-          </div>
-
-          <div class="absolute bottom-4 left-0 right-0 flex items-center justify-center space-x-4 px-4 z-10">
-            <button id="btnSwitchCamera" class="w-11 h-11 rounded-full bg-slate-900/80 backdrop-blur border border-white/20 text-white flex items-center justify-center active:scale-90 transition">
-              <i class="ph-bold ph-camera-rotate text-lg"></i>
-            </button>
-            <button id="btnShutter" class="w-16 h-16 rounded-full bg-amber-400 hover:bg-amber-300 p-1.5 shadow-lg shadow-amber-500/50 active:scale-95 transition">
-              <div class="w-full h-full rounded-full border-4 border-slate-950 bg-white flex items-center justify-center">
-                <div class="w-4 h-4 rounded-full bg-amber-500"></div>
-              </div>
-            </button>
-            <button id="btnReloadCam" class="w-11 h-11 rounded-full bg-slate-900/80 backdrop-blur border border-white/20 text-white flex items-center justify-center active:scale-90 transition" title="카메라 재시작">
-              <i class="ph-bold ph-arrows-clockwise text-lg"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- 파일 업로드 드롭존 (카메라 비활성화 시 또는 앨범 모드) -->
-        <div id="uploadContainer" class="hidden relative rounded-xl border-2 border-dashed border-slate-600 hover:border-amber-400 bg-slate-900/50 aspect-[3/4] max-h-[380px] flex flex-col items-center justify-center cursor-pointer p-6 transition">
-          <input type="file" id="fileInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
-          <div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-amber-400 mb-3 shadow">
-            <i class="ph-bold ph-image text-3xl"></i>
-          </div>
-          <p class="font-medium text-sm text-slate-200 text-center">아이패드 보관함에서 사진 선택</p>
-          <p class="text-xs text-slate-400 mt-1 text-center">PNG, JPG, HEIC 지원 (고해상도 자동 리샘플링)</p>
         </div>
       </div>
 
-      <!-- 2. 고화질 감열지 튜닝 파이프라인 (품질 극대화) -->
-      <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
-          <span class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-            <i class="ph-bold ph-sliders-horizontal"></i> 고화질 디더링 엔진 (HD Image Tuning)
-          </span>
-          <button id="btnResetFilters" class="text-[11px] text-slate-400 hover:text-amber-400 transition flex items-center gap-1">
-            <i class="ph-bold ph-arrow-counter-clockwise"></i> 기본값 복원
-          </button>
-        </div>
+      <!-- 1컷 촬영 시작하기 버튼 (한 줄 더 여유 있게 간격 확대) -->
+      <button id="startShootBtn" onclick="runShootingSequence()" class="btn"
+              style="width: min(92vw, 73vh, 1020px); padding: 14px 20px; background: linear-gradient(135deg, #0284c7, #2563eb, #4f46e5); color: #ffffff; font-size: 18px; letter-spacing: 0.5px; border-radius: 14px; border: 1px solid rgba(125,211,252,0.4); box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); flex-shrink: 0; margin-top: 28px;">
+        <svg style="width: 22px; height: 22px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5a5 5 0 0 0 5 5a5 5 0 0 0 5 5a5 5 0 0 0 5-5a5 5 0 0 0 5-5m0 2a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3Z"/>
+        </svg>
+        <span>촬영 시작하기</span>
+      </button>
 
-        <!-- 디더링 알고리즘 선택 -->
+    </div>
+
+    <!-- [B] 결과 화면 (영수증 미리보기 + 블루투스 인쇄 컨트롤) -->
+    <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px;">
+
+      <!-- 좌측: 영수증 스티커 미리보기 -->
+      <div style="height: 70vh; max-height: 560px; min-height: 380px; width: auto; display: flex; align-items: center; justify-content: center; padding: 12px 14px 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.8); border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); flex-shrink: 0;">
+        <div class="receipt-edge" style="height: 100%; aspect-ratio: 800 / 1080; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0;">
+          <img id="stickerPreviewImg" alt="실제 인쇄 영수증 미리보기"
+               style="width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: pixelated; background: #ffffff;" />
+        </div>
+      </div>
+
+      <!-- 우측: 결과 안내 및 조작 버튼 -->
+      <div style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; text-align: left; gap: 16px; max-width: 380px; width: 100%; align-self: center;">
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-2">하프톤 디더링 알고리즘 (Dithering Algorithm)</label>
-          <div class="grid grid-cols-3 gap-2">
-            <button class="dither-btn active px-3 py-2 rounded-xl text-xs font-medium border border-amber-400 bg-amber-400/10 text-amber-300 transition" data-alg="atkinson">
-              <span class="font-bold block">앳킨슨 (Atkinson)</span>
-              <span class="text-[10px] text-slate-400">인물/선명도 최상</span>
-            </button>
-            <button class="dither-btn px-3 py-2 rounded-xl text-xs font-medium border border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-700 transition" data-alg="floyd">
-              <span class="font-bold block">플로이드-스타인버그</span>
-              <span class="text-[10px] text-slate-400">풍경/부드러운 계조</span>
-            </button>
-            <button class="dither-btn px-3 py-2 rounded-xl text-xs font-medium border border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-700 transition" data-alg="bayer">
-              <span class="font-bold block">오더드 (Bayer 8x8)</span>
-              <span class="text-[10px] text-slate-400">레트로 픽셀아트 룩</span>
-            </button>
-          </div>
+          <h2 style="font-size: clamp(1.2rem, 2.5vw, 1.55rem); font-weight: 900; color: #ffffff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;">
+            <span>🎉 영수증 사진이 완성되었습니다!</span>
+          </h2>
+          <p style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
+            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 대화상자 없이 블루투스로 즉시 인쇄됩니다.
+          </p>
         </div>
 
-        <!-- 슬라이더 컨트롤: 감마, 대비, 선명도, 임계값 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-          <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-300">감마 보정 (Gamma)</span>
-              <span id="valGamma" class="text-amber-400 font-mono font-bold">1.20</span>
-            </div>
-            <input type="range" id="sliderGamma" min="0.5" max="2.5" step="0.05" value="1.20" class="w-full accent-amber-400 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-            <p class="text-[10px] text-slate-400 mt-1">감열지의 번짐 특성을 상쇄하여 암부 디테일을 살립니다.</p>
-          </div>
-
-          <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-300">대비 강조 (Contrast)</span>
-              <span id="valContrast" class="text-amber-400 font-mono font-bold">1.25</span>
-            </div>
-            <input type="range" id="sliderContrast" min="0.5" max="2.0" step="0.05" value="1.25" class="w-full accent-amber-400 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-            <p class="text-[10px] text-slate-400 mt-1">선명하고 또렷한 흑백 분리를 만듭니다.</p>
-          </div>
-
-          <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-300">선명도 / 샤픈 (Sharpen)</span>
-              <span id="valSharpen" class="text-amber-400 font-mono font-bold">1.50</span>
-            </div>
-            <input type="range" id="sliderSharpen" min="0" max="3.0" step="0.1" value="1.50" class="w-full accent-amber-400 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-            <p class="text-[10px] text-slate-400 mt-1">경계면을 강조하여 사진의 눈코입과 윤곽을 선명하게 유지합니다.</p>
-          </div>
-
-          <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-300">밝기 (Brightness)</span>
-              <span id="valBrightness" class="text-amber-400 font-mono font-bold">+10</span>
-            </div>
-            <input type="range" id="sliderBrightness" min="-50" max="50" step="1" value="10" class="w-full accent-amber-400 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-            <p class="text-[10px] text-slate-400 mt-1">영수증 용지는 어두워지기 쉬우므로 약간 밝은 것이 좋습니다.</p>
-          </div>
-        </div>
-
-        <!-- 템플릿 및 텍스트 커스텀 -->
-        <div class="pt-2 border-t border-slate-700/60">
-          <label class="block text-xs font-medium text-slate-300 mb-2">영수증 문구 및 프레임 레이아웃</label>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="inputHeader" value="MEMORIES OF TODAY" placeholder="상단 타이틀" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
-            <input type="text" id="inputFooter" value="Keep this moment forever ♡" placeholder="하단 캡션 문구" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
-          </div>
-          <div class="flex items-center space-x-4 mt-2">
-            <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
-              <input type="checkbox" id="chkTimestamp" checked class="rounded accent-amber-400 w-4 h-4">
-              <span>현재 일시 & 바코드 출력</span>
-            </label>
-            <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
-              <input type="checkbox" id="chkDoubleStrike" checked class="rounded accent-amber-400 w-4 h-4">
-              <span>최고 농도 모드 (Double Heat Mode)</span>
-            </label>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- 우측/하단: 실시간 영수증 프리뷰 & 인쇄 조작 (5 cols) -->
-    <div class="lg:col-span-5 space-y-4">
-      
-      <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-            <i class="ph-bold ph-printer"></i> 영수증 1:1 실물 프리뷰
-          </span>
-          <span class="text-[11px] font-mono text-slate-400">EPSON 80mm (576 Dots)</span>
-        </div>
-
-        <!-- 영수증 종이 시뮬레이션 컨테이너 -->
-        <div class="flex justify-center bg-slate-950/70 p-4 rounded-xl border border-slate-800 max-h-[600px] overflow-y-auto">
-          <div id="printArea" class="receipt-paper text-slate-900 w-[290px] p-4 rounded-t shadow-2xl transition-all duration-300">
-            
-            <!-- 영수증 헤더 -->
-            <div class="text-center font-mono-receipt border-b-2 border-dashed border-slate-800 pb-3 mb-3">
-              <div class="text-xs tracking-widest font-bold">RECEIPT PHOTO BOOTH</div>
-              <div id="previewHeader" class="text-sm font-extrabold uppercase mt-1 tracking-wider text-black">MEMORIES OF TODAY</div>
-              <div class="text-[10px] text-slate-600 mt-1">EPSON TM-m30III • 203 DPI HD</div>
-            </div>
-
-            <!-- 디더링된 흑백 사진 캔버스 -->
-            <div class="relative w-full aspect-[3/4] bg-slate-200 border-2 border-slate-900 rounded overflow-hidden flex items-center justify-center">
-              <canvas id="outputCanvas" width="576" height="768" class="w-full h-full object-cover pixelated"></canvas>
-            </div>
-
-            <!-- 영수증 푸터 -->
-            <div class="text-center font-mono-receipt mt-3 pt-3 border-t-2 border-dashed border-slate-800">
-              <p id="previewFooter" class="text-xs font-bold text-slate-900 leading-tight">Keep this moment forever ♡</p>
-              
-              <div id="timestampSection" class="mt-2 text-[10px] text-slate-700 space-y-0.5">
-                <div id="previewDateTime">2026.10.24 09:52:00</div>
-                <div class="font-mono tracking-widest text-[9px]">TXID: #8942-TM30-01</div>
-              </div>
-
-              <!-- 가상 바코드 / 장식 -->
-              <div class="mt-3 flex justify-center">
-                <div class="h-8 w-44 bg-slate-900 flex items-center justify-center text-[9px] text-white tracking-widest font-mono select-none">
-                  ||||| | |||| ||| ||||||| |||
-                </div>
-              </div>
-
-              <div class="mt-3 text-[9px] text-slate-500 font-sans">
-                인화해주셔서 감사합니다 • THANK YOU!
-              </div>
-            </div>
-
-            <!-- 톱니바퀴 영수증 절단선 연출 -->
-            <div class="receipt-zigzag-bottom h-3 absolute -bottom-3 left-0 right-0"></div>
-          </div>
-        </div>
-
-        <!-- 인쇄 실행 버튼들 -->
-        <div class="mt-5 space-y-2.5">
-          <button id="btnPrint" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] text-slate-950 font-bold text-base shadow-lg shadow-amber-500/30 flex items-center justify-center space-x-2 transition">
-            <i class="ph-bold ph-printer text-xl"></i>
-            <span>TM-m30III 영수증 인쇄하기</span>
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
+          <!-- 1) 인쇄하기 버튼 -->
+          <button id="printActionBtn" onclick="printReceiptSticker()" class="btn"
+                  style="width: 100%; padding: 15px 20px; background: linear-gradient(135deg, #10b981, #0d9488, #059669); color: #ffffff; font-size: 17px; border-radius: 14px; border: 1px solid rgba(110,231,183,0.4); box-shadow: 0 10px 25px -5px rgba(16,185,129,0.5);">
+            <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3m-3 11H8v-5h8v5m3-7c-.55 0-1-.45-1-1s.45-1 1-1s1 .45 1 1s-.45 1-1 1m-1-9H6V4h12v4Z"/>
+            </svg>
+            <span id="printBtnLabel">영수증 인쇄하기</span>
           </button>
 
-          <div class="grid grid-cols-2 gap-2">
-            <button id="btnIpPrint" class="py-2.5 px-3 rounded-xl bg-slate-700/80 hover:bg-slate-700 active:scale-95 text-xs font-medium text-amber-300 flex items-center justify-center space-x-1.5 transition border border-amber-400/20">
-              <i class="ph-bold ph-globe"></i>
-              <span>네트워크(IP) 직접 인쇄</span>
-            </button>
-            <button id="btnSystemPrint" class="py-2.5 px-3 rounded-xl bg-slate-700/80 hover:bg-slate-700 active:scale-95 text-xs font-medium text-slate-200 flex items-center justify-center space-x-1.5 transition">
-              <i class="ph-bold ph-browsers"></i>
-              <span>AirPrint / 브라우저 인쇄</span>
-            </button>
-          </div>
-          <button id="btnDownloadBin" class="w-full py-2 px-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 active:scale-95 text-[11px] font-medium text-slate-400 flex items-center justify-center space-x-1.5 transition border border-slate-700">
-            <i class="ph-bold ph-download-simple"></i>
-            <span>ESC/POS 바이너리(.bin) 파일 저장</span>
+          <!-- 2) 다시 촬영하기 버튼 -->
+          <button id="retakeActionBtn" onclick="resetBoothToCamera()" class="btn"
+                  style="width: 100%; padding: 12px 18px; background: #1e293b; color: #cbd5e1; font-size: 15px; border-radius: 14px; border: 1px solid #475569;">
+            <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/>
+            </svg>
+            <span>다시 촬영하기</span>
           </button>
         </div>
 
+        <div style="font-size: 11px; color: #64748b; font-family: monospace;">
+          * 45초 동안 입력이 없으면 처음 대기 화면으로 자동 복귀합니다.
+        </div>
       </div>
-
-      <!-- 기기 정보 카드 -->
-      <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 text-xs text-slate-400 flex items-center space-x-3">
-        <i class="ph-bold ph-check-circle text-amber-400 text-lg flex-shrink-0"></i>
-        <span>TM-m30III 80mm 용지 규격 기준 <b>가로 576 도트</b> (203dpi) 래스터 모드로 픽셀 1:1 무손실 전송됩니다.</span>
-      </div>
-
     </div>
-
   </main>
 
-  <!-- 네트워크(IP) 인쇄 모달 -->
-  <div id="netModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
-      <button id="btnCloseNetModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-        <i class="ph-bold ph-x text-xl"></i>
-      </button>
-
-      <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-2">
-        <i class="ph-bold ph-wifi-high text-amber-400"></i> TM-m30III ePOS-Print (IP) 설정
-      </h3>
-      <p class="text-xs text-slate-400 mb-4">
-        아이패드와 프린터가 같은 Wi-Fi 공유기에 연결되어 있다면, Web Bluetooth 권한 제한 없이 고속 비트맵 인쇄가 가능합니다.
-      </p>
-
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">프린터 IP 주소</label>
-          <input type="text" id="printerIpInput" placeholder="예: 192.168.0.50" value="192.168.1.100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-amber-400">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">프린터 장치 ID (기본: local_printer)</label>
-          <input type="text" id="printerDevId" placeholder="local_printer" value="local_printer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-amber-400">
-        </div>
-      </div>
-
-      <div class="mt-5 flex space-x-2">
-        <button id="btnSaveIpAndPrint" class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 font-bold text-slate-950 text-xs transition flex items-center justify-center space-x-1.5">
-          <i class="ph-bold ph-paper-plane-tilt"></i>
-          <span>설정 저장 후 즉시 인쇄</span>
-        </button>
-      </div>
-    </div>
+  <!-- 캔버스 및 감열 인쇄 DOM 영역 -->
+  <canvas id="thermalStripCanvas" width="800" height="1080" style="display: none;"></canvas>
+  <div id="browserPrintZone" style="display: none;">
+    <img id="browserPrintImg" src="" alt="print-strip" />
   </div>
 
-  <!-- 상태 안내 모달 / 토스트 메시지 -->
-  <div id="statusToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transform transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
-    <div class="bg-slate-950/90 text-white border border-slate-700 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur flex items-center space-x-2.5">
-      <i id="toastIcon" class="ph-bold ph-info text-amber-400 text-lg"></i>
-      <span id="toastMsg" class="text-xs font-medium">알림 메시지</span>
-    </div>
+  <!-- 토스트 알림 메시지 바 -->
+  <div id="appToast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60; background: #0f172a; border: 1px solid #38bdf8; color: #fff; padding: 10px 18px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: opacity 0.3s ease; opacity: 0; pointer-events: none; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+    <span id="toastIcon">✨</span>
+    <span id="toastMessage">안내 메시지</span>
   </div>
 
-  <!-- 도움말 & 아이패드 연결 가이드 모달 -->
-  <div id="infoModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-800 border border-slate-700 max-w-lg w-full rounded-2xl p-6 shadow-2xl relative">
-      <button id="btnCloseModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-        <i class="ph-bold ph-x text-xl"></i>
-      </button>
-
-      <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
-        <i class="ph-bold ph-device-tablet text-amber-400"></i> 아이패드 & TM-m30III 연결 팁
-      </h3>
-      
-      <div class="space-y-3 text-xs text-slate-300 leading-relaxed max-h-[70vh] overflow-y-auto pr-1">
-        <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl">
-          <h4 class="font-bold text-amber-300 mb-1 flex items-center gap-1.5">
-            <i class="ph-bold ph-shield-warning"></i> 'Permissions policy disallowed' 에러 해결법
-          </h4>
-          <p class="text-slate-300">현재 보시는 웹 화면이 샌드박스 iFrame 또는 권한 제한 환경일 때 블루투스 API 호출이 보안상 차단될 수 있습니다.</p>
-          <ul class="list-disc pl-4 mt-2 space-y-1 text-slate-300 font-medium">
-            <li><b>방법 1 (가장 추천)</b>: 아래 <b>[AirPrint / 브라우저 인쇄]</b> 버튼을 누르면 아이패드에 블루투스로 페어링된 TM-m30III로 아무 권한 에러 없이 즉시 영수증 규격 인쇄가 실행됩니다.</li>
-            <li><b>방법 2 (네트워크 direct)</b>: <b>[네트워크(IP) 직접 인쇄]</b>를 누르고 프린터의 IP를 입력하면 브라우저 보안 제약 없이 초고화질 무손실 래스터 인쇄가 진행됩니다.</li>
-            <li><b>방법 3 (단독 브라우저 실행)</b>: 웹페이지를 새 창으로 열거나, iPad용 무료 브라우저 <b>Bluefy</b>를 통해 열면 Web Bluetooth를 직접 제어할 수 있습니다.</li>
-          </ul>
-        </div>
-
-        <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-700">
-          <h4 class="font-bold text-amber-300 mb-1">1. 최고 인쇄 화질(Best Quality) 튜닝 비결</h4>
-          <ul class="list-disc pl-4 space-y-1 text-slate-400">
-            <li><b>Atkinson 디더링</b>: 일반 그레이스케일 변환보다 선명하며 뭉개짐 없이 입체감을 재현합니다.</li>
-            <li><b>감마 1.2~1.4 설정</b>: 감열지는 헤드가 달궈지면서 검은색이 퍼집니다. 감마를 약간 올려 밝은 영역을 확보해야 선명합니다.</li>
-            <li><b>샤픈 1.5 이상</b>: 203 DPI의 낮은 해상도에서도 눈, 코, 글자가 또렷하게 보이도록 에지를 증폭합니다.</li>
-            <li><b>TM-m30III 기기 설정</b>: Epson TM Utility 앱에서 인쇄 농도를 'High'로 지정하면 훨씬 깊은 블랙을 얻을 수 있습니다.</li>
-          </ul>
-        </div>
-
-        <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-700">
-          <h4 class="font-bold text-amber-300 mb-1">3. ESC/POS 고속 래스터 프로토콜</h4>
-          <p class="text-slate-400">이 웹앱은 레거시 텍스트 모드가 아닌 <code>GS v 0</code> 래스터 비트맵 명령어를 생성하여 576도트 전면을 한 도트의 오차도 없이 출력합니다.</p>
-        </div>
-      </div>
-
-      <button id="btnModalConfirm" class="mt-5 w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 font-bold text-slate-950 text-xs transition">
-        확인 완료
-      </button>
-    </div>
-  </div>
-
-  <!-- 자바스크립트 구현부 -->
   <script>
-    // --- 상수 & 전역 상태 ---
-    const PRINTER_WIDTH = 576; // TM-m30III 80mm 용지 기준 도트 수
-    let bluetoothDevice = null;
-    let bluetoothCharacteristic = null;
-    let currentStream = null;
-    let currentFacingMode = 'user'; // 'user' (전면/아이패드 셀카) or 'environment' (후면)
-    let selectedAlgorithm = 'atkinson';
-    
-    // 원본 이미지 캐시 (Offscreen Canvas)
-    let sourceCanvas = document.createElement('canvas');
-    let sourceCtx = sourceCanvas.getContext('2d');
-    let originalImageLoaded = false;
+    const CONFIG = {
+      AUTO_RESET_SECONDS: 45,
+      FESTIVAL_TITLE: '2026 AI·SW 체험 한마당',
+      CLUB_NAME: "Speer Girl's High School"
+    };
 
     // DOM 요소 캐싱
-    const webcam = document.getElementById('webcam');
-    const captureCanvas = document.getElementById('captureCanvas');
-    const outputCanvas = document.getElementById('outputCanvas');
-    const outputCtx = outputCanvas.getContext('2d');
-    const btnShutter = document.getElementById('btnShutter');
-    const btnSwitchCamera = document.getElementById('btnSwitchCamera');
-    const btnReloadCam = document.getElementById('btnReloadCam');
-    const fileInput = document.getElementById('fileInput');
-    const btnCameraMode = document.getElementById('btnCameraMode');
-    const btnUploadMode = document.getElementById('btnUploadMode');
-    const cameraContainer = document.getElementById('cameraContainer');
-    const uploadContainer = document.getElementById('uploadContainer');
-    
-    // 필터 슬라이더 요소
-    const sliderGamma = document.getElementById('sliderGamma');
-    const sliderContrast = document.getElementById('sliderContrast');
-    const sliderSharpen = document.getElementById('sliderSharpen');
-    const sliderBrightness = document.getElementById('sliderBrightness');
-    const valGamma = document.getElementById('valGamma');
-    const valContrast = document.getElementById('valContrast');
-    const valSharpen = document.getElementById('valSharpen');
-    const valBrightness = document.getElementById('valBrightness');
-    const btnResetFilters = document.getElementById('btnResetFilters');
+    const webcamView = document.getElementById('webcamView');
+    const captureSection = document.getElementById('captureSection');
+    const resultSection = document.getElementById('resultSection');
+    const shotStatusHud = document.getElementById('shotStatusHud');
+    const countdownBox = document.getElementById('countdownBox');
+    const countdownNumber = document.getElementById('countdownNumber');
+    const cameraFlashOverlay = document.getElementById('cameraFlashOverlay');
+    const startShootBtn = document.getElementById('startShootBtn');
+    const printActionBtn = document.getElementById('printActionBtn');
+    const printBtnLabel = document.getElementById('printBtnLabel');
+    const stickerPreviewImg = document.getElementById('stickerPreviewImg');
+    const thermalCanvas = document.getElementById('thermalStripCanvas');
+    const thermalCtx = thermalCanvas.getContext('2d');
+    const browserPrintImg = document.getElementById('browserPrintImg');
 
-    // 텍스트 & 프리뷰 요소
-    const inputHeader = document.getElementById('inputHeader');
-    const inputFooter = document.getElementById('inputFooter');
-    const previewHeader = document.getElementById('previewHeader');
-    const previewFooter = document.getElementById('previewFooter');
-    const chkTimestamp = document.getElementById('chkTimestamp');
-    const chkDoubleStrike = document.getElementById('chkDoubleStrike');
-    const timestampSection = document.getElementById('timestampSection');
-    const previewDateTime = document.getElementById('previewDateTime');
+    let singleCapturedFrame = null;
+    let autoResetTimer = null;
+    let finalColorDataUrl = '';
+    let finalDitheredDataUrl = '';
 
-    // 버튼류
-    const btnConnectBT = document.getElementById('btnConnectBT');
-    const btnPrint = document.getElementById('btnPrint');
-    const btnDownloadBin = document.getElementById('btnDownloadBin');
-    const btnSystemPrint = document.getElementById('btnSystemPrint');
-    const btnIpPrint = document.getElementById('btnIpPrint');
-    const btnNetSettings = document.getElementById('btnNetSettings');
-    const netModal = document.getElementById('netModal');
-    const btnCloseNetModal = document.getElementById('btnCloseNetModal');
-    const btnSaveIpAndPrint = document.getElementById('btnSaveIpAndPrint');
-    const printerIpInput = document.getElementById('printerIpInput');
-    const printerDevId = document.getElementById('printerDevId');
+    /**
+     * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
+     */
+    function applyThermalPortraitDithering(sourceCanvas, targetWidth, targetHeight) {
+      const ditherCanvas = document.createElement('canvas');
+      ditherCanvas.width = targetWidth;
+      ditherCanvas.height = targetHeight;
+      const dCtx = ditherCanvas.getContext('2d');
 
-    const connStatusDot = document.getElementById('connStatusDot');
-    const connStatusText = document.getElementById('connStatusText');
+      dCtx.imageSmoothingEnabled = true;
+      dCtx.imageSmoothingQuality = 'high';
+      dCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
 
-    // 모달류
-    const btnInfoModal = document.getElementById('btnInfoModal');
-    const infoModal = document.getElementById('infoModal');
-    const btnCloseModal = document.getElementById('btnCloseModal');
-    const btnModalConfirm = document.getElementById('btnModalConfirm');
-
-    // 로컬 스토리지에서 프린터 IP 복원
-    if (localStorage.getItem('tm30_ip')) {
-      printerIpInput.value = localStorage.getItem('tm30_ip');
-    }
-
-    // --- 유틸리티: 토스트 메시지 ---
-    function showToast(msg, icon = 'ph-info') {
-      const toast = document.getElementById('statusToast');
-      const toastMsg = document.getElementById('toastMsg');
-      const toastIcon = document.getElementById('toastIcon');
-      
-      toastMsg.textContent = msg;
-      toastIcon.className = `ph-bold ${icon} text-amber-400 text-lg`;
-      
-      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-      }, 3000);
-    }
-
-    // --- 날짜 포맷팅 갱신 ---
-    function updateTimestamp() {
-      const now = new Date();
-      const yr = now.getFullYear();
-      const mo = String(now.getMonth() + 1).padStart(2, '0');
-      const da = String(now.getDate()).padStart(2, '0');
-      const ho = String(now.getHours()).padStart(2, '0');
-      const mi = String(now.getMinutes()).padStart(2, '0');
-      const se = String(now.getSeconds()).padStart(2, '0');
-      previewDateTime.textContent = `${yr}.${mo}.${da} ${ho}:${mi}:${se}`;
-    }
-    setInterval(updateTimestamp, 1000);
-    updateTimestamp();
-
-    // --- 1. 카메라 시작 및 관리 ---
-    async function initCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      try {
-        const constraints = {
-          video: {
-            facingMode: currentFacingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 960 }
-          },
-          audio: false
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        currentStream = stream;
-        webcam.srcObject = stream;
-        await webcam.play();
-        showToast('카메라가 활성화되었습니다.', 'ph-camera');
-      } catch (err) {
-        console.warn('카메라 접근 에러:', err);
-        showToast('카메라 권한을 확인해주세요.', 'ph-warning');
-        switchToUploadMode();
-      }
-    }
-
-    // 카메라 전환 (아이패드 전면 <-> 후면)
-    btnSwitchCamera.addEventListener('click', () => {
-      currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-      initCamera();
-    });
-
-    btnReloadCam.addEventListener('click', () => {
-      initCamera();
-    });
-
-    // 셔터 누름 -> 프레임 캡처 후 파이프라인 전송
-    btnShutter.addEventListener('click', () => {
-      if (!webcam.videoWidth) return;
-      captureCanvas.width = webcam.videoWidth;
-      captureCanvas.height = webcam.videoHeight;
-      const ctx = captureCanvas.getContext('2d');
-      
-      // 전면 카메라일 경우 좌우반전 보정
-      if (currentFacingMode === 'user') {
-        ctx.translate(captureCanvas.width, 0);
-        ctx.scale(-1, 1);
-      }
-      ctx.drawImage(webcam, 0, 0, captureCanvas.width, captureCanvas.height);
-      
-      // 소스 버퍼에 복사
-      loadSourceImageFromCanvas(captureCanvas);
-      showToast('사진이 촬영되었습니다!', 'ph-check-circle');
-    });
-
-    // 앨범 업로드 핸들러
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const img = new Image();
-        img.onload = () => {
-          loadSourceImageFromElement(img);
-          showToast('사진을 성공적으로 불러왔습니다.', 'ph-check-circle');
-        };
-        img.src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    function switchToUploadMode() {
-      cameraContainer.classList.add('hidden');
-      uploadContainer.classList.remove('hidden');
-      btnUploadMode.classList.replace('bg-slate-700', 'bg-amber-500');
-      btnUploadMode.classList.replace('text-slate-300', 'text-slate-950');
-      btnUploadMode.classList.add('font-bold');
-
-      btnCameraMode.classList.replace('bg-amber-500', 'bg-slate-700');
-      btnCameraMode.classList.replace('text-slate-950', 'text-slate-300');
-      btnCameraMode.classList.remove('font-bold');
-      if (currentStream) {
-        currentStream.getTracks().forEach(t => t.stop());
-      }
-    }
-
-    function switchToCameraMode() {
-      uploadContainer.classList.add('hidden');
-      cameraContainer.classList.remove('hidden');
-      btnCameraMode.classList.replace('bg-slate-700', 'bg-amber-500');
-      btnCameraMode.classList.replace('text-slate-300', 'text-slate-950');
-      btnCameraMode.classList.add('font-bold');
-
-      btnUploadMode.classList.replace('bg-amber-500', 'bg-slate-700');
-      btnUploadMode.classList.replace('text-slate-950', 'text-slate-300');
-      btnUploadMode.classList.remove('font-bold');
-      initCamera();
-    }
-
-    btnUploadMode.addEventListener('click', switchToUploadMode);
-    btnCameraMode.addEventListener('click', switchToCameraMode);
-
-    // --- 2. 이미지 소스 준비 및 규격 리사이즈 (576 x 768 도트 비율) ---
-    function loadSourceImageFromCanvas(canvas) {
-      const targetW = PRINTER_WIDTH; // 576
-      const targetH = Math.round(PRINTER_WIDTH * 4 / 3); // 768 (3:4 비율 포토부스 최적)
-      
-      sourceCanvas.width = targetW;
-      sourceCanvas.height = targetH;
-      
-      // 중앙 크롭하여 종이 폭에 정확히 채우기
-      drawImageCenterCrop(canvas, sourceCtx, targetW, targetH);
-      originalImageLoaded = true;
-      processImagePipeline();
-    }
-
-    function loadSourceImageFromElement(img) {
-      const targetW = PRINTER_WIDTH;
-      const targetH = Math.round(PRINTER_WIDTH * 4 / 3);
-      
-      sourceCanvas.width = targetW;
-      sourceCanvas.height = targetH;
-      
-      drawImageCenterCrop(img, sourceCtx, targetW, targetH);
-      originalImageLoaded = true;
-      processImagePipeline();
-    }
-
-    function drawImageCenterCrop(src, destCtx, destW, destH) {
-      const srcW = src.width || src.videoWidth;
-      const srcH = src.height || src.videoHeight;
-      const srcRatio = srcW / srcH;
-      const destRatio = destW / destH;
-      
-      let sX = 0, sY = 0, sW = srcW, sH = srcH;
-      if (srcRatio > destRatio) {
-        sW = srcH * destRatio;
-        sX = (srcW - sW) / 2;
-      } else {
-        sH = srcW / destRatio;
-        sY = (srcH - sH) / 2;
-      }
-      destCtx.fillStyle = '#ffffff';
-      destCtx.fillRect(0, 0, destW, destH);
-      destCtx.drawImage(src, sX, sY, sW, sH, 0, 0, destW, destH);
-    }
-
-    // --- 3. 고품질 흑백 변환 & 디더링 파이프라인 ---
-    function processImagePipeline() {
-      if (!originalImageLoaded) return;
-      
-      const width = sourceCanvas.width;
-      const height = sourceCanvas.height;
-      
-      // 원본 픽셀 데이터 로드
-      const imgData = sourceCtx.getImageData(0, 0, width, height);
+      const imgData = dCtx.getImageData(0, 0, targetWidth, targetHeight);
       const data = imgData.data;
+      const totalPixels = targetWidth * targetHeight;
 
-      // 파라미터 취득
-      const gamma = parseFloat(sliderGamma.value);
-      const contrast = parseFloat(sliderContrast.value);
-      const sharpen = parseFloat(sliderSharpen.value);
-      const brightness = parseFloat(sliderBrightness.value);
+      const rawLuma = new Float32Array(totalPixels);
+      const processed = new Float32Array(totalPixels);
 
-      // A. 그레이스케일 & 언샤프 마스크/선명도, 밝기, 대비, 감마 사전 처리
-      // 1D 버퍼로 휘도 추출
-      let gray = new Float32Array(width * height);
-      for (let i = 0; i < data.length; i += 4) {
-        // ITU-R BT.601 휘도 공식
-        const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        gray[i / 4] = y;
+      // [1단계] 표준 BT.709 인지 휘도(Luminance) 변환
+      for (let i = 0; i < totalPixels; i++) {
+        const idx = i * 4;
+        rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
-      // 샤프닝 필터 (라플라시안 컨볼루션)
-      if (sharpen > 0) {
-        const sharpened = new Float32Array(gray.length);
-        for (let y = 1; y < height - 1; y++) {
-          for (let x = 1; x < width - 1; x++) {
-            const idx = y * width + x;
-            const center = gray[idx];
-            const laplacian = (
-              gray[idx - 1] + gray[idx + 1] +
-              gray[idx - width] + gray[idx + width] - 4 * center
-            );
-            // 선명도 가중치 부여
-            let val = center - (sharpen * 0.4) * laplacian;
-            sharpened[idx] = Math.min(255, Math.max(0, val));
+      // [2단계] 영수증 포토부스 전용 정밀 언샵 마스크
+      for (let y = 1; y < targetHeight - 1; y++) {
+        const row = y * targetWidth;
+        for (let x = 1; x < targetWidth - 1; x++) {
+          const idx = row + x;
+          const blur = (
+            rawLuma[idx - targetWidth - 1] + rawLuma[idx - targetWidth] + rawLuma[idx - targetWidth + 1] +
+            rawLuma[idx - 1]               + rawLuma[idx]               + rawLuma[idx + 1] +
+            rawLuma[idx + targetWidth - 1] + rawLuma[idx + targetWidth] + rawLuma[idx + targetWidth + 1]
+          ) / 9.0;
+
+          const highPass = rawLuma[idx] - blur;
+          let val = rawLuma[idx] + highPass * 0.88;
+
+          // [3단계] 살짝 더 진하고 또렷한 인물 톤 밸런스 조정
+          val = Math.min(255, Math.max(0, val + 18)); 
+          let norm = val / 255.0;
+          norm = Math.pow(norm, 0.74); 
+          val = norm * 255.0;
+
+          if (val < 45) {
+            val = val * 0.85;
           }
-        }
-        // 가장자리 복사
-        for (let i = 0; i < width; i++) {
-          sharpened[i] = gray[i];
-          sharpened[(height - 1) * width + i] = gray[(height - 1) * width + i];
-        }
-        gray = sharpened;
-      }
 
-      // 밝기, 대비, 감마 커브 적용
-      const invGamma = 1.0 / gamma;
-      for (let i = 0; i < gray.length; i++) {
-        let v = gray[i] + brightness;
-        // 대비 공식: (v - 128) * contrast + 128
-        v = (v - 128) * contrast + 128;
-        // 0~1 정규화 후 감마 보정
-        v = Math.min(255, Math.max(0, v)) / 255.0;
-        v = Math.pow(v, invGamma) * 255.0;
-        gray[i] = Math.min(255, Math.max(0, v));
-      }
-
-      // B. 디더링 (하프톤 알고리즘 적용)
-      outputCanvas.width = width;
-      outputCanvas.height = height;
-      const outImgData = outputCtx.createImageData(width, height);
-      const outData = outImgData.data;
-
-      if (selectedAlgorithm === 'atkinson') {
-        applyAtkinsonDither(gray, width, height, outData);
-      } else if (selectedAlgorithm === 'floyd') {
-        applyFloydSteinbergDither(gray, width, height, outData);
-      } else {
-        applyOrderedBayerDither(gray, width, height, outData);
-      }
-
-      outputCtx.putImageData(outImgData, 0, 0);
-    }
-
-    // 앳킨슨 (Atkinson) 디더링: 감열지에 가장 선명하고 고대비인 애플 매킨토시 레전드 알고리즘
-    function applyAtkinsonDither(gray, width, height, outData) {
-      const buffer = new Float32Array(gray);
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const idx = y * width + x;
-          const oldPixel = buffer[idx];
-          const newPixel = oldPixel < 128 ? 0 : 255;
-          const err = (oldPixel - newPixel) / 8; // 앳킨슨은 오차의 6/8만 주변으로 확산하여 선명도 유지
-
-          const pIdx = idx * 4;
-          outData[pIdx] = newPixel;
-          outData[pIdx + 1] = newPixel;
-          outData[pIdx + 2] = newPixel;
-          outData[pIdx + 3] = 255;
-
-          // 확산 좌표들
-          if (x + 1 < width) buffer[idx + 1] += err;
-          if (x + 2 < width) buffer[idx + 2] += err;
-          if (y + 1 < height) {
-            if (x - 1 >= 0) buffer[idx + width - 1] += err;
-            buffer[idx + width] += err;
-            if (x + 1 < width) buffer[idx + width + 1] += err;
-          }
-          if (y + 2 < height) {
-            buffer[idx + (2 * width)] += err;
-          }
+          processed[idx] = Math.min(255, Math.max(0, val));
         }
       }
-    }
 
-    // 플로이드-스타인버그 (Floyd-Steinberg) 디더링: 부드러운 그라데이션 재현
-    function applyFloydSteinbergDither(gray, width, height, outData) {
-      const buffer = new Float32Array(gray);
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const idx = y * width + x;
-          const oldPixel = buffer[idx];
-          const newPixel = oldPixel < 128 ? 0 : 255;
-          const err = oldPixel - newPixel;
-
-          const pIdx = idx * 4;
-          outData[pIdx] = newPixel;
-          outData[pIdx + 1] = newPixel;
-          outData[pIdx + 2] = newPixel;
-          outData[pIdx + 3] = 255;
-
-          if (x + 1 < width) buffer[idx + 1] += (err * 7) / 16;
-          if (y + 1 < height) {
-            if (x - 1 >= 0) buffer[idx + width - 1] += (err * 3) / 16;
-            buffer[idx + width] += (err * 5) / 16;
-            if (x + 1 < width) buffer[idx + width + 1] += (err * 1) / 16;
-          }
-        }
+      for (let x = 0; x < targetWidth; x++) {
+        processed[x] = rawLuma[x];
+        processed[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
       }
-    }
-
-    // 8x8 베이어 (Bayer Ordered) 디더링: 규칙적인 망점 형성
-    function applyOrderedBayerDither(gray, width, height, outData) {
-      const bayer8 = [
-        [ 0, 32,  8, 40,  2, 34, 10, 42],
-        [48, 16, 56, 24, 50, 18, 58, 26],
-        [12, 44,  4, 36, 14, 46,  6, 38],
-        [60, 28, 52, 20, 62, 30, 54, 22],
-        [ 3, 35, 11, 43,  1, 33,  9, 41],
-        [51, 19, 59, 27, 49, 17, 57, 25],
-        [15, 47,  7, 39, 13, 45,  5, 37],
-        [63, 31, 55, 23, 61, 29, 53, 21]
-      ];
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const idx = y * width + x;
-          const threshold = (bayer8[y % 8][x % 8] / 64) * 255;
-          const newPixel = gray[idx] < threshold ? 0 : 255;
-
-          const pIdx = idx * 4;
-          outData[pIdx] = newPixel;
-          outData[pIdx + 1] = newPixel;
-          outData[pIdx + 2] = newPixel;
-          outData[pIdx + 3] = 255;
-        }
-      }
-    }
-
-    // --- 4. 이벤트 바인딩 & 슬라이더 연동 ---
-    function bindSlider(slider, valDisplay, prefix = '') {
-      slider.addEventListener('input', () => {
-        valDisplay.textContent = prefix + slider.value;
-        processImagePipeline();
-      });
-    }
-    bindSlider(sliderGamma, valGamma);
-    bindSlider(sliderContrast, valContrast);
-    bindSlider(sliderSharpen, valSharpen);
-    bindSlider(sliderBrightness, valBrightness, (sliderBrightness.value > 0 ? '+' : ''));
-
-    // 디더링 버튼 전환
-    document.querySelectorAll('.dither-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.dither-btn').forEach(b => {
-          b.classList.remove('active', 'border-amber-400', 'bg-amber-400/10', 'text-amber-300');
-          b.classList.add('border-slate-700', 'bg-slate-900/60', 'text-slate-300');
-        });
-        btn.classList.add('active', 'border-amber-400', 'bg-amber-400/10', 'text-amber-300');
-        btn.classList.remove('border-slate-700', 'bg-slate-900/60', 'text-slate-300');
-        selectedAlgorithm = btn.dataset.alg;
-        processImagePipeline();
-      });
-    });
-
-    // 필터 기본값 리셋
-    btnResetFilters.addEventListener('click', () => {
-      sliderGamma.value = "1.20";
-      sliderContrast.value = "1.25";
-      sliderSharpen.value = "1.50";
-      sliderBrightness.value = "10";
-      valGamma.textContent = "1.20";
-      valContrast.textContent = "1.25";
-      valSharpen.textContent = "1.50";
-      valBrightness.textContent = "+10";
-      processImagePipeline();
-      showToast('필터가 최적 기본값으로 재설정되었습니다.');
-    });
-
-    // 텍스트 커스텀 실시간 프리뷰 반영
-    inputHeader.addEventListener('input', () => {
-      previewHeader.textContent = inputHeader.value || 'MEMORIES';
-    });
-    inputFooter.addEventListener('input', () => {
-      previewFooter.textContent = inputFooter.value || '';
-    });
-    chkTimestamp.addEventListener('change', () => {
-      timestampSection.style.display = chkTimestamp.checked ? 'block' : 'none';
-    });
-
-    // --- 5. EPSON ESC/POS 고해상도 래스터 비트맵 인쇄 커맨드 생성 ---
-    // 전체 프리뷰(헤더 + 사진 + 푸터)를 하나의 결합된 캔버스로 합성 후 비트맵 변환
-    function generateFullReceiptBitmapData() {
-      const finalCanvas = document.createElement('canvas');
-      const fCtx = finalCanvas.getContext('2d');
-      finalCanvas.width = PRINTER_WIDTH; // 576
-
-      // 높이 계산
-      const headerH = 120;
-      const photoH = outputCanvas.height || 768;
-      const footerH = chkTimestamp.checked ? 160 : 100;
-      finalCanvas.height = headerH + photoH + footerH;
-
-      // 흰색 바탕 채우기
-      fCtx.fillStyle = '#ffffff';
-      fCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-
-      // A. 헤더 텍스트 렌더링
-      fCtx.fillStyle = '#000000';
-      fCtx.textAlign = 'center';
-      
-      fCtx.font = 'bold 22px monospace';
-      fCtx.fillText("================================", PRINTER_WIDTH / 2, 28);
-      fCtx.font = 'bold 24px monospace';
-      fCtx.fillText("RECEIPT PHOTO BOOTH", PRINTER_WIDTH / 2, 56);
-      
-      fCtx.font = 'bold 28px sans-serif';
-      fCtx.fillText((inputHeader.value || 'PHOTO').toUpperCase(), PRINTER_WIDTH / 2, 90);
-      fCtx.font = 'normal 18px monospace';
-      fCtx.fillText("--------------------------------", PRINTER_WIDTH / 2, 112);
-
-      // B. 디더링된 사진 합성
-      fCtx.drawImage(outputCanvas, 0, headerH);
-
-      // C. 푸터 텍스트 및 바코드 렌더링
-      let curY = headerH + photoH + 28;
-      fCtx.font = 'normal 18px monospace';
-      fCtx.fillText("--------------------------------", PRINTER_WIDTH / 2, curY);
-      
-      curY += 32;
-      fCtx.font = 'bold 22px sans-serif';
-      fCtx.fillText(inputFooter.value || '', PRINTER_WIDTH / 2, curY);
-
-      if (chkTimestamp.checked) {
-        curY += 26;
-        fCtx.font = 'normal 18px monospace';
-        fCtx.fillText(previewDateTime.textContent, PRINTER_WIDTH / 2, curY);
-        curY += 22;
-        fCtx.fillText("TXID: #8942-TM30-01", PRINTER_WIDTH / 2, curY);
+      for (let y = 0; y < targetHeight; y++) {
+        processed[y * targetWidth] = rawLuma[y * targetWidth];
+        processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
       }
 
-      curY += 20;
-      fCtx.font = 'bold 20px monospace';
-      fCtx.fillText("||| | ||||| ||| ||||||| |||", PRINTER_WIDTH / 2, curY);
-      curY += 20;
-      fCtx.font = '16px sans-serif';
-      fCtx.fillText("THANK YOU!", PRINTER_WIDTH / 2, curY);
+      // [4단계] Atkinson Dithering (THRESHOLD 140)
+      const THRESHOLD = 140;
 
-      return fCtx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
-    }
+      for (let y = 0; y < targetHeight; y++) {
+        const row = y * targetWidth;
+        const next1 = (y + 1) * targetWidth;
+        const next2 = (y + 2) * targetWidth;
 
-    // ESC/POS 표준 래스터 명령어(GS v 0) 바이너리 빌더
-    function buildEscPosRasterData(imageData) {
-      const width = imageData.width;
-      const height = imageData.height;
-      const widthBytes = Math.ceil(width / 8); // 576 / 8 = 72 bytes
-      
-      const commands = [];
-      
-      // 1. 프린터 초기화 (ESC @)
-      commands.push(0x1B, 0x40);
+        for (let x = 0; x < targetWidth; x++) {
+          const idx = row + x;
+          const oldVal = processed[idx];
+          const newVal = oldVal < THRESHOLD ? 0 : 255;
+          processed[idx] = newVal;
 
-      // 2. 이중 가열 모드(Double Strike) 활성화 시 농도 짙어짐 (ESC G 1)
-      if (chkDoubleStrike.checked) {
-        commands.push(0x1B, 0x47, 0x01);
-      }
+          const err = (oldVal - newVal) >> 3;
 
-      // 3. 줄 간격 0으로 설정 (ESC 3 0) - 세로 갭 없는 정밀 래스터 인쇄
-      commands.push(0x1B, 0x33, 0x00);
+          if (err !== 0) {
+            if (x + 1 < targetWidth) processed[idx + 1] += err;
+            if (x + 2 < targetWidth) processed[idx + 2] += err;
 
-      // 4. GS v 0 래스터 비트맵 명령 구조:
-      // GS (0x1D) 'v' (0x76) '0' (0x30) m (0: normal) xL xH yL yH
-      const m = 0; // normal mode
-      const xL = widthBytes & 0xFF;
-      const xH = (widthBytes >> 8) & 0xFF;
-      const yL = height & 0xFF;
-      const yH = (height >> 8) & 0xFF;
+            if (y + 1 < targetHeight) {
+              if (x - 1 >= 0) processed[next1 + (x - 1)] += err;
+              processed[next1 + x] += err;
+              if (x + 1 < targetWidth) processed[next1 + (x + 1)] += err;
+            }
 
-      commands.push(0x1D, 0x76, 0x30, m, xL, xH, yL, yH);
-
-      // 5. 픽셀 데이터 -> 1비트 MSB 전송
-      const data = imageData.data;
-      for (let y = 0; y < height; y++) {
-        for (let b = 0; b < widthBytes; b++) {
-          let byteVal = 0;
-          for (let bit = 0; bit < 8; bit++) {
-            const x = b * 8 + bit;
-            if (x < width) {
-              const idx = (y * width + x) * 4;
-              // 흑백 판정: R값이 128 미만이면 검은색(도트 찍음 = 1)
-              const isBlack = data[idx] < 128;
-              if (isBlack) {
-                byteVal |= (1 << (7 - bit));
-              }
+            if (y + 2 < targetHeight) {
+              processed[next2 + x] += err;
             }
           }
-          commands.push(byteVal);
         }
       }
 
-      // 6. 인쇄 후 여백 이송 및 오토 커팅 (GS V 66 3)
-      commands.push(0x1B, 0x64, 0x04); // 용지 4라인 배출
-      commands.push(0x1D, 0x56, 0x42, 0x00); // 부분 커팅 (Partial Cut)
+      // [5단계] 감열지 최적화 1-bit 순수 흑백 버퍼 기록
+      for (let i = 0; i < totalPixels; i++) {
+        const idx = i * 4;
+        const c = processed[i] < 128 ? 0 : 255;
+        data[idx] = c;
+        data[idx + 1] = c;
+        data[idx + 2] = c;
+        data[idx + 3] = 255;
+      }
 
-      return new Uint8Array(commands);
+      dCtx.putImageData(imgData, 0, 0);
+      return ditherCanvas;
     }
 
-    // --- 6. 블루투스(BLE) 통신 모듈 ---
-    // TM-m30III Web Bluetooth 서비스 UUID 필터링
-    const EPSON_SERVICES = [
-      'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Epson 표준 프린터 서비스
-      '000018f0-0000-1000-8000-00805f9b34fb',
-      '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // 공용 투명 직렬 포트
-    ];
+    /**
+     * 영수증 스티커 합성 렌더링 함수
+     * Epson TM-m30III 80mm 용지 완벽 가득 채움 원본 레이아웃 규격
+     */
+    function renderReceiptStrip(isDithered = false) {
+      if (!singleCapturedFrame) return '';
 
-    async function connectBluetooth() {
-      if (!navigator.bluetooth || !navigator.bluetooth.requestDevice) {
-        showToast('Web Bluetooth를 지원하지 않는 브라우저입니다. 시스템 인쇄 또는 IP 인쇄를 이용해주세요.', 'ph-warning');
-        infoModal.classList.remove('hidden');
-        return;
+      const tw = 800;
+      const th = 1080;
+      thermalCanvas.width = tw;
+      thermalCanvas.height = th;
+
+      // 1) 흰색 배경
+      thermalCtx.fillStyle = '#ffffff';
+      thermalCtx.fillRect(0, 0, tw, th);
+
+      // 2) 상단 헤더 텍스트
+      thermalCtx.textAlign = 'center';
+      thermalCtx.fillStyle = '#000000';
+      thermalCtx.font = '900 54px sans-serif';
+      thermalCtx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 106);
+
+      thermalCtx.font = 'bold 28px sans-serif';
+      thermalCtx.fillStyle = '#222222';
+      thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 150);
+
+      // 세련된 감열 영수증 데코선 함수
+      const drawDecoLine = (y) => {
+        thermalCtx.save();
+        thermalCtx.strokeStyle = '#000000';
+        thermalCtx.lineWidth = 1.5;
+        thermalCtx.beginPath();
+        thermalCtx.moveTo(30, y - 4);
+        thermalCtx.lineTo(tw - 30, y - 4);
+        thermalCtx.stroke();
+
+        thermalCtx.lineWidth = 2.5;
+        thermalCtx.setLineDash([12, 6, 4, 6]);
+        thermalCtx.beginPath();
+        thermalCtx.moveTo(30, y + 2);
+        thermalCtx.lineTo(tw - 30, y + 2);
+        thermalCtx.stroke();
+        thermalCtx.restore();
+      };
+
+      // 3) Speer Girl's~~ 다음 한 줄 여백 후 상단 구분선 배치
+      drawDecoLine(194);
+
+      // 4) 구분선과 사진 사이 한 줄 여백
+      const photoW = 740;
+      const photoH = 555;
+      const photoX = (tw - photoW) / 2;
+      const photoY = 228;
+
+      if (isDithered) {
+        const ditheredPhoto = applyThermalPortraitDithering(singleCapturedFrame, photoW, photoH);
+        thermalCtx.drawImage(ditheredPhoto, photoX, photoY, photoW, photoH);
+      } else {
+        thermalCtx.drawImage(singleCapturedFrame, photoX, photoY, photoW, photoH);
       }
+
+      // 사진 외곽선
+      thermalCtx.strokeStyle = '#000000';
+      thermalCtx.lineWidth = 3;
+      thermalCtx.strokeRect(photoX, photoY, photoW, photoH);
+
+      // 5) 사진 아래 한 줄 여백 후 하단 구분선 배치
+      const bottomLineY = photoY + photoH + 34;
+      drawDecoLine(bottomLineY);
+
+      // 6) DATE 위쪽 한 줄 띄움 적용 + 날짜 / 감사 문구 2단계 확대 유지
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+      const dateTextY = bottomLineY + 62;
+      thermalCtx.font = 'bold 27px monospace';
+      thermalCtx.fillStyle = '#000000';
+      thermalCtx.fillText(`DATE: ${dateStr}`, tw / 2, dateTextY);
+
+      thermalCtx.font = 'bold 33px sans-serif';
+      thermalCtx.fillStyle = '#000000';
+      thermalCtx.fillText('방문해주셔서 감사합니다!!', tw / 2, dateTextY + 46);
+
+      // 7) 바코드 그래픽
+      const barcodeY = dateTextY + 70;
+      const barcodeH = 40;
+      const barPattern = [
+        3,2,1,3,2,1,4,1,2,3,1,2,4,2,1,3,2,1,3,4,1,2,3,1,2,4,1,3,2,1,
+        2,3,1,4,2,1,3,2,1,3,2,4,1,2,3,1,3,2,4,1,2,1,3,2,4,1,3,2,1,2,
+        3,1,2,4,1,3,2,1,3,2,4,1,2,3,1,4,2,1,3,2,1,3,4,1,2,3,1,2,4,1
+      ];
+
+      let totalBarW = 0;
+      for (let i = 0; i < barPattern.length; i++) {
+        totalBarW += barPattern[i] * 2.8;
+      }
+      let curBx = (tw - totalBarW) / 2;
+
+      thermalCtx.fillStyle = '#000000';
+      for (let i = 0; i < barPattern.length; i++) {
+        const w = barPattern[i] * 2.8;
+        if (i % 2 === 0) {
+          thermalCtx.fillRect(curBx, barcodeY, w - 0.5, barcodeH);
+        }
+        curBx += w;
+      }
+
+      // 8) 바코드 밑 작은 글꼴 1줄 분량 간격 삽입 후 텍스트 배치
+      thermalCtx.font = 'bold 26px sans-serif';
+      thermalCtx.fillStyle = '#111111';
+      thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 32);
+
+      return thermalCanvas.toDataURL('image/png');
+    }
+
+    /**
+     * 감열 프린터 출력 파이프라인
+     */
+    async function printReceiptSticker() {
+      printActionBtn.disabled = true;
+      printBtnLabel.innerText = "인쇄 준비 중...";
+      clearTimeout(autoResetTimer);
 
       try {
-        showToast('TM-m30III 프린터 검색 중...', 'ph-magnifying-glass');
-        bluetoothDevice = await navigator.bluetooth.requestDevice({
-          filters: [
-            { namePrefix: 'TM-m30' },
-            { namePrefix: 'TM-' },
-            { namePrefix: 'EPSON' }
-          ],
-          optionalServices: [
-            ...EPSON_SERVICES,
-            'battery_service',
-            'device_information'
-          ]
-        });
+        // 인쇄용 그레이스케일 디더링 캔버스 렌더링
+        finalDitheredDataUrl = renderReceiptStrip(true);
 
-        connStatusDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
-        connStatusText.textContent = "연결 중...";
-
-        bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
-        const server = await bluetoothDevice.gatt.connect();
-        
-        // 사용 가능한 서비스 및 특성 탐색
-        const services = await server.getPrimaryServices();
-        let targetChar = null;
-
-        for (const service of services) {
-          try {
-            const characteristics = await service.getCharacteristics();
-            for (const c of characteristics) {
-              if (c.properties.write || c.properties.writeWithoutResponse) {
-                targetChar = c;
-                break;
-              }
-            }
-          } catch(e) {}
-          if (targetChar) break;
-        }
-
-        if (targetChar) {
-          bluetoothCharacteristic = targetChar;
-          connStatusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
-          connStatusText.textContent = bluetoothDevice.name || "TM-m30III 연결됨";
-          showToast(`'${bluetoothDevice.name}'에 연결되었습니다!`, 'ph-check-circle');
-          btnConnectBT.classList.replace('bg-indigo-600', 'bg-emerald-600');
-          btnConnectBT.innerHTML = `<i class="ph-bold ph-check"></i><span>연결 완료</span>`;
-        } else {
-          throw new Error('프린터 전송 특성(Characteristic)을 찾지 못했습니다.');
-        }
-
-      } catch (err) {
-        console.error('BLE 연결 실패:', err);
-        connStatusDot.className = "w-2 h-2 rounded-full bg-rose-500";
-        connStatusText.textContent = "블루투스 미연결";
-
-        // 브라우저 샌드박스 Permissions Policy 차단 시 친절한 안내 제공
-        if (err.name === 'SecurityError' || (err.message && err.message.includes('permissions policy'))) {
-          showToast('보안 정책상 iFrame 내 블루투스가 제한되었습니다. 상단 가이드를 확인하세요.', 'ph-shield-warning');
-          infoModal.classList.remove('hidden');
-        } else if (err.name === 'NotFoundError') {
-          showToast('프린터 연결이 취소되었습니다.', 'ph-info');
-        } else {
-          showToast('블루투스 연결에 실패했습니다: ' + (err.message || '오류 발생'), 'ph-x-circle');
-        }
-      }
-    }
-
-    function onDisconnected() {
-      bluetoothCharacteristic = null;
-      connStatusDot.className = "w-2 h-2 rounded-full bg-rose-500";
-      connStatusText.textContent = "블루투스 미연결";
-      btnConnectBT.classList.replace('bg-emerald-600', 'bg-indigo-600');
-      btnConnectBT.innerHTML = `<i class="ph-bold ph-bluetooth"></i><span>프린터 연결</span>`;
-      showToast('프린터 연결이 해제되었습니다.', 'ph-warning');
-    }
-
-    btnConnectBT.addEventListener('click', connectBluetooth);
-
-    // 블록 단위 청크 전송 (BLE MTU 버퍼 초과 방지: 512바이트씩 분할 전송)
-    async function sendDataToPrinter(bytes) {
-      if (!bluetoothCharacteristic) {
-        throw new Error('프린터가 블루투스로 연결되어 있지 않습니다.');
-      }
-      const CHUNK_SIZE = 512;
-      for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
-        const chunk = bytes.slice(offset, offset + CHUNK_SIZE);
-        if (bluetoothCharacteristic.writeValueWithoutResponse) {
-          await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
-        } else {
-          await bluetoothCharacteristic.writeValue(chunk);
-        }
-        // 버퍼 슬립
-        await new Promise(r => setTimeout(r, 15));
-      }
-    }
-
-    // --- 7. Epson ePOS-Print (네트워크 IP 직접 인쇄) 모듈 ---
-    // base64 래스터 이미지를 Epson ePOS-XML 형식으로 포장하여 전송
-    async function printViaEposNetwork(imageData, targetIp) {
-      const width = imageData.width;
-      const height = imageData.height;
-      const widthBytes = Math.ceil(width / 8);
-
-      // 래스터 비트맵 데이터를 바이너리 버퍼로 변환
-      const rasterBytes = new Uint8Array(widthBytes * height);
-      const data = imageData.data;
-      let offset = 0;
-      for (let y = 0; y < height; y++) {
-        for (let b = 0; b < widthBytes; b++) {
-          let byteVal = 0;
-          for (let bit = 0; bit < 8; bit++) {
-            const x = b * 8 + bit;
-            if (x < width) {
-              const idx = (y * width + x) * 4;
-              if (data[idx] < 128) {
-                byteVal |= (1 << (7 - bit));
-              }
-            }
+        if (browserPrintImg) {
+          browserPrintImg.src = finalDitheredDataUrl;
+          if (browserPrintImg.decode) {
+            try { await browserPrintImg.decode(); } catch (e) {}
           }
-          rasterBytes[offset++] = byteVal;
         }
-      }
 
-      // 바이너리를 base64 문자열로 변환
-      let binaryStr = '';
-      const chunkSize = 8192;
-      for (let i = 0; i < rasterBytes.length; i += chunkSize) {
-        binaryStr += String.fromCharCode.apply(null, rasterBytes.subarray(i, i + chunkSize));
-      }
-      const base64Data = btoa(binaryStr);
+        printBtnLabel.innerText = "프린터 전송 중...";
 
-      // ePOS XML 생성
-      const devId = printerDevId.value.trim() || 'local_printer';
-      const soapBody = `<?xml version="1.0" encoding="utf-8"?>
-<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-  <s:Body>
-    <epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-      <image width="${width}" height="${height}" color="none" mode="mono">${base64Data}</image>
-      <feed line="4"/>
-      <cut type="feed"/>
-    </epos-print>
-  </s:Body>
-</s:Envelope>`;
-
-      const targetUrl = `http://${targetIp}/cgi-bin/epos/service.cgi?devid=${encodeURIComponent(devId)}&timeout=10000`;
-      
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/xml; charset=utf-8',
-          'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
-          'SOAPAction': '""'
-        },
-        body: soapBody,
-        mode: 'no-cors' // 브라우저 CORS 제약 우회
-      });
-
-      return response;
-    }
-
-    // --- 8. 인쇄 트리거 핸들러 ---
-    btnPrint.addEventListener('click', async () => {
-      if (!originalImageLoaded) {
-        showToast('먼저 사진을 촬영하거나 업로드해주세요.', 'ph-warning');
-        return;
-      }
-
-      const fullImgData = generateFullReceiptBitmapData();
-
-      // 블루투스가 정상 연결되어 있는 경우
-      if (bluetoothCharacteristic) {
-        try {
-          btnPrint.disabled = true;
-          btnPrint.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i><span>ESC/POS 전송 중...</span>`;
-          showToast('ESC/POS 래스터 변환 중...', 'ph-gear');
-          const escPosBytes = buildEscPosRasterData(fullImgData);
-          await sendDataToPrinter(escPosBytes);
-          showToast('성공적으로 인쇄되었습니다!', 'ph-check-circle');
-        } catch (err) {
-          console.error(err);
-          showToast('블루투스 전송 에러 발생. 시스템 인쇄를 시작합니다.', 'ph-warning');
-          setTimeout(() => window.print(), 500);
-        } finally {
-          btnPrint.disabled = false;
-          btnPrint.innerHTML = `<i class="ph-bold ph-printer text-xl"></i><span>TM-m30III 영수증 인쇄하기</span>`;
-        }
-      } else {
-        // 블루투스가 없을 때: 아이패드에서 가장 안정적인 시스템 인쇄 창(AirPrint) 호출
-        showToast('블루투스 미연결: 시스템 인쇄 창을 띄웁니다.', 'ph-info');
         setTimeout(() => {
           window.print();
+          printBtnLabel.innerText = "출력 완료!";
+          showToast("영수증 인쇄가 시작되었습니다! ✨", "🎉");
+
+          setTimeout(() => {
+            printActionBtn.disabled = false;
+            printBtnLabel.innerText = "영수증 인쇄하기";
+            resetBoothToCamera();
+          }, 3000);
         }, 300);
-      }
-    });
 
-    // IP 네트워크 인쇄 트리거
-    btnIpPrint.addEventListener('click', () => {
-      netModal.classList.remove('hidden');
-    });
-    btnNetSettings.addEventListener('click', () => {
-      netModal.classList.remove('hidden');
-    });
-    btnCloseNetModal.addEventListener('click', () => {
-      netModal.classList.add('hidden');
-    });
-
-    btnSaveIpAndPrint.addEventListener('click', async () => {
-      const ip = printerIpInput.value.trim();
-      if (!ip) {
-        showToast('프린터 IP를 입력해주세요.', 'ph-warning');
-        return;
-      }
-      localStorage.setItem('tm30_ip', ip);
-      netModal.classList.add('hidden');
-
-      if (!originalImageLoaded) {
-        showToast('먼저 사진을 촬영하거나 업로드해주세요.', 'ph-warning');
-        return;
-      }
-
-      try {
-        btnIpPrint.disabled = true;
-        showToast(`프린터(${ip})로 전송 중...`, 'ph-spinner');
-        const fullImgData = generateFullReceiptBitmapData();
-        await printViaEposNetwork(fullImgData, ip);
-        showToast(`인쇄 명령이 프린터(${ip})로 전달되었습니다!`, 'ph-check-circle');
       } catch (err) {
-        console.error('IP Print Error:', err);
-        showToast('네트워크 인쇄 요청 전송 완료 (프린터 출력을 확인하세요)', 'ph-info');
-      } finally {
-        btnIpPrint.disabled = false;
+        console.error("Print Pipeline Error:", err);
+        showToast("인쇄 처리 오류: " + err.message, "⚠️");
+        printActionBtn.disabled = false;
+        printBtnLabel.innerText = "다시 인쇄 시도";
       }
-    });
+    }
 
-    // 바이너리 파일 다운로드 (.bin - SD카드/FTP/USB/TM Utility 직접 인쇄용)
-    btnDownloadBin.addEventListener('click', () => {
-      if (!originalImageLoaded) {
-        showToast('먼저 사진을 준비해주세요.', 'ph-warning');
-        return;
+    /**
+     * 1컷 촬영 시퀀스
+     */
+    async function runShootingSequence() {
+      startShootBtn.disabled = true;
+      singleCapturedFrame = null;
+      shotStatusHud.innerText = `SHOT [ 1 / 1 ]`;
+
+      // 4초 카운트다운
+      countdownBox.style.display = 'flex';
+      for (let c = 4; c >= 1; c--) {
+        countdownNumber.innerText = c;
+        await sleep(1000);
       }
-      const fullImgData = generateFullReceiptBitmapData();
-      const escPosBytes = buildEscPosRasterData(fullImgData);
-      
-      const blob = new Blob([escPosBytes], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tm30_photo_${Date.now()}.bin`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('ESC/POS 바이너리 파일이 다운로드되었습니다.', 'ph-download-simple');
-    });
+      countdownBox.style.display = 'none';
 
-    // 시스템 브라우저 / AirPrint 인쇄
-    btnSystemPrint.addEventListener('click', () => {
-      window.print();
-    });
+      // 플래시 애니메이션
+      cameraFlashOverlay.classList.remove('flash-active');
+      void cameraFlashOverlay.offsetWidth;
+      cameraFlashOverlay.classList.add('flash-active');
 
-    // 도움말 모달 조작
-    btnInfoModal.addEventListener('click', () => infoModal.classList.remove('hidden'));
-    btnCloseModal.addEventListener('click', () => infoModal.classList.add('hidden'));
-    btnModalConfirm.addEventListener('click', () => infoModal.classList.add('hidden'));
+      const vw = webcamView.videoWidth || 1280;
+      const vh = webcamView.videoHeight || 720;
 
-    // --- 초기 실행: 기본 샘플 이미지 생성 (첫 로드 시 안내용) ---
-    window.onload = function () {
-      initCamera();
-      
-      // 초기 프리뷰용 기본 안내 패턴 생성
-      sourceCanvas.width = PRINTER_WIDTH;
-      sourceCanvas.height = Math.round(PRINTER_WIDTH * 4 / 3);
-      sourceCtx.fillStyle = '#f0f0f0';
-      sourceCtx.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
-      
-      // 샘플 그래디언트 원
-      const grad = sourceCtx.createRadialGradient(288, 384, 20, 288, 384, 200);
-      grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(0.5, '#777777');
-      grad.addColorStop(1, '#000000');
-      sourceCtx.fillStyle = grad;
-      sourceCtx.beginPath();
-      sourceCtx.arc(288, 384, 180, 0, Math.PI * 2);
-      sourceCtx.fill();
+      // 4:3 뷰파인더 앵글 중앙 크롭 매핑
+      const targetAspect = 4 / 3;
+      let cropW, cropH;
+      if (vw / vh > targetAspect) {
+        cropH = vh;
+        cropW = vh * targetAspect;
+      } else {
+        cropW = vw;
+        cropH = vw / targetAspect;
+      }
+      const cropX = (vw - cropW) / 2;
+      const cropY = (vh - cropH) / 2;
 
-      sourceCtx.fillStyle = '#000000';
-      sourceCtx.font = 'bold 36px sans-serif';
-      sourceCtx.textAlign = 'center';
-      sourceCtx.fillText('READY TO SHOOT', 288, 384);
-      sourceCtx.font = '22px sans-serif';
-      sourceCtx.fillText('셔터를 눌러 촬영하세요', 288, 430);
+      const frameCanvas = document.createElement('canvas');
+      frameCanvas.width = 800;
+      frameCanvas.height = 600;
+      const fCtx = frameCanvas.getContext('2d');
+      fCtx.imageSmoothingEnabled = true;
+      fCtx.imageSmoothingQuality = 'high';
 
-      originalImageLoaded = true;
-      processImagePipeline();
-    };
+      // 인쇄 및 결과물: 글씨와 로고가 똑바로 읽히도록 원본 정방향(비반전)으로 캡처
+      fCtx.drawImage(webcamView, cropX, cropY, cropW, cropH, 0, 0, frameCanvas.width, frameCanvas.height);
+
+      singleCapturedFrame = frameCanvas;
+      await sleep(200);
+
+      // [미리보기]: 생생한 원본 컬러(isDithered = false)로 표시
+      finalColorDataUrl = renderReceiptStrip(false);
+      stickerPreviewImg.src = finalColorDataUrl;
+
+      captureSection.style.display = 'none';
+      resultSection.style.display = 'flex';
+      printActionBtn.disabled = false;
+      printBtnLabel.innerText = "영수증 인쇄하기";
+
+      clearTimeout(autoResetTimer);
+      autoResetTimer = setTimeout(resetBoothToCamera, CONFIG.AUTO_RESET_SECONDS * 1000);
+    }
+
+    function resetBoothToCamera() {
+      clearTimeout(autoResetTimer);
+      resultSection.style.display = 'none';
+      captureSection.style.display = 'flex';
+      startShootBtn.disabled = false;
+      shotStatusHud.innerText = "SHOT [ 0 / 1 ]";
+      singleCapturedFrame = null;
+    }
+
+    /**
+     * 웹캠 하드웨어 초기화
+     */
+    async function initWebcam() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: false
+        });
+        webcamView.srcObject = stream;
+        webcamView.style.transform = 'scaleX(-1)';
+        webcamView.style.webkitTransform = 'scaleX(-1)';
+        shotStatusHud.innerText = "SHOT [ 0 / 1 ]";
+      } catch (err) {
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          webcamView.srcObject = fallbackStream;
+          webcamView.style.transform = 'scaleX(-1)';
+          webcamView.style.webkitTransform = 'scaleX(-1)';
+          shotStatusHud.innerText = "SHOT [ 0 / 1 ]";
+        } catch (err2) {
+          console.error("Camera Init Error:", err2);
+          shotStatusHud.innerText = "CAMERA ERROR";
+          showToast("카메라 권한을 확인해주세요.", "⚠️");
+        }
+      }
+    }
+
+    /**
+     * 전체화면 토글 (정상 진입 및 확실한 복귀 지원)
+     */
+    async function toggleFullscreen() {
+      try {
+        const isFull = !!(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement
+        );
+
+        if (!isFull) {
+          const target = document.documentElement;
+          if (target.requestFullscreen) {
+            await target.requestFullscreen();
+          } else if (target.webkitRequestFullscreen) {
+            await target.webkitRequestFullscreen();
+          } else if (target.mozRequestFullScreen) {
+            await target.mozRequestFullScreen();
+          } else if (target.msRequestFullscreen) {
+            await target.msRequestFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            await document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            await document.msExitFullscreen();
+          }
+        }
+      } catch (err) {
+        console.warn("Fullscreen toggle error:", err);
+      }
+    }
+
+    function syncFullscreenUI() {
+      const isFull = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+      const icon = document.getElementById('fullscreenIconSvg');
+      if (icon) {
+        if (isFull) {
+          icon.innerHTML = '<path d="M14 14h5v2h-3v3h-2v-5m-4 0v5H8v-3H5v-2h5m4-9v5h5V8h-3V5h-2m-6 3V5H6v3h3v2H4V8h4Z"/>';
+        } else {
+          icon.innerHTML = '<path d="M5 5h5v2H7v3H5V5m9 0h5v5h-2V7h-3V5m3 9h2v5h-5v-2h3v-3m-9 3v2H5v-5h2v3h3Z"/>';
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', syncFullscreenUI);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
+    document.addEventListener('mozfullscreenchange', syncFullscreenUI);
+    document.addEventListener('MSFullscreenChange', syncFullscreenUI);
+
+    /**
+     * 토스트 알림창 팝업
+     */
+    function showToast(msg, icon = "✨") {
+      const toast = document.getElementById('appToast');
+      document.getElementById('toastMessage').innerText = msg;
+      document.getElementById('toastIcon').innerText = icon;
+      toast.style.opacity = '1';
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+      }, 3200);
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // 윈도우 로드 시 웹캠 시동
+    window.onload = initWebcam;
   </script>
 </body>
 </html>
