@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>2026 AI·SW체험 한마당 수피아여고 포토부스</title>
 
   <style>
@@ -220,8 +220,8 @@
       <!-- 헤더와의 간격을 줄이고 크기를 확대한 직각 뷰파인더 -->
       <div id="viewfinderFrame" style="position: relative; width: min(92vw, 73vh, 1020px); aspect-ratio: 4 / 3; background: #000; border: 3.5px solid #38bdf8; box-shadow: 0 25px 60px -10px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.25); display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 0;">
 
-        <!-- 웹캠 비디오 엘리먼트 (글씨가 바르게 읽히도록 정방향) -->
-        <video id="webcamView" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(1); -webkit-transform: scaleX(1);"></video>
+        <!-- 웹캠 비디오 엘리먼트 (아이패드 Safari 인라인 재생 속성 적용) -->
+        <video id="webcamView" autoplay playsinline webkit-playsinline muted style="width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); -webkit-transform: scaleX(-1);"></video>
 
         <!-- 코너 L자 브래킷 -->
         <div class="corner-bracket corner-tl"></div>
@@ -274,7 +274,7 @@
 
     </div>
 
-    <!-- [B] 결과 화면 (영수증 미리보기 + 블루투스 인쇄 컨트롤) -->
+    <!-- [B] 결과 화면 (영수증 미리보기 + 감열 인쇄 컨트롤) -->
     <div id="resultSection" style="display: none; width: 100%; height: 100%; flex-direction: row; align-items: center; justify-content: center; gap: 32px; min-height: 0; padding: 0 10px;">
 
       <!-- 좌측: 영수증 스티커 미리보기 -->
@@ -292,7 +292,7 @@
             <span>🎉 영수증 사진이 완성되었습니다!</span>
           </h2>
           <p style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
-            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 대화상자 없이 블루투스로 즉시 인쇄됩니다.
+            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 동일 Wi-Fi에 연결된 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 즉시 인쇄됩니다.
           </p>
         </div>
 
@@ -362,6 +362,7 @@
     let autoResetTimer = null;
     let finalColorDataUrl = '';
     let finalDitheredDataUrl = '';
+    let currentMediaStream = null;
 
     /**
      * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
@@ -589,7 +590,7 @@
     }
 
     /**
-     * 감열 프린터 출력 파이프라인
+     * 감열 프린터 출력 파이프라인 (동일 Wi-Fi 연결 시 AirPrint TM-m30III 완벽 지원)
      */
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
@@ -702,35 +703,69 @@
     }
 
     /**
-     * 웹캠 하드웨어 초기화
+     * 웹캠 하드웨어 초기화 (아이패드 iPadOS Safari 오프라인 완벽 구동)
      */
     async function initWebcam() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+      if (currentMediaStream) {
+        try {
+          currentMediaStream.getTracks().forEach(t => t.stop());
+        } catch (e) {}
+      }
+
+      // iPadOS Safari 오프라인 constraints 단계별 시도
+      const constraintsAttempts = [
+        {
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280, min: 640 },
+            height: { ideal: 720, min: 480 }
+          },
           audio: false
-        });
+        },
+        {
+          video: { facingMode: 'user' },
+          audio: false
+        },
+        {
+          video: true,
+          audio: false
+        }
+      ];
+
+      let stream = null;
+      for (const attempt of constraintsAttempts) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(attempt);
+          if (stream) break;
+        } catch (err) {
+          console.warn("Retrying constraints attempt:", err);
+        }
+      }
+
+      if (stream) {
+        currentMediaStream = stream;
         webcamView.srcObject = stream;
+        webcamView.setAttribute('playsinline', '');
+        webcamView.setAttribute('webkit-playsinline', '');
+        webcamView.muted = true;
         webcamView.style.transform = 'scaleX(-1)';
         webcamView.style.webkitTransform = 'scaleX(-1)';
-        shotStatusHud.innerText = "SHOT [ 0 / 1 ]";
-      } catch (err) {
+
         try {
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          webcamView.srcObject = fallbackStream;
-          webcamView.style.transform = 'scaleX(-1)';
-          webcamView.style.webkitTransform = 'scaleX(-1)';
+          await webcamView.play();
           shotStatusHud.innerText = "SHOT [ 0 / 1 ]";
-        } catch (err2) {
-          console.error("Camera Init Error:", err2);
-          shotStatusHud.innerText = "CAMERA ERROR";
-          showToast("카메라 권한을 확인해주세요.", "⚠️");
+        } catch (playErr) {
+          console.warn("Autoplay deferred by iPadOS gesture policy", playErr);
+          shotStatusHud.innerText = "TOUCH TO START";
         }
+      } else {
+        shotStatusHud.innerText = "CAMERA ERROR";
+        showToast("카메라 권한을 확인해주세요.", "⚠️");
       }
     }
 
     /**
-     * 전체화면 토글 (정상 진입 및 확실한 복귀 지원)
+     * 전체화면 토글 (iPadOS 및 표준 브라우저 안전 처리)
      */
     async function toggleFullscreen() {
       try {
@@ -751,6 +786,8 @@
             await target.mozRequestFullScreen();
           } else if (target.msRequestFullscreen) {
             await target.msRequestFullscreen();
+          } else {
+            showToast("아이패드 전체화면: 홈 화면에 추가를 권장합니다.", "📱");
           }
         } else {
           if (document.exitFullscreen) {
@@ -764,7 +801,7 @@
           }
         }
       } catch (err) {
-        console.warn("Fullscreen toggle error:", err);
+        console.warn("Fullscreen toggle warning:", err);
       }
     }
 
@@ -790,6 +827,15 @@
     document.addEventListener('mozfullscreenchange', syncFullscreenUI);
     document.addEventListener('MSFullscreenChange', syncFullscreenUI);
 
+    // 아이패드 iPadOS Safari 오프라인 자동재생 보호 해제용 원터치 리스너
+    document.addEventListener('touchstart', function unlockIOSAutoplay() {
+      if (webcamView && webcamView.paused && webcamView.srcObject) {
+        webcamView.play().then(() => {
+          shotStatusHud.innerText = "SHOT [ 0 / 1 ]";
+        }).catch(() => {});
+      }
+    }, { once: true, passive: true });
+
     /**
      * 토스트 알림창 팝업
      */
@@ -809,7 +855,8 @@
     }
 
     // 윈도우 로드 시 웹캠 시동
-    window.onload = initWebcam;
+    window.addEventListener('DOMContentLoaded', initWebcam);
+    window.addEventListener('load', initWebcam);
   </script>
 </body>
 </html>
