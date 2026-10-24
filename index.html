@@ -648,7 +648,8 @@
             'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
             '49535343-fe7d-4ae5-8fa9-9fafd205e455',
             '0000ffe0-0000-1000-8000-00805f9b34fb',
-            '0000ff00-0000-1000-8000-00805f9b34fb'
+            '0000ff00-0000-1000-8000-00805f9b34fb',
+            '0000af00-0000-1000-8000-00805f9b34fb'
           ]
         });
 
@@ -656,26 +657,38 @@
         const server = await device.gatt.connect();
         bluetoothDevice = device;
 
+        device.addEventListener('gattserverdisconnected', () => {
+          bluetoothDevice = null;
+          bluetoothCharacteristic = null;
+          showToast("프린터 연결이 해제되었습니다.", "ℹ️");
+        });
+
         // 사용 가능한 서비스 및 특성(Characteristic) 탐색
         const services = await server.getPrimaryServices();
+        let targetCharacteristic = null;
+
         for (const service of services) {
           try {
             const characteristics = await service.getCharacteristics();
             for (const char of characteristics) {
-              if (char.properties.write || char.properties.writeWithoutResponse) {
-                bluetoothCharacteristic = char;
+              const props = char.properties;
+              if (props.writeWithoutResponse || props.write) {
+                targetCharacteristic = char;
                 break;
               }
             }
-            if (bluetoothCharacteristic) break;
-          } catch (e) {}
+            if (targetCharacteristic) break;
+          } catch (e) {
+            console.warn("Service characteristic scan fallback:", e);
+          }
         }
 
-        if (bluetoothCharacteristic) {
+        if (targetCharacteristic) {
+          bluetoothCharacteristic = targetCharacteristic;
           showToast("TM-m30III 블루투스 연결 완료! 🟢", "🖨️");
           return bluetoothCharacteristic;
         } else {
-          throw new Error("쓰기 가능한 블루투스 특성을 찾지 못했습니다.");
+          throw new Error("쓰기 가능한 블루투스 통신 채널을 찾지 못했습니다.");
         }
       } catch (err) {
         console.warn("Bluetooth connection failed or cancelled:", err);
@@ -685,7 +698,7 @@
     }
 
     /**
-     * 블루투스 패킷 분할 전송 (BLE MTU 크기에 맞춘 안정적 스트리밍)
+     * 블루투스 패킷 분할 전송 (BLE 버퍼 오버플로우 방지 100바이트 스트리밍)
      */
     async function sendBytesToBluetooth(bytes) {
       if (!bluetoothCharacteristic || !bluetoothDevice || !bluetoothDevice.gatt.connected) {
@@ -693,15 +706,30 @@
         if (!char) throw new Error("프린터가 연결되지 않았습니다.");
       }
 
-      const chunkSize = 128;
+      const chunkSize = 100;
+      const totalChunks = Math.ceil(bytes.length / chunkSize);
+
       for (let i = 0; i < bytes.length; i += chunkSize) {
         const chunk = bytes.slice(i, i + chunkSize);
-        if (bluetoothCharacteristic.writeValueWithoutResponse) {
-          await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
-        } else {
-          await bluetoothCharacteristic.writeValue(chunk);
+        
+        try {
+          if (bluetoothCharacteristic.properties.writeWithoutResponse) {
+            await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
+          } else {
+            await bluetoothCharacteristic.writeValue(chunk);
+          }
+        } catch (writeErr) {
+          // 일시적 버퍼 지연 시 재시도
+          await sleep(25);
+          if (bluetoothCharacteristic.writeValueWithoutResponse) {
+            await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
+          } else {
+            await bluetoothCharacteristic.writeValue(chunk);
+          }
         }
-        await sleep(15);
+
+        // 안정적인 전송을 위한 미세 딜레이
+        await sleep(12);
       }
     }
 
@@ -738,8 +766,9 @@
 
       } catch (err) {
         console.warn("Direct Bluetooth Print failed:", err);
-        showToast("Bluefy 앱에서 열면 대화상자 없이 바로 인쇄됩니다.", "💡");
+        showToast("인쇄 전송 오류: " + err.message, "⚠️");
 
+        // 브라우저 인쇄 백업
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
@@ -750,7 +779,7 @@
           window.print();
           printActionBtn.disabled = false;
           printBtnLabel.innerText = "영수증 인쇄하기";
-        }, 400);
+        }, 500);
       }
     }
 
