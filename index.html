@@ -611,14 +611,11 @@
     function buildEpsonPrintAssistantPayload() {
       const nativeImg = generateEpsonNativeBase64();
 
-      const xml = '<?xml version="1.0" encoding="utf-8"?>' +
-        '<PrintData>' +
-          '<epos-print xmlns="http://www.epson-pos.com/schemas/2014/03/epos-print">' +
-            '<image width="' + nativeImg.width + '" height="' + nativeImg.height + '" color="color_1" mode="mono">' + nativeImg.base64 + '</image>' +
-            '<feed unit="30"/>' +
-            '<cut type="feed"/>' +
-          '</epos-print>' +
-        '</PrintData>';
+      const xml = '<epos-print xmlns="http://www.epson-pos.com/schemas/2014/03/epos-print">' +
+          '<image width="' + nativeImg.width + '" height="' + nativeImg.height + '" color="color_1" mode="mono">' + nativeImg.base64 + '</image>' +
+          '<feed unit="30"/>' +
+          '<cut type="feed"/>' +
+        '</epos-print>';
 
       return encodeURIComponent(xml);
     }
@@ -639,7 +636,8 @@
 
         // 2) 576 dot 정격 ePOS XML 페이로드 생성 (URL 길이 제한 통과)
         const xmlPayload = buildEpsonPrintAssistantPayload();
-        const epsonAssistantUri = 'epson-tmassistant://print?data=' + xmlPayload;
+        // 엡손 공식 등록 URL Scheme: tmprintassistant://
+        const epsonAssistantUri = 'tmprintassistant://print?ver=1&data-type=eposprintxml&data=' + xmlPayload;
 
         // 3) 엡손 전용 백그라운드 인쇄 엔진 호출
         window.location.href = epsonAssistantUri;
