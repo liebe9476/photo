@@ -197,13 +197,13 @@
       </p>
     </div>
 
-    <!-- 우측 제어 버튼 (프린터 IP 설정 및 전체화면 토글) -->
+    <!-- 우측 제어 버튼 (블루투스 페어링 상태 및 전체화면 토글) -->
     <div style="display: flex; align-items: center; gap: 8px;">
-      <!-- 프린터 IP 설정 버튼 (대화상자 없이 바로 출력하기 위한 설정) -->
-      <button id="printerIpConfigBtn" type="button" onclick="promptPrinterIp()" title="프린터 IP 설정"
+      <!-- 블루투스 프린터 연결 버튼 -->
+      <button id="bleConnectBtn" type="button" onclick="connectBluetoothPrinter()" title="블루투스 프린터 연결"
               class="btn" style="padding: 8px 10px; background: rgba(30, 41, 59, 0.9); color: #38bdf8; border: 1px solid #0284c7; font-size: 12px; z-index: 50;">
-        <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
-          <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+        <svg id="bleStatusIcon" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M14.88 16.29L13 18.17V14.41m0-4.82l1.88 1.88L13 13.35M7 12l4-4V2.5l5.5 5.5L12.5 12l4 4l-5.5 5.5V16l-4-4m4-11v6.17l2.09-2.08L11 3.08v4.09M11 16.83V20.9l2.09-2.09L11 16.83Z"/>
         </svg>
       </button>
 
@@ -300,7 +300,7 @@
             <span>🎉 영수증 사진이 완성되었습니다!</span>
           </h2>
           <p id="resultGuideText" style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
-            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 즉시 인쇄됩니다.
+            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 크롬 블루투스 직통 통신으로 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 대화상자 없이 바로 인쇄됩니다.
           </p>
         </div>
 
@@ -372,8 +372,9 @@
     let finalDitheredDataUrl = '';
     let currentMediaStream = null;
 
-    // 프린터 직접 접속 IP (방금 확인된 프린터 자체 Wi-Fi IP)
-    const PRINTER_DIRECT_IP = '172.16.10.1';
+    // Web Bluetooth GATT 변수
+    let bluetoothDevice = null;
+    let bluetoothCharacteristic = null;
 
     /**
      * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
@@ -590,87 +591,146 @@
     }
 
     /**
-     * Epson TM-m30III 전용 1-bit 래스터 그래픽 데이터 패킹 및 ePOS 직통 전송
-     * 사파리 인쇄창을 100% 우회하여 대화상자 없이 1초 만에 인쇄합니다.
+     * Epson TM-m30III 전용 1-bit 순수 ESC/POS 바이너리 커맨드 생성
+     * 유효 인쇄 폭 576 dots (80mm 롤 용지 표준 규격)
      */
-    async function printDirectToEpsonPOS(targetIp) {
-      // 576 도트 (80mm 롤 용지 표준 유효 인쇄 폭)
+    function generateEscPosRasterBytes(canvas) {
       const printW = 576;
-      const printH = Math.round(thermalCanvas.height * (printW / thermalCanvas.width));
+      const printH = Math.round(canvas.height * (printW / canvas.width));
 
       const scaled = document.createElement('canvas');
       scaled.width = printW;
       scaled.height = printH;
       const sCtx = scaled.getContext('2d');
-      sCtx.drawImage(thermalCanvas, 0, 0, printW, printH);
+      sCtx.drawImage(canvas, 0, 0, printW, printH);
 
       const imgData = sCtx.getImageData(0, 0, printW, printH);
       const pixels = imgData.data;
 
-      // 1비트 흑백 래스터 바이트 배열 생성
-      const bytesPerLine = printW >> 3;
-      const rasterBytes = new Uint8Array(bytesPerLine * printH);
+      const bytesPerLine = printW >> 3; // 72 바이트
+      const buffer = [];
+
+      // 1) 프린터 초기화 (ESC @)
+      buffer.push(0x1B, 0x40);
+
+      // 2) 줄간격 0 설정 (ESC 3 0)
+      buffer.push(0x1B, 0x33, 0x00);
+
+      // 3) GS v 0 래스터 그래픽 출력 (GS v 0 m xL xH yL yH d1...dk)
+      // m = 0 (정배율), xL/xH = 가로 바이트 수(72, 0), yL/yH = 세로 픽셀 수
+      const xL = bytesPerLine & 0xFF;
+      const xH = (bytesPerLine >> 8) & 0xFF;
+      const yL = printH & 0xFF;
+      const yH = (printH >> 8) & 0xFF;
+
+      buffer.push(0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH);
 
       for (let y = 0; y < printH; y++) {
         const row = y * printW;
-        const targetRow = y * bytesPerLine;
-        for (let x = 0; x < printW; x++) {
-          const idx = (row + x) * 4;
-          // 흑색 픽셀이면 1bit 세팅
-          if (pixels[idx] < 128) {
-            rasterBytes[targetRow + (x >> 3)] |= (1 << (7 - (x & 7)));
+        for (let b = 0; b < bytesPerLine; b++) {
+          let byteVal = 0;
+          for (let bit = 0; bit < 8; bit++) {
+            const x = (b << 3) + bit;
+            const idx = (row + x) * 4;
+            // 흑색 픽셀(휘도 128 미만)이면 1bit 마킹
+            if (pixels[idx] < 128) {
+              byteVal |= (1 << (7 - bit));
+            }
           }
+          buffer.push(byteVal);
         }
       }
 
-      // Base64 인코딩
-      let binary = '';
-      const chunk = 8192;
-      for (let i = 0; i < rasterBytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, rasterBytes.subarray(i, i + chunk));
-      }
-      const base64Data = btoa(binary);
+      // 4) 출력 후 용지 피드 및 자동 절단 (GS V 66 0)
+      buffer.push(0x1B, 0x64, 0x04); // 피드 4줄 (ESC d 4)
+      buffer.push(0x1D, 0x56, 0x42, 0x00); // 완전 컷 (GS V B 0)
 
-      // Epson ePOS-Print XML 규격 패킷
-      const soapBody =
-        '<?xml version="1.0" encoding="utf-8"?>' +
-        '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">' +
-          '<s:Body>' +
-            '<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">' +
-              `<image width="${printW}" height="${printH}" color="color_1" mode="mono">${base64Data}</image>` +
-              '<feed unit="30"/>' +
-              '<cut type="feed"/>' +
-            '</epos-print>' +
-          '</s:Body>' +
-        '</s:Envelope>';
-
-      // TM-m30III ePOS 포트 (8008, 80 순차 전송)
-      const urls = [
-        `http://${targetIp}:8008/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`,
-        `http://${targetIp}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`
-      ];
-
-      for (const url of urls) {
-        try {
-          await fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-              'Content-Type': 'text/xml; charset=utf-8',
-              'SOAPAction': '""'
-            },
-            body: soapBody
-          });
-          return true;
-        } catch (err) {
-          console.warn("Port attempt failed:", url, err);
-        }
-      }
-      throw new Error("ePOS connection timeout");
+      return new Uint8Array(buffer);
     }
 
     /**
-     * 감열 프린터 출력 파이프라인
+     * Web Bluetooth를 통한 Epson TM-m30III 연결
+     * 크롬 브라우저 전용: 대화상자 없이 직통 출력 가능
+     */
+    async function connectBluetoothPrinter() {
+      if (!navigator.bluetooth) {
+        showToast("이 브라우저는 Web Bluetooth를 지원하지 않습니다. (Chrome 권장)", "⚠️");
+        return null;
+      }
+
+      try {
+        showToast("TM-m30III 블루투스 검색 중...", "🔍");
+
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [
+            { namePrefix: 'TM' },
+            { namePrefix: 'EPSON' },
+            { namePrefix: 'TM-m30' }
+          ],
+          optionalServices: [
+            '000018f0-0000-1000-8000-00805f9b34fb', // Serial / Printer Service
+            'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Epson Custom Service
+            '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Standard BLE POS
+            0xFF00, 0xFFE0
+          ]
+        });
+
+        const server = await device.gatt.connect();
+        bluetoothDevice = device;
+
+        // 사용 가능한 서비스 및 특성(Characteristic) 탐색
+        const services = await server.getPrimaryServices();
+        for (const service of services) {
+          try {
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+              if (char.properties.write || char.properties.writeWithoutResponse) {
+                bluetoothCharacteristic = char;
+                break;
+              }
+            }
+            if (bluetoothCharacteristic) break;
+          } catch (e) {}
+        }
+
+        if (bluetoothCharacteristic) {
+          const btn = document.getElementById('bleConnectBtn');
+          if (btn) btn.style.color = '#10b981';
+          showToast("블루투스 프린터 연결 성공! ✨", "🖨️");
+          return bluetoothCharacteristic;
+        } else {
+          throw new Error("쓰기 가능한 블루투스 특성을 찾지 못했습니다.");
+        }
+      } catch (err) {
+        console.warn("Bluetooth connection cancelled or failed:", err);
+        showToast("블루투스 연결 취소 또는 실패: " + err.message, "⚠️");
+        return null;
+      }
+    }
+
+    /**
+     * 블루투스 청크 전송 (BLE MTU 크기에 맞춰 100~512바이트 분할 전송)
+     */
+    async function sendBytesToBluetooth(bytes) {
+      if (!bluetoothCharacteristic) {
+        const char = await connectBluetoothPrinter();
+        if (!char) throw new Error("프린터가 연결되지 않았습니다.");
+      }
+
+      const chunkSize = 128; // BLE 안정 전송 패킷 단위
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.slice(i, i + chunkSize);
+        if (bluetoothCharacteristic.writeValueWithoutResponse) {
+          await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
+        } else {
+          await bluetoothCharacteristic.writeValue(chunk);
+        }
+        await sleep(15); // 패킷 버퍼 플러시 딜레이
+      }
+    }
+
+    /**
+     * 감열 프린터 출력 파이프라인 (대화상자 0초 즉시 출력)
      */
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
@@ -681,25 +741,33 @@
         // 인쇄용 그레이스케일 디더링 캔버스 렌더링
         finalDitheredDataUrl = renderReceiptStrip(true);
 
-        showToast("프린터로 직접 전송 중...", "🖨️");
+        showToast("블루투스로 직통 인쇄 중...", "🖨️");
 
-        // 확인된 프린터 IP (172.16.10.1)로 대화상자 없이 바로 직통 전송
-        await printDirectToEpsonPOS(PRINTER_DIRECT_IP);
+        // 1) ESC/POS 바이너리 생성
+        const rawBytes = generateEscPosRasterBytes(thermalCanvas);
 
-        printBtnLabel.innerText = "출력 완료!";
-        showToast("영수증이 즉시 출력되었습니다! ✨", "🎉");
+        // 2) 크롬 Web Bluetooth 직통 스트리밍 (대화상자 0.001초도 없음)
+        if (navigator.bluetooth) {
+          await sendBytesToBluetooth(rawBytes);
 
-        setTimeout(() => {
-          printActionBtn.disabled = false;
-          printBtnLabel.innerText = "영수증 인쇄하기";
-          resetBoothToCamera();
-        }, 3000);
+          printBtnLabel.innerText = "출력 완료!";
+          showToast("영수증이 즉시 출력되었습니다! ✨", "🎉");
+
+          setTimeout(() => {
+            printActionBtn.disabled = false;
+            printBtnLabel.innerText = "영수증 인쇄하기";
+            resetBoothToCamera();
+          }, 3000);
+          return;
+        }
+
+        // Web Bluetooth 미지원 환경 안전 폴백
+        throw new Error("Web Bluetooth 미지원 브라우저");
 
       } catch (err) {
-        console.error("Direct ePOS Error:", err);
-        showToast("직통 전송 지연 -> 표준 인쇄로 시도합니다.", "ℹ️");
+        console.warn("Bluetooth Direct Print fallback:", err);
+        showToast("표준 인쇄 모드로 전환합니다.", "ℹ️");
 
-        // 만약 직통 ePOS가 응답하지 않을 경우에만 브라우저 인쇄로 전환
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
