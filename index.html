@@ -364,118 +364,61 @@
     let currentMediaStream = null;
 
     /**
-     * 감열 프린터 특화: 초고화질 소프트 그레이스케일 하프톤 디더링 알고리즘
-     * - 어둡게 뭉개지는 현상을 방지하는 지능형 감마 커브(Gamma 1.15)
-     * - 인물 피부톤의 미세한 명암을 보존하는 75% 양방향 오차확산
+     * Epson TM-m30III 프린터 기본 설정(Native Specs) 최적화 그레이스케일 처리
+     * - 물리 규격: 80mm 용지 기준 203 DPI (가로 576 dots 표준)
+     * - 엡손 공식 APD(Advanced Printer Driver)의 하드웨어 하프톤 엔진과 가장 궁합이 좋은
+     *   표준 8-bit 리니어 그레이스케일(BT.709 Luma) + 밝기 커브 보정 적용
      */
-    function applySmoothThermalGrayscale(sourceCanvas, targetWidth, targetHeight) {
-      const ditherCanvas = document.createElement('canvas');
-      ditherCanvas.width = targetWidth;
-      ditherCanvas.height = targetHeight;
-      const dCtx = ditherCanvas.getContext('2d');
+    function applyEpsonNativeGrayscale(sourceCanvas, targetWidth, targetHeight) {
+      const grayCanvas = document.createElement('canvas');
+      grayCanvas.width = targetWidth;
+      grayCanvas.height = targetHeight;
+      const gCtx = grayCanvas.getContext('2d');
 
-      dCtx.imageSmoothingEnabled = true;
-      dCtx.imageSmoothingQuality = 'high';
-      dCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+      gCtx.imageSmoothingEnabled = true;
+      gCtx.imageSmoothingQuality = 'high';
+      gCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
 
-      const imgData = dCtx.getImageData(0, 0, targetWidth, targetHeight);
+      const imgData = gCtx.getImageData(0, 0, targetWidth, targetHeight);
       const data = imgData.data;
       const totalPixels = targetWidth * targetHeight;
 
-      const rawLuma = new Float32Array(totalPixels);
-      const processed = new Float32Array(totalPixels);
-
-      // ITU-R BT.709 표준 밝기 변환
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
-        rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
-      }
+        // ITU-R BT.709 표준 밝기 가중치 변환
+        let luma = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
 
-      // 얼굴 및 배경의 대비를 부드럽게 살리는 언샤프 마스크 필터
-      for (let y = 1; y < targetHeight - 1; y++) {
-        const row = y * targetWidth;
-        for (let x = 1; x < targetWidth - 1; x++) {
-          const idx = row + x;
-          const blur = (
-            rawLuma[idx - targetWidth - 1] + rawLuma[idx - targetWidth] + rawLuma[idx - targetWidth + 1] +
-            rawLuma[idx - 1]               + rawLuma[idx]               + rawLuma[idx + 1] +
-            rawLuma[idx + targetWidth - 1] + rawLuma[idx + targetWidth] + rawLuma[idx + targetWidth + 1]
-          ) / 9.0;
+        // TM-m30III 감열 헤드 기본 농도에 맞춘 인물 피부톤 화사화(기본 감마 보정)
+        let normalized = luma / 255.0;
+        normalized = Math.pow(normalized, 0.88); // 섀도우 뭉침 방지 및 부드러운 중간톤 확보
+        luma = Math.min(255, Math.max(0, Math.round(normalized * 255)));
 
-          const detail = rawLuma[idx] - blur;
-          let val = rawLuma[idx] + detail * 0.65; // 섬세한 윤곽선 보존
-
-          // 피부톤 화사하게 톤업 (감열지 특유의 검게 타는 현상 방지)
-          val = Math.min(255, Math.max(0, val + 15));
-          let norm = val / 255.0;
-          norm = Math.pow(norm, 0.82); // 부드러운 중간톤 확장
-          val = norm * 255.0;
-
-          processed[idx] = Math.min(255, Math.max(0, val));
-        }
-      }
-
-      // 가장자리 복사
-      for (let x = 0; x < targetWidth; x++) {
-        processed[x] = rawLuma[x];
-        processed[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
-      }
-      for (let y = 0; y < targetHeight; y++) {
-        processed[y * targetWidth] = rawLuma[y * targetWidth];
-        processed[y * targetWidth + (targetWidth - 1)] = rawLuma[y * targetWidth + (targetWidth - 1)];
-      }
-
-      // 4-웨이 소프트 오차 확산 (계단 현상 없이 부드러운 그레이스케일 도트 배치)
-      for (let y = 0; y < targetHeight; y++) {
-        const row = y * targetWidth;
-        const next1 = (y + 1) * targetWidth;
-
-        for (let x = 0; x < targetWidth; x++) {
-          const idx = row + x;
-          const oldVal = processed[idx];
-          const newVal = oldVal < 132 ? 0 : 255;
-          processed[idx] = newVal;
-
-          const err = (oldVal - newVal) * 0.75; // 75% 소프트 감쇠로 도트 뭉침 차단
-
-          if (x + 1 < targetWidth) {
-            processed[idx + 1] += err * (7 / 16);
-          }
-          if (y + 1 < targetHeight) {
-            if (x - 1 >= 0) processed[next1 + (x - 1)] += err * (3 / 16);
-            processed[next1 + x] += err * (5 / 16);
-            if (x + 1 < targetWidth) processed[next1 + (x + 1)] += err * (1 / 16);
-          }
-        }
-      }
-
-      // 최종 단색 도트 생성
-      for (let i = 0; i < totalPixels; i++) {
-        const idx = i * 4;
-        const c = processed[i] < 128 ? 0 : 255;
-        data[idx] = c;
-        data[idx + 1] = c;
-        data[idx + 2] = c;
+        data[idx] = luma;
+        data[idx + 1] = luma;
+        data[idx + 2] = luma;
         data[idx + 3] = 255;
       }
 
-      dCtx.putImageData(imgData, 0, 0);
-      return ditherCanvas;
+      gCtx.putImageData(imgData, 0, 0);
+      return grayCanvas;
     }
 
     /**
      * 영수증 스티커 합성 렌더링 함수
      * @param {HTMLCanvasElement} targetCanvas 렌더링할 캔버스
-     * @param {boolean} isPrintMode true: 프린터용 부드러운 그레이스케일 / false: 화면용 선명한 풀컬러
+     * @param {boolean} isPrintMode true: TM-m30III 기본 그레이스케일 / false: 화면용 선명한 풀컬러
      */
     function renderReceiptToCanvas(targetCanvas, isPrintMode = false) {
       if (!singleCapturedFrame) return;
 
-      const tw = 800;
-      const th = 1080;
+      // Epson TM-m30III 80mm 롤 용지 정격 도트 규격 (576 x 780 dots)
+      const tw = isPrintMode ? 576 : 800;
+      const th = isPrintMode ? 780 : 1080;
       targetCanvas.width = tw;
       targetCanvas.height = th;
       const ctx = targetCanvas.getContext('2d');
+
+      const scale = tw / 800;
 
       // 흰색 영수증 배경
       ctx.fillStyle = '#ffffff';
@@ -484,43 +427,43 @@
       // 상단 타이틀
       ctx.textAlign = 'center';
       ctx.fillStyle = '#000000';
-      ctx.font = '900 52px sans-serif';
-      ctx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, 98);
+      ctx.font = `900 ${Math.round(52 * scale)}px sans-serif`;
+      ctx.fillText(CONFIG.FESTIVAL_TITLE, tw / 2, Math.round(98 * scale));
 
-      ctx.font = 'bold 28px sans-serif';
+      ctx.font = `bold ${Math.round(28 * scale)}px sans-serif`;
       ctx.fillStyle = '#222222';
-      ctx.fillText(CONFIG.CLUB_NAME, tw / 2, 144);
+      ctx.fillText(CONFIG.CLUB_NAME, tw / 2, Math.round(144 * scale));
 
       const drawDecoLine = (y) => {
         ctx.save();
         ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = Math.max(1, 1.5 * scale);
         ctx.beginPath();
-        ctx.moveTo(30, y - 4);
-        ctx.lineTo(tw - 30, y - 4);
+        ctx.moveTo(30 * scale, y - 4 * scale);
+        ctx.lineTo(tw - 30 * scale, y - 4 * scale);
         ctx.stroke();
 
-        ctx.lineWidth = 2.5;
-        ctx.setLineDash([12, 6, 4, 6]);
+        ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+        ctx.setLineDash([12 * scale, 6 * scale, 4 * scale, 6 * scale]);
         ctx.beginPath();
-        ctx.moveTo(30, y + 2);
-        ctx.lineTo(tw - 30, y + 2);
+        ctx.moveTo(30 * scale, y + 2 * scale);
+        ctx.lineTo(tw - 30 * scale, y + 2 * scale);
         ctx.stroke();
         ctx.restore();
       };
 
-      drawDecoLine(190);
+      drawDecoLine(Math.round(190 * scale));
 
       // 사진 영역 (4:3 비율)
-      const photoW = 740;
-      const photoH = 555;
-      const photoX = (tw - photoW) / 2;
-      const photoY = 224;
+      const photoW = Math.round(740 * scale);
+      const photoH = Math.round(555 * scale);
+      const photoX = Math.round((tw - photoW) / 2);
+      const photoY = Math.round(224 * scale);
 
       if (isPrintMode) {
-        // [인쇄 시]: 감열 프린터 헤드에 맞춘 부드러운 그레이스케일 도트 렌더링
-        const smoothGrayscalePhoto = applySmoothThermalGrayscale(singleCapturedFrame, photoW, photoH);
-        ctx.drawImage(smoothGrayscalePhoto, photoX, photoY, photoW, photoH);
+        // [인쇄 시]: Epson TM-m30III 203 DPI 헤드 기본 설정 그레이스케일 렌더링
+        const nativeGrayPhoto = applyEpsonNativeGrayscale(singleCapturedFrame, photoW, photoH);
+        ctx.drawImage(nativeGrayPhoto, photoX, photoY, photoW, photoH);
       } else {
         // [화면 미리보기 시]: 웹캠에서 캡처한 선명한 풀컬러 사진 그대로 출력
         ctx.drawImage(singleCapturedFrame, photoX, photoY, photoW, photoH);
@@ -528,28 +471,28 @@
 
       // 사진 테두리 외곽선
       ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(2, 3 * scale);
       ctx.strokeRect(photoX, photoY, photoW, photoH);
 
-      const bottomLineY = photoY + photoH + 34;
+      const bottomLineY = photoY + photoH + Math.round(34 * scale);
       drawDecoLine(bottomLineY);
 
       // 날짜 및 감사 문구
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-      const dateTextY = bottomLineY + 60;
-      ctx.font = 'bold 26px monospace';
+      const dateTextY = bottomLineY + Math.round(60 * scale);
+      ctx.font = `bold ${Math.round(26 * scale)}px monospace`;
       ctx.fillStyle = '#000000';
       ctx.fillText(`DATE: ${dateStr}`, tw / 2, dateTextY);
 
-      ctx.font = 'bold 32px sans-serif';
+      ctx.font = `bold ${Math.round(32 * scale)}px sans-serif`;
       ctx.fillStyle = '#000000';
-      ctx.fillText('방문해주셔서 감사합니다!!', tw / 2, dateTextY + 44);
+      ctx.fillText('방문해주셔서 감사합니다!!', tw / 2, dateTextY + Math.round(44 * scale));
 
       // 바코드 그래픽
-      const barcodeY = dateTextY + 68;
-      const barcodeH = 40;
+      const barcodeY = dateTextY + Math.round(68 * scale);
+      const barcodeH = Math.round(40 * scale);
       const barPattern = [
         3,2,1,3,2,1,4,1,2,3,1,2,4,2,1,3,2,1,3,4,1,2,3,1,2,4,1,3,2,1,
         2,3,1,4,2,1,3,2,1,3,2,4,1,2,3,1,3,2,4,1,2,1,3,2,4,1,3,2,1,2,
@@ -558,22 +501,22 @@
 
       let totalBarW = 0;
       for (let i = 0; i < barPattern.length; i++) {
-        totalBarW += barPattern[i] * 2.8;
+        totalBarW += barPattern[i] * 2.8 * scale;
       }
       let curBx = (tw - totalBarW) / 2;
 
       ctx.fillStyle = '#000000';
       for (let i = 0; i < barPattern.length; i++) {
-        const w = barPattern[i] * 2.8;
+        const w = barPattern[i] * 2.8 * scale;
         if (i % 2 === 0) {
           ctx.fillRect(curBx, barcodeY, w - 0.5, barcodeH);
         }
         curBx += w;
       }
 
-      ctx.font = 'bold 25px sans-serif';
+      ctx.font = `bold ${Math.round(25 * scale)}px sans-serif`;
       ctx.fillStyle = '#111111';
-      ctx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 32);
+      ctx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + Math.round(32 * scale));
     }
 
     /**
