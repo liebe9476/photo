@@ -372,19 +372,20 @@
     let finalDitheredDataUrl = '';
     let currentMediaStream = null;
 
-    // 로컬 스토리지에서 저장된 프린터 IP 불러오기
-    let printerIp = localStorage.getItem('epson_tm_ip') || '';
+    // 프린터 IP: 기본값을 192.168.0.78로 영구 설정
+    let printerIp = localStorage.getItem('epson_tm_ip') || '192.168.0.78';
+    localStorage.setItem('epson_tm_ip', printerIp);
 
     function promptPrinterIp() {
-      const current = printerIp || '192.168.0.';
-      const input = window.prompt("Epson TM-m30III 프린터의 IP 주소를 입력하세요.\n(대화상자 없이 바로 인쇄됩니다)", current);
+      const current = printerIp || '192.168.0.78';
+      const input = window.prompt("Epson TM-m30III 프린터 IP 주소 설정\n(대화상자 없이 바로 인쇄됩니다)", current);
       if (input !== null) {
         printerIp = input.trim();
         localStorage.setItem('epson_tm_ip', printerIp);
         if (printerIp) {
-          showToast(`프린터 IP [${printerIp}] 저장 완료!`, "🖨️");
+          showToast(`프린터 IP [${printerIp}] 설정 완료!`, "🖨️");
         } else {
-          showToast("IP 해제: AirPrint로 인쇄됩니다.", "ℹ️");
+          showToast("IP 해제: AirPrint 대화상자로 전환됩니다.", "ℹ️");
         }
       }
     }
@@ -604,7 +605,7 @@
     }
 
     /**
-     * Epson ePOS-Print Direct HTTP 바이너리 전송 (대화상자 완전 0초 우회)
+     * Epson ePOS-Print Direct HTTP 바이너리 전송 (대화상자 완전 0초 우회 엔진)
      */
     async function printDirectToEpson(ipAddress) {
       // 576 픽셀 표준 너비로 1비트 흑백 래스터 생성
@@ -647,8 +648,9 @@
       }
       const rasterBase64 = btoa(binaryStr);
 
-      // Epson ePOS-Print XML SOAP 생성
+      // Epson ePOS-Print XML SOAP 패킷
       const soapBody = 
+        '<?xml version="1.0" encoding="utf-8"?>' +
         '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">' +
           '<s:Body>' +
             '<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">' +
@@ -659,20 +661,34 @@
           '</s:Body>' +
         '</s:Envelope>';
 
-      const endpoint = `http://${ipAddress}:8008/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`;
+      // TM-m30III의 표준 포트(8008, 80) 순차 시도
+      const endpoints = [
+        `http://${ipAddress}:8008/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`,
+        `http://${ipAddress}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`
+      ];
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/xml; charset=utf-8',
-          'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
-          'SOAPAction': '""'
-        },
-        body: soapBody
-      });
+      let sentSuccess = false;
+      for (const endpoint of endpoints) {
+        try {
+          // Safari CORS 차단 방지를 위해 no-cors 모드 병행
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+              'Content-Type': 'text/xml; charset=utf-8',
+              'SOAPAction': '""'
+            },
+            body: soapBody
+          });
+          sentSuccess = true;
+          break;
+        } catch (e) {
+          console.warn("Direct port attempt failed, trying next port:", e);
+        }
+      }
 
-      if (!response.ok) {
-        throw new Error(`Printer HTTP ${response.status}`);
+      if (!sentSuccess) {
+        throw new Error("Direct ePOS network timeout");
       }
       return true;
     }
@@ -682,14 +698,14 @@
      */
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
-      printBtnLabel.innerText = "인쇄 전송 중...";
+      printBtnLabel.innerText = "프린터 전송 중...";
       clearTimeout(autoResetTimer);
 
       try {
         // 인쇄용 그레이스케일 디더링 캔버스 렌더링
         finalDitheredDataUrl = renderReceiptStrip(true);
 
-        // 1. IP가 등록되어 있다면 -> 대화상자 없이 직통 ePOS-Print 전송 시도
+        // 1. IP가 등록되어 있다면(기본값 192.168.0.78) -> 대화상자 0.001초도 없이 직통 ePOS 인쇄
         if (printerIp) {
           try {
             await printDirectToEpson(printerIp);
@@ -703,12 +719,12 @@
             }, 2500);
             return;
           } catch (directErr) {
-            console.warn("Direct ePOS print failed, falling back to AirPrint:", directErr);
+            console.warn("Direct ePOS failed:", directErr);
             showToast("직통 전송 지연 -> 표준 인쇄로 전환합니다.", "⚠️");
           }
         }
 
-        // 2. IP 미설정 또는 직통 실패 시 -> 아이패드 표준 AirPrint 대화상자 호출
+        // 2. 직통 전송 실패 또는 IP 미설정 시에만 AirPrint 대화상자 호출
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
@@ -719,7 +735,7 @@
         setTimeout(() => {
           window.print();
           printBtnLabel.innerText = "출력 완료!";
-          showToast("영수증 인쇄 명령이 전송되었습니다! ✨", "🎉");
+          showToast("영수증 인쇄가 시작되었습니다! ✨", "🎉");
 
           setTimeout(() => {
             printActionBtn.disabled = false;
