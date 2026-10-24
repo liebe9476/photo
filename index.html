@@ -197,8 +197,16 @@
       </p>
     </div>
 
-    <!-- 우측 제어 버튼 (전체화면 토글) -->
+    <!-- 우측 제어 버튼 (프린터 IP 설정 및 전체화면 토글) -->
     <div style="display: flex; align-items: center; gap: 8px;">
+      <!-- 프린터 IP 설정 버튼 (대화상자 없이 바로 출력하기 위한 설정) -->
+      <button id="printerIpConfigBtn" type="button" onclick="promptPrinterIp()" title="프린터 IP 설정"
+              class="btn" style="padding: 8px 10px; background: rgba(30, 41, 59, 0.9); color: #38bdf8; border: 1px solid #0284c7; font-size: 12px; z-index: 50;">
+        <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24">
+          <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+        </svg>
+      </button>
+
       <!-- 전체화면 토글 버튼 -->
       <button id="fullscreenToggleBtn" type="button" onclick="toggleFullscreen()" title="전체화면 전환"
               class="btn" style="padding: 8px 12px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; font-size: 12px; z-index: 50;">
@@ -291,8 +299,8 @@
           <h2 style="font-size: clamp(1.2rem, 2.5vw, 1.55rem); font-weight: 900; color: #ffffff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;">
             <span>🎉 영수증 사진이 완성되었습니다!</span>
           </h2>
-          <p style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
-            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 대화상자 없이 블루투스로 즉시 인쇄됩니다.
+          <p id="resultGuideText" style="font-size: 13px; color: #cbd5e1; line-height: 1.55; margin-top: 8px;">
+            화면에는 <strong style="color: #38bdf8;">선명한 컬러</strong>로 표시되며, 인쇄 시에는 <strong style="color: #38bdf8;">Epson TM-m30III</strong> 감열지에 즉시 인쇄됩니다.
           </p>
         </div>
 
@@ -363,6 +371,23 @@
     let finalColorDataUrl = '';
     let finalDitheredDataUrl = '';
     let currentMediaStream = null;
+
+    // 로컬 스토리지에서 저장된 프린터 IP 불러오기
+    let printerIp = localStorage.getItem('epson_tm_ip') || '';
+
+    function promptPrinterIp() {
+      const current = printerIp || '192.168.0.';
+      const input = window.prompt("Epson TM-m30III 프린터의 IP 주소를 입력하세요.\n(대화상자 없이 바로 인쇄됩니다)", current);
+      if (input !== null) {
+        printerIp = input.trim();
+        localStorage.setItem('epson_tm_ip', printerIp);
+        if (printerIp) {
+          showToast(`프린터 IP [${printerIp}] 저장 완료!`, "🖨️");
+        } else {
+          showToast("IP 해제: AirPrint로 인쇄됩니다.", "ℹ️");
+        }
+      }
+    }
 
     /**
      * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
@@ -476,7 +501,6 @@
 
     /**
      * 영수증 스티커 합성 렌더링 함수
-     * Epson TM-m30III 80mm 용지 완벽 가득 채움 원본 레이아웃 규격
      */
     function renderReceiptStrip(isDithered = false) {
       if (!singleCapturedFrame) return '';
@@ -486,11 +510,9 @@
       thermalCanvas.width = tw;
       thermalCanvas.height = th;
 
-      // 1) 흰색 배경
       thermalCtx.fillStyle = '#ffffff';
       thermalCtx.fillRect(0, 0, tw, th);
 
-      // 2) 상단 헤더 텍스트
       thermalCtx.textAlign = 'center';
       thermalCtx.fillStyle = '#000000';
       thermalCtx.font = '900 54px sans-serif';
@@ -500,7 +522,6 @@
       thermalCtx.fillStyle = '#222222';
       thermalCtx.fillText(CONFIG.CLUB_NAME, tw / 2, 150);
 
-      // 세련된 감열 영수증 데코선 함수
       const drawDecoLine = (y) => {
         thermalCtx.save();
         thermalCtx.strokeStyle = '#000000';
@@ -519,10 +540,8 @@
         thermalCtx.restore();
       };
 
-      // 3) Speer Girl's~~ 다음 한 줄 여백 후 상단 구분선 배치
       drawDecoLine(194);
 
-      // 4) 구분선과 사진 사이 한 줄 여백
       const photoW = 740;
       const photoH = 555;
       const photoX = (tw - photoW) / 2;
@@ -535,16 +554,13 @@
         thermalCtx.drawImage(singleCapturedFrame, photoX, photoY, photoW, photoH);
       }
 
-      // 사진 외곽선
       thermalCtx.strokeStyle = '#000000';
       thermalCtx.lineWidth = 3;
       thermalCtx.strokeRect(photoX, photoY, photoW, photoH);
 
-      // 5) 사진 아래 한 줄 여백 후 하단 구분선 배치
       const bottomLineY = photoY + photoH + 34;
       drawDecoLine(bottomLineY);
 
-      // 6) DATE 위쪽 한 줄 띄움 적용 + 날짜 / 감사 문구 2단계 확대 유지
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
@@ -557,7 +573,6 @@
       thermalCtx.fillStyle = '#000000';
       thermalCtx.fillText('방문해주셔서 감사합니다!!', tw / 2, dateTextY + 46);
 
-      // 7) 바코드 그래픽
       const barcodeY = dateTextY + 70;
       const barcodeH = 40;
       const barPattern = [
@@ -581,7 +596,6 @@
         curBx += w;
       }
 
-      // 8) 바코드 밑 작은 글꼴 1줄 분량 간격 삽입 후 텍스트 배치
       thermalCtx.font = 'bold 26px sans-serif';
       thermalCtx.fillStyle = '#111111';
       thermalCtx.fillText('수피아여고 인공지능공학 연구반', tw / 2, barcodeY + barcodeH + 32);
@@ -590,17 +604,111 @@
     }
 
     /**
-     * 감열 프린터 출력 파이프라인 (동일 Wi-Fi 연결 시 AirPrint TM-m30III 완벽 지원)
+     * Epson ePOS-Print Direct HTTP 바이너리 전송 (대화상자 완전 0초 우회)
+     */
+    async function printDirectToEpson(ipAddress) {
+      // 576 픽셀 표준 너비로 1비트 흑백 래스터 생성
+      const printW = 576;
+      const scaleRatio = printW / thermalCanvas.width;
+      const printH = Math.round(thermalCanvas.height * scaleRatio);
+
+      const scaledCanvas = document.createElement('canvas');
+      scaledCanvas.width = printW;
+      scaledCanvas.height = printH;
+      const sCtx = scaledCanvas.getContext('2d');
+      sCtx.drawImage(thermalCanvas, 0, 0, printW, printH);
+
+      const imgData = sCtx.getImageData(0, 0, printW, printH);
+      const pixels = imgData.data;
+
+      // 1-bit raster 데이터 패킹
+      const bytesPerLine = printW >> 3;
+      const rasterBytes = new Uint8Array(bytesPerLine * printH);
+
+      for (let y = 0; y < printH; y++) {
+        const rowOffset = y * printW;
+        const targetRowOffset = y * bytesPerLine;
+        for (let x = 0; x < printW; x++) {
+          const pIdx = (rowOffset + x) * 4;
+          // 어두운 점(흑색)이면 1, 백색이면 0
+          if (pixels[pIdx] < 128) {
+            const byteIndex = targetRowOffset + (x >> 3);
+            const bitOffset = 7 - (x & 7);
+            rasterBytes[byteIndex] |= (1 << bitOffset);
+          }
+        }
+      }
+
+      // Base64 인코딩
+      let binaryStr = '';
+      const chunk = 8192;
+      for (let i = 0; i < rasterBytes.length; i += chunk) {
+        binaryStr += String.fromCharCode.apply(null, rasterBytes.subarray(i, i + chunk));
+      }
+      const rasterBase64 = btoa(binaryStr);
+
+      // Epson ePOS-Print XML SOAP 생성
+      const soapBody = 
+        '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">' +
+          '<s:Body>' +
+            '<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">' +
+              `<image width="${printW}" height="${printH}" color="color_1" mode="mono">${rasterBase64}</image>` +
+              '<feed unit="30"/>' +
+              '<cut type="feed"/>' +
+            '</epos-print>' +
+          '</s:Body>' +
+        '</s:Envelope>';
+
+      const endpoint = `http://${ipAddress}:8008/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
+          'SOAPAction': '""'
+        },
+        body: soapBody
+      });
+
+      if (!response.ok) {
+        throw new Error(`Printer HTTP ${response.status}`);
+      }
+      return true;
+    }
+
+    /**
+     * 감열 프린터 출력 파이프라인
      */
     async function printReceiptSticker() {
       printActionBtn.disabled = true;
-      printBtnLabel.innerText = "인쇄 준비 중...";
+      printBtnLabel.innerText = "인쇄 전송 중...";
       clearTimeout(autoResetTimer);
 
       try {
         // 인쇄용 그레이스케일 디더링 캔버스 렌더링
         finalDitheredDataUrl = renderReceiptStrip(true);
 
+        // 1. IP가 등록되어 있다면 -> 대화상자 없이 직통 ePOS-Print 전송 시도
+        if (printerIp) {
+          try {
+            await printDirectToEpson(printerIp);
+            printBtnLabel.innerText = "출력 완료!";
+            showToast("영수증이 즉시 출력되었습니다! ✨", "🎉");
+
+            setTimeout(() => {
+              printActionBtn.disabled = false;
+              printBtnLabel.innerText = "영수증 인쇄하기";
+              resetBoothToCamera();
+            }, 2500);
+            return;
+          } catch (directErr) {
+            console.warn("Direct ePOS print failed, falling back to AirPrint:", directErr);
+            showToast("직통 전송 지연 -> 표준 인쇄로 전환합니다.", "⚠️");
+          }
+        }
+
+        // 2. IP 미설정 또는 직통 실패 시 -> 아이패드 표준 AirPrint 대화상자 호출
         if (browserPrintImg) {
           browserPrintImg.src = finalDitheredDataUrl;
           if (browserPrintImg.decode) {
@@ -608,19 +716,17 @@
           }
         }
 
-        printBtnLabel.innerText = "프린터 전송 중...";
-
         setTimeout(() => {
           window.print();
           printBtnLabel.innerText = "출력 완료!";
-          showToast("영수증 인쇄가 시작되었습니다! ✨", "🎉");
+          showToast("영수증 인쇄 명령이 전송되었습니다! ✨", "🎉");
 
           setTimeout(() => {
             printActionBtn.disabled = false;
             printBtnLabel.innerText = "영수증 인쇄하기";
             resetBoothToCamera();
           }, 3000);
-        }, 300);
+        }, 200);
 
       } catch (err) {
         console.error("Print Pipeline Error:", err);
@@ -703,7 +809,7 @@
     }
 
     /**
-     * 웹캠 하드웨어 초기화 (아이패드 iPadOS Safari 오프라인 완벽 구동)
+     * 웹캠 하드웨어 초기화 (iPadOS Safari 오프라인 완벽 구동)
      */
     async function initWebcam() {
       if (currentMediaStream) {
@@ -712,7 +818,6 @@
         } catch (e) {}
       }
 
-      // iPadOS Safari 오프라인 constraints 단계별 시도
       const constraintsAttempts = [
         {
           video: {
@@ -765,7 +870,7 @@
     }
 
     /**
-     * 전체화면 토글 (iPadOS 및 표준 브라우저 안전 처리)
+     * 전체화면 토글
      */
     async function toggleFullscreen() {
       try {
@@ -787,7 +892,7 @@
           } else if (target.msRequestFullscreen) {
             await target.msRequestFullscreen();
           } else {
-            showToast("아이패드 전체화면: 홈 화면에 추가를 권장합니다.", "📱");
+            showToast("아이패드: 홈 화면에 추가를 권장합니다.", "📱");
           }
         } else {
           if (document.exitFullscreen) {
@@ -827,7 +932,7 @@
     document.addEventListener('mozfullscreenchange', syncFullscreenUI);
     document.addEventListener('MSFullscreenChange', syncFullscreenUI);
 
-    // 아이패드 iPadOS Safari 오프라인 자동재생 보호 해제용 원터치 리스너
+    // iPadOS 제스처 자동재생 해제용 리스너
     document.addEventListener('touchstart', function unlockIOSAutoplay() {
       if (webcamView && webcamView.paused && webcamView.srcObject) {
         webcamView.play().then(() => {
@@ -836,9 +941,6 @@
       }
     }, { once: true, passive: true });
 
-    /**
-     * 토스트 알림창 팝업
-     */
     function showToast(msg, icon = "✨") {
       const toast = document.getElementById('appToast');
       document.getElementById('toastMessage').innerText = msg;
@@ -854,7 +956,7 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // 윈도우 로드 시 웹캠 시동
+    // 초기화 시 자동 실행
     window.addEventListener('DOMContentLoaded', initWebcam);
     window.addEventListener('load', initWebcam);
   </script>
