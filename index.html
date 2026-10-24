@@ -571,11 +571,12 @@
     }
 
     /**
-     * TM-m30III 576dot 규격 맞춤 초경량 Base64 생성 함수 (URL Scheme 크기 제한 완벽 통과)
+     * Epson TM-m30III 공식 ePOS 규격: 1-bit 순수 래스터 바이너리 Base64 변환 함수
+     * (PNG 헤더가 아닌, 순수 비트맵 1=검정, 0=흰색 MSB-first 배열 변환)
      */
-    function generateEpsonNativeBase64() {
-      const nw = 576;
-      const nh = 778; // 정확한 576:778 비율
+    function generateEpsonRasterBase64() {
+      const nw = 576; // TM-m30III 80mm 용지 정규격
+      const nh = 778; // 정확한 비율
       epsonCanvas.width = nw;
       epsonCanvas.height = nh;
 
@@ -584,35 +585,62 @@
       epsonCtx.imageSmoothingEnabled = true;
       epsonCtx.imageSmoothingQuality = 'high';
 
-      // 800x1080 렌더링된 흑백 이미지를 576 표준 도트 규격으로 리사이징
+      // 800x1080 흑백 캔버스를 576x778로 다운스케일
       epsonCtx.drawImage(thermalCanvas, 0, 0, nw, nh);
 
-      // 1-bit 순수 흑백 버퍼 보정
       const imgData = epsonCtx.getImageData(0, 0, nw, nh);
-      const d = imgData.data;
-      for (let i = 0; i < d.length; i += 4) {
-        const v = (d[i] + d[i+1] + d[i+2]) / 3 < 140 ? 0 : 255;
-        d[i] = v; d[i+1] = v; d[i+2] = v; d[i+3] = 255;
-      }
-      epsonCtx.putImageData(imgData, 0, 0);
+      const data = imgData.data;
 
-      // PNG base64 추출 및 접두사 제거
-      const dataUrl = epsonCanvas.toDataURL('image/png');
+      const bytesPerRow = nw / 8; // 576 / 8 = 72 bytes per row
+      const totalBytes = bytesPerRow * nh; // 72 * 778 = 56,016 bytes (~54KB)
+      const rasterBuf = new Uint8Array(totalBytes);
+
+      // 1-bit 래스터 비트맵 변환 (Epson ePOS-Print 규격: 1 = Black, 0 = White, MSB first)
+      for (let y = 0; y < nh; y++) {
+        const rowOffset = y * bytesPerRow;
+        const imgRowOffset = y * nw * 4;
+
+        for (let byteX = 0; byteX < bytesPerRow; byteX++) {
+          let byteVal = 0;
+          for (let bit = 0; bit < 8; bit++) {
+            const px = (byteX * 8) + bit;
+            const pxIdx = imgRowOffset + (px * 4);
+            const luma = (data[pxIdx] + data[pxIdx + 1] + data[pxIdx + 2]) / 3;
+
+            // 어두운 픽셀(Black)이면 1, 밝은 픽셀(White)이면 0
+            if (luma < 140) {
+              byteVal |= (0x80 >> bit);
+            }
+          }
+          rasterBuf[rowOffset + byteX] = byteVal;
+        }
+      }
+
+      // 바이너리 버퍼를 빠른 청크 변환으로 Base64 문자열 생성
+      let binaryStr = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < totalBytes; i += chunkSize) {
+        const sub = rasterBuf.subarray(i, Math.min(i + chunkSize, totalBytes));
+        binaryStr += String.fromCharCode.apply(null, sub);
+      }
+      const base64Data = btoa(binaryStr);
+
       return {
-        base64: dataUrl.replace(/^data:image\/png;base64,/, ''),
         width: nw,
-        height: nh
+        height: nh,
+        base64: base64Data
       };
     }
 
     /**
-     * Epson TM Print Assistant 전용 정식 ePOS XML 구성 (헤더, 네임스페이스, 모드, 자동 컷팅)
+     * Epson TM Print Assistant 전용 정식 ePOS XML 구성 (공식 규격)
      */
     function buildEpsonPrintAssistantPayload() {
-      const nativeImg = generateEpsonNativeBase64();
+      const raster = generateEpsonRasterBase64();
 
       const xml = '<epos-print xmlns="http://www.epson-pos.com/schemas/2014/03/epos-print">' +
-          '<image width="' + nativeImg.width + '" height="' + nativeImg.height + '" color="color_1" mode="mono">' + nativeImg.base64 + '</image>' +
+          '<response/>' +
+          '<image width="' + raster.width + '" height="' + raster.height + '" color="color_1" mode="mono">' + raster.base64 + '</image>' +
           '<feed unit="30"/>' +
           '<cut type="feed"/>' +
         '</epos-print>';
@@ -634,7 +662,7 @@
 
         showToast("TM-m30III로 출력 데이터를 전송합니다...", "🖨️");
 
-        // 2) 576 dot 정격 ePOS XML 페이로드 생성 (URL 길이 제한 통과)
+        // 2) 576 dot 정격 1-bit 순수 래스터 XML 페이로드 생성 (~54KB 경량 데이터)
         const xmlPayload = buildEpsonPrintAssistantPayload();
         // 엡손 공식 등록 URL Scheme: tmprintassistant://
         const epsonAssistantUri = 'tmprintassistant://print?ver=1&data-type=eposprintxml&data=' + xmlPayload;
