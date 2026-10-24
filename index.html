@@ -637,12 +637,9 @@
       try {
         showToast("TM-m30III 프린터 검색 중...", "🔍");
 
+        // acceptAllDevices: true 옵션으로 주변의 모든 블루투스 기기(TM-m30III)를 무조건 감지하도록 개선
         const device = await navigator.bluetooth.requestDevice({
-          filters: [
-            { namePrefix: 'TM' },
-            { namePrefix: 'EPSON' },
-            { namePrefix: 'TM-m30' }
-          ],
+          acceptAllDevices: true,
           optionalServices: [
             '000018f0-0000-1000-8000-00805f9b34fb',
             'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
