@@ -184,17 +184,8 @@
       </p>
     </div>
 
-    <!-- 우측 제어 버튼: 블루투스 연결 + 전체화면 토글 -->
+    <!-- 우측 제어 버튼 (전체화면 토글) -->
     <div style="display: flex; align-items: center; gap: 8px; position: relative; z-index: 101;">
-      <!-- 블루투스 프린터 연결 버튼 -->
-      <button id="bleConnectBtn" type="button" onclick="handleBluetoothButtonClick(event)" title="블루투스 프린터 연결"
-              class="btn header-icon-btn" style="background: rgba(30, 41, 59, 0.95); color: #38bdf8; border: 1.5px solid #0284c7; box-shadow: 0 4px 12px rgba(2,132,199,0.3);">
-        <svg id="bleStatusIcon" style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24">
-          <path d="M14.88 16.29L13 18.17V14.41m0-4.82l1.88 1.88L13 13.35M7 12l4-4V2.5l5.5 5.5L12.5 12l4 4l-5.5 5.5V16l-4-4m4-11v6.17l2.09-2.08L11 3.08v4.09M11 16.83V20.9l2.09-2.09L11 16.83Z"/>
-        </svg>
-        <span id="bleBtnText" style="font-size: 11px; font-weight: bold; letter-spacing: 0.3px;">프린터</span>
-      </button>
-
       <!-- 전체화면 토글 버튼 -->
       <button id="fullscreenToggleBtn" type="button" onclick="toggleFullscreen()" title="전체화면 전환"
               class="btn header-icon-btn" style="background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569;">
@@ -353,9 +344,6 @@
     const thermalCanvas = document.getElementById('thermalStripCanvas');
     const thermalCtx = thermalCanvas.getContext('2d');
     const browserPrintImg = document.getElementById('browserPrintImg');
-    const bleConnectBtn = document.getElementById('bleConnectBtn');
-    const bleStatusIcon = document.getElementById('bleStatusIcon');
-    const bleBtnText = document.getElementById('bleBtnText');
 
     let singleCapturedFrame = null;
     let autoResetTimer = null;
@@ -366,28 +354,6 @@
     // Web Bluetooth GATT 변수
     let bluetoothDevice = null;
     let bluetoothCharacteristic = null;
-
-    /**
-     * 상단 블루투스 버튼 명시적 클릭 핸들러
-     */
-    async function handleBluetoothButtonClick(event) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-
-      if (!navigator.bluetooth) {
-        showToast("이 브라우저는 웹 블루투스를 지원하지 않습니다. Bluefy 앱에서 열어주세요!", "⚠️");
-        return;
-      }
-
-      if (bluetoothCharacteristic && bluetoothDevice && bluetoothDevice.gatt.connected) {
-        showToast("이미 TM-m30III 프린터와 연결되어 있습니다! 🟢", "🖨️");
-        return;
-      }
-
-      await connectBluetoothPrinter();
-    }
 
     /**
      * 감열 프린터 특화: 스튜디오 영수증 사진 부스(Atkinson Dithering) 초고화질 알고리즘
@@ -706,14 +672,6 @@
         }
 
         if (bluetoothCharacteristic) {
-          if (bleConnectBtn) {
-            bleConnectBtn.style.color = '#10b981';
-            bleConnectBtn.style.borderColor = '#10b981';
-            bleConnectBtn.style.boxShadow = '0 0 15px rgba(16,185,129,0.5)';
-          }
-          if (bleBtnText) {
-            bleBtnText.innerText = "연결됨";
-          }
           showToast("TM-m30III 블루투스 연결 완료! 🟢", "🖨️");
           return bluetoothCharacteristic;
         } else {
