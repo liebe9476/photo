@@ -34,11 +34,12 @@
       position: relative;
     }
 
+    /* 전체화면 플로팅 버튼 */
     .fullscreen-fab {
       position: absolute;
       top: 16px;
       right: 16px;
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.9);
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 9999px;
       padding: 8px 14px;
@@ -59,6 +60,7 @@
       transform: translateY(-1px);
     }
 
+    /* 2단 메인 화면 (좌측 뷰파인더 + 우측 제어) */
     #mainBoothArea {
       flex: 1;
       display: flex;
@@ -68,7 +70,7 @@
       background: #e7e9df;
     }
 
-    /* 좌측 카메라 뷰파인더 */
+    /* 좌측 뷰파인더 */
     #viewfinderContainer {
       flex: 1;
       height: 100%;
@@ -106,7 +108,7 @@
       top: 22px;
       left: 24px;
       z-index: 20;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(4px);
       padding: 4px 10px;
       border-radius: 999px;
@@ -279,7 +281,7 @@
       width: 310px;
     }
 
-    /* 촬영된 컬러 사진을 보여주는 1:1 정방형 프리뷰 */
+    /* 촬영된 원본 컬러 사진 프리뷰 */
     #previewImg {
       width: 100%;
       aspect-ratio: 1 / 1;
@@ -377,7 +379,7 @@
       z-index: 120;
     }
 
-    /* 백그라운드 인쇄용 숨김 아이프레임 */
+    /* 백그라운드 인쇄 프레임 (깜빡임 없음) */
     #hiddenPrintFrame {
       position: fixed;
       left: -9999px;
@@ -432,7 +434,7 @@
           <h2 class="booth-main-title">
             2026 AI·SW체험<br/>수피아여고 포토부스
           </h2>
-          <p class="booth-sub-caption">카메라를 바라보고 버튼을 눌러주세요</p>
+          <p class="booth-sub-caption">카메라를 정면으로 바라보고 버튼을 눌러주세요</p>
         </div>
 
         <button id="shootButton" class="pill-shoot-btn" onclick="triggerPhotoShoot()">
@@ -446,7 +448,7 @@
   <div id="resultModal">
     <div class="result-content">
       <div class="preview-card">
-        <!-- 촬영한 컬러 원본 사진 -->
+        <!-- 원본 컬러 사진 미리보기 -->
         <img id="previewImg" alt="촬영 원본 컬러 사진" />
         <span class="preview-tag">ORIGINAL COLOR PHOTO</span>
       </div>
@@ -473,7 +475,7 @@
     </div>
   </div>
 
-  <!-- 인쇄 전용 숨김 DOM -->
+  <!-- 인쇄 합성용 숨김 DOM -->
   <canvas id="offscreenReceiptCanvas" style="display: none;"></canvas>
   <div id="qrHiddenHolder" style="display: none;"></div>
   <iframe id="hiddenPrintFrame"></iframe>
@@ -499,7 +501,7 @@
     let capturedColorCanvas = null;
     let finalPrintReceiptDataUrl = '';
 
-    // 1. 카메라 시작
+    // 1. 카메라 초기화
     async function initializeCamera() {
       try {
         currentMediaStream = await navigator.mediaDevices.getUserMedia({
@@ -518,11 +520,11 @@
     }
 
     /**
-     * 2. 순수 정통 앳킨슨(Atkinson) 렌더링 엔진 (처음부터 재구축)
-     * - 인위적 노이즈나 복잡한 매트릭스를 배제하고 오리지널 매킨토시 앳킨슨 복원
-     * - 동심원 / 다이아몬드 왜곡 패턴 원천 차단 (단순 직근접 6방향 확산)
-     * - 안경테/눈동자는 얇고 진한 1픽셀 블랙선 유지
-     * - 얼굴 피부톤은 화사하고 뽀얗게 밝기 유지
+     * 2. 순수 정통 앳킨슨(Atkinson) 렌더링 엔진
+     * - 인위적 노이즈나 복잡한 매트릭스를 완전히 배제
+     * - 6방향 확산(각 1/8) + 2/8 오차 자연 소멸
+     * - 안경테/눈동자는 얇고 진한 1픽셀 블랙선 보존
+     * - 얼굴 피부톤은 화사하고 뽀얗게 자연스럽게 유지
      */
     function renderPureAtkinsonPhoto(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
@@ -536,31 +538,30 @@
       const totalPixels = targetWidth * targetHeight;
       const grayBuffer = new Float32Array(totalPixels);
 
-      // 1단계: 밝은 얼굴톤 전처리 (BT.709 휘도 + 화사한 피부 감마 + 안경테 앵커)
+      // 1단계: BT.709 표준 인지 휘도 및 자연스러운 미드톤 보존 커브
       for (let i = 0; i < totalPixels; i++) {
         const p = i * 4;
         const r = data[p];
         const g = data[p + 1];
         const b = data[p + 2];
 
-        // 표준 인지 휘도
-        let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        // 인지 휘도
+        let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-        // 안경테, 눈동자, 짙은 눈썹 (lum < 75)은 깊은 1픽셀 블랙으로 단단하게 보존
+        // 안경테, 눈동자, 짙은 눈썹(lum < 75)은 깊은 1픽셀 블랙으로 앵커링
         if (lum < 75) {
-          lum = lum * 0.82;
+          lum = lum * 0.85;
         } else {
-          // 얼굴 피부톤을 화사하고 맑게 유지 (감마 1.32 커브 + 미드톤 리프팅)
+          // 피부톤을 맑고 깨끗하게 띄워주는 부드러운 감마 1.28 커브
           const norm = (lum - 75) / (255 - 75);
-          lum = 75 + Math.pow(norm, 1.0 / 1.32) * (255 - 75);
-          lum = lum + 10; // 피부 밝기 기분 좋게 띄움
+          lum = 75 + Math.pow(norm, 1.0 / 1.28) * (255 - 75);
+          lum = lum + 6; // 기분 좋은 피부 화사함
         }
 
         grayBuffer[i] = Math.min(255, Math.max(0, lum));
       }
 
       // 2단계: 정통 앳킨슨 오차 확산 (6방향 각 1/8씩 분산, 2/8 자연 소멸)
-      // 이웃 픽셀 이외의 먼 곳으로 건너뛰지 않으므로 원형/다이아몬드 왜곡이 물리적으로 발생 불가
       for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
         for (let x = 0; x < targetWidth; x++) {
@@ -569,7 +570,7 @@
           const newVal = oldVal < 128 ? 0 : 255;
           grayBuffer[idx] = newVal;
 
-          const err = (oldVal - newVal) / 8.0; // 1/8씩 6군데로 분산 (2/8 소멸로 하이라이트 깨끗이 유지)
+          const err = (oldVal - newVal) / 8.0;
 
           if (x + 1 < targetWidth) grayBuffer[idx + 1] += err;
           if (x + 2 < targetWidth) grayBuffer[idx + 2] += err;
@@ -582,7 +583,7 @@
             grayBuffer[(y + 2) * targetWidth + x] += err;
           }
 
-          // 1비트 흑백 픽셀 기록
+          // 1비트 모노크롬 픽셀 기록
           const p = idx * 4;
           data[p] = newVal;
           data[p + 1] = newVal;
@@ -596,7 +597,7 @@
     }
 
     /**
-     * QR 코드 캔버스 생성 함수
+     * QR 코드 캔버스 생성 함수 (수피아여고 공식)
      */
     function generateQRCodeCanvas(text, size) {
       return new Promise((resolve) => {
@@ -636,15 +637,15 @@
     }
 
     /**
-     * 3. 72 × 72 mm (정확히 576 × 576 px 1:1 정방형) 물리 규격 완성
-     * TM-m30III 80mm 용지의 유효 인쇄 폭 72mm = 576 도트에 1:1로 정확하게 일치
+     * 3. 72 × 72 mm 물리 규격 영수증 합성 (576 × 576 px 1:1 정방형)
+     * TM-m30III 80mm 용지의 유효 인쇄 폭 72mm = 정확히 576 도트
      */
     async function composeTargetReceipt() {
       if (!capturedColorCanvas) return '';
 
       const tw = 576; // 정확히 72mm (203.2 DPI)
       const photoSize = 576; // 72x72mm 1:1 정사각형
-      const th = 760; // 72mm 사진 + 여백 및 하단 QR코드
+      const th = 760; // 72mm 사진 + 여백 + 하단 QR코드
 
       offscreenCanvas.width = tw;
       offscreenCanvas.height = th;
@@ -653,7 +654,7 @@
       offscreenCtx.fillStyle = '#ffffff';
       offscreenCtx.fillRect(0, 0, tw, th);
 
-      // 사진 영역: 순수 앳킨슨(Atkinson) 적용 렌더링
+      // 사진 영역: 순수 앳킨슨(Atkinson) 렌더링
       const atkinsonPhoto = renderPureAtkinsonPhoto(capturedColorCanvas, photoSize, photoSize);
       offscreenCtx.drawImage(atkinsonPhoto, 0, 0, photoSize, photoSize);
 
@@ -673,8 +674,7 @@
 
     /**
      * 4. 사진 촬영 시퀀스
-     * - [핵심 해결]: 태블릿 GPU 렌더러가 대형 영상(1280px)을 576px로 급격히 줄이며 생기던
-     *   동심원 렌즈 왜곡을 차단하기 위해 2단계 밉맵 다운샘플링(Step-down Resizing) 적용
+     * - 2단계 스텝다운(Step-down Resizing)으로 GPU 렌즈 메쉬 왜곡 원천 차단
      */
     async function triggerPhotoShoot() {
       shootButton.disabled = true;
@@ -697,7 +697,7 @@
       const cropX = (vw - cropSize) / 2;
       const cropY = (vh - cropSize) / 2;
 
-      // 1단계: 원본에서 1:1 정방형 800px로 1차 축소 (GPU 렌즈 메쉬 왜곡 제거)
+      // 1단계: 1:1 정방형 800px 축소
       const stepCanvas = document.createElement('canvas');
       stepCanvas.width = 800;
       stepCanvas.height = 800;
@@ -722,7 +722,7 @@
       // 미리보기: 촬영된 선명한 원본 컬러 그대로 표시
       previewImg.src = capturedColorCanvas.toDataURL('image/png');
 
-      // 인쇄용: 원형 왜곡 0% 순수 앳킨슨 흑백 + QR코드 합성
+      // 인쇄용: 순수 앳킨슨 흑백 + QR코드 합성
       finalPrintReceiptDataUrl = await composeTargetReceipt();
 
       resultModal.style.display = 'flex';
@@ -730,9 +730,9 @@
     }
 
     /**
-     * 5. 무왜곡 72×72mm 규격 인쇄 파이프라인
-     * - 화면 깜빡임/창 커짐이 전혀 없는 백그라운드 Iframe 인쇄
-     * - 태블릿/모바일 인쇄 스풀러에서 축소되지 않고 용지 가로 폭 전체에 100% 꽉 차게 렌더링
+     * 5. 무왜곡 72×72mm 규격 백그라운드 인쇄 파이프라인
+     * - 화면 깜빡임이 없는 Iframe 인쇄
+     * - 용지 가로 폭 전체에 100% 꽉 차게 렌더링
      */
     function printReceipt() {
       printBtn.disabled = true;
@@ -797,7 +797,6 @@
         `);
         frameDoc.close();
 
-        // 렌더링 완료 후 백그라운드에서 직접 인쇄 호출 (화면 깜빡임 없음)
         setTimeout(() => {
           hiddenPrintFrame.contentWindow.focus();
           hiddenPrintFrame.contentWindow.print();
