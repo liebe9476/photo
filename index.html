@@ -421,8 +421,7 @@
        감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 전용)
        ============================================================ */
     @page {
-      size: 80mm auto;
-      margin: 0mm !important;
+      margin: 0 !important;
     }
 
     @media print {
@@ -433,10 +432,10 @@
       }
 
       html, body {
-        width: 80mm !important;
-        max-width: 80mm !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
-        max-height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -458,8 +457,9 @@
         display: block !important;
         visibility: visible !important;
         width: 100% !important;
-        max-width: 79mm !important;
-        margin: 0 auto !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         line-height: 0 !important;
@@ -475,6 +475,7 @@
 
       #printOutputZone img {
         width: 100% !important;
+        min-width: 100% !important;
         max-width: 100% !important;
         height: auto !important;
         display: block !important;
@@ -1496,38 +1497,6 @@
         localStorage.setItem('tm_m30_booth_tuning_v2', JSON.stringify(TUNING_PARAMS));
       } catch (e) {}
       showToast('자연스러운 인쇄 기본값으로 초기화되었습니다.');
-    }
-
-    function updateAdminLabels() {
-      document.getElementById('admValFilter').innerText = `${Math.round(TUNING_PARAMS.customFilterStrength * 100)}%`;
-      document.getElementById('admValAuto').innerText = `${Math.round(TUNING_PARAMS.autoStrength * 100)}%`;
-      document.getElementById('admValBright').innerText = (TUNING_PARAMS.brightness > 0 ? '+' : '') + TUNING_PARAMS.brightness;
-      document.getElementById('admValContrast').innerText = (TUNING_PARAMS.contrast > 0 ? '+' : '') + TUNING_PARAMS.contrast;
-      document.getElementById('admValSatur').innerText = (TUNING_PARAMS.saturation > 0 ? '+' : '') + TUNING_PARAMS.saturation;
-      document.getElementById('admValTemp').innerText = (TUNING_PARAMS.temperature > 0 ? '+' : '') + TUNING_PARAMS.temperature;
-      document.getElementById('admValGamma').innerText = TUNING_PARAMS.gamma.toFixed(2);
-      document.getElementById('admValVignette').innerText = `${Math.round(TUNING_PARAMS.vignette * 100)}%`;
-      document.getElementById('admValStipple').innerText = `${TUNING_PARAMS.stippleScale.toFixed(1)}x`;
-      document.getElementById('admValDensity').innerText = (TUNING_PARAMS.printDensity > 0 ? '+' : '') + TUNING_PARAMS.printDensity;
-    }
-
-    function resetTuningToDefault() {
-      Object.assign(TUNING_PARAMS, {
-        customFilterStrength: 1.0,
-        autoStrength: 0.38,
-        algorithm: 'STIPPLE 3.0x',
-        stippleScale: 3.0,
-        printDensity: 0,
-        brightness: 60,
-        contrast: 20,
-        saturation: 100,
-        temperature: 20,
-        gamma: 1.10,
-        vignette: 0.10
-      });
-      syncTuningParamsToAdminUI();
-      renderAdminQualityPreview();
-      showToast('스펙 기본값으로 초기화되었습니다.');
     }
 
     function adminLog(msg) {
