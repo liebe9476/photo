@@ -387,7 +387,7 @@
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
-        overflow: visible !important;
+        overflow: hidden !important;
       }
 
       body > *:not(#printOutputZone) {
@@ -404,12 +404,14 @@
         visibility: visible !important;
         width: 80mm !important;
         margin: 0 !important;
-        padding: 2mm 0 !important;
+        padding: 0 !important;
         background: #ffffff !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
 
       #printOutputZone img {
-        width: 72mm !important; /* TM-m30III 실제 유효 인쇄 폭 576도트와 1:1 매칭 */
+        width: 72mm !important; /* TM-m30III 203 DPI 헤드 가로 576 도트 1:1 매칭 (용지 가득 채움) */
         max-width: 72mm !important;
         height: auto !important;
         display: block !important;
@@ -417,6 +419,8 @@
         padding: 0 !important;
         image-rendering: pixelated !important;
         image-rendering: crisp-edges !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
     }
   </style>
@@ -644,16 +648,18 @@
 
     /**
      * 3. 첨부해주신 실제 출력물과 100% 동일한 영수증 레이아웃 구성
-     * - 상단 1:1 정방형 앳킨슨 사진
+     * - 상단 1:1 정방형 앳킨슨 사진 (좌우 576px 가득 채움)
      * - 하단 중앙 실제 인식 가능한 QR 코드
      * - TM-m30III 물리 헤드(203 DPI, 72mm 유효 폭)와 1:1 픽셀 매칭 (가로 576px 고정)
+     * - 단 1장으로 컴팩트하게 출력되도록 높이 최적화
      */
     async function composeTargetReceipt() {
       if (!capturedRawCanvas) return '';
 
-      // 80mm 감열지 헤드 물리 규격: 576 도트 (72mm 유효폭)
+      // 80mm 감열지 헤드 물리 규격: 576 도트 (72mm 유효폭 전체 가득 채움)
       const tw = 576;
-      const th = 800; // 사진(512) + 간격(30) + QR(170) + 여백
+      // 사진(576) + 간격(18) + QR(150) + 하단여백(16) = 총 760px (용지 1장 최적화)
+      const th = 760;
       offscreenCanvas.width = tw;
       offscreenCanvas.height = th;
 
@@ -661,21 +667,21 @@
       offscreenCtx.fillStyle = '#ffffff';
       offscreenCtx.fillRect(0, 0, tw, th);
 
-      // 사진 영역: 512 x 512 px (가로 정중앙 배치)
-      const photoSize = 512;
-      const photoX = Math.round((tw - photoSize) / 2);
-      const photoY = 16;
+      // 사진 영역: 576 x 576 px (용지 폭 100% 가득 채움, 여백 없음)
+      const photoSize = 576;
+      const photoX = 0;
+      const photoY = 0;
 
       // 앳킨슨 디더링 적용된 흑백 사진 렌더링
       const ditheredPhoto = renderPureAtkinsonDither(capturedRawCanvas, photoSize, photoSize);
       offscreenCtx.drawImage(ditheredPhoto, photoX, photoY, photoSize, photoSize);
 
-      // 하단 QR 코드 렌더링 (화면 사진과 동일한 170px 크기)
+      // 하단 QR 코드 렌더링 (가로 중앙 정렬)
       try {
-        const qrSize = 170;
+        const qrSize = 150;
         const qrCanvas = await generateQRCodeCanvas('https://speer.hs.kr/', qrSize);
         const qrX = Math.round((tw - qrSize) / 2);
-        const qrY = photoY + photoSize + 28;
+        const qrY = photoY + photoSize + 18;
         offscreenCtx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
       } catch (err) {
         console.warn('QR 코드 렌더 실패, 대체 생성:', err);
