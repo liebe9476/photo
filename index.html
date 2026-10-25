@@ -661,9 +661,9 @@
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-xs mb-1">
                     <span class="text-slate-300">오토 강도 (AUTO)</span>
-                    <span id="admValAuto" class="text-sky-400 font-mono font-bold">38%</span>
+                    <span id="admValAuto" class="text-sky-400 font-mono font-bold">50%</span>
                   </div>
-                  <input type="range" id="admSliderAuto" min="0" max="100" value="38" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderAuto" min="0" max="100" value="50" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
               </div>
 
@@ -672,49 +672,49 @@
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">밝기 (BRIGHT)</span>
-                    <span id="admValBright" class="text-sky-400 font-mono font-bold">+12</span>
+                    <span id="admValBright" class="text-sky-400 font-mono font-bold">0</span>
                   </div>
-                  <input type="range" id="admSliderBright" min="-60" max="80" value="12" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderBright" min="-60" max="80" value="0" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">대비 (CONTRAST)</span>
-                    <span id="admValContrast" class="text-sky-400 font-mono font-bold">+22</span>
+                    <span id="admValContrast" class="text-sky-400 font-mono font-bold">+16</span>
                   </div>
-                  <input type="range" id="admSliderContrast" min="-60" max="60" value="22" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderContrast" min="-60" max="60" value="16" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">채도 (SATUR)</span>
-                    <span id="admValSatur" class="text-sky-400 font-mono font-bold">+10</span>
+                    <span id="admValSatur" class="text-sky-400 font-mono font-bold">0</span>
                   </div>
-                  <input type="range" id="admSliderSatur" min="-100" max="100" value="10" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderSatur" min="-100" max="100" value="0" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">색온도 (TEMP)</span>
-                    <span id="admValTemp" class="text-sky-400 font-mono font-bold">+5</span>
+                    <span id="admValTemp" class="text-sky-400 font-mono font-bold">0</span>
                   </div>
-                  <input type="range" id="admSliderTemp" min="-50" max="50" value="5" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderTemp" min="-50" max="50" value="0" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">감마 (GAMMA)</span>
-                    <span id="admValGamma" class="text-sky-400 font-mono font-bold">1.05</span>
+                    <span id="admValGamma" class="text-sky-400 font-mono font-bold">1.00</span>
                   </div>
-                  <input type="range" id="admSliderGamma" min="0.5" max="1.8" step="0.05" value="1.05" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderGamma" min="0.5" max="1.8" step="0.05" value="1.00" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">비네트 (VIGNETTE)</span>
-                    <span id="admValVignette" class="text-sky-400 font-mono font-bold">8%</span>
+                    <span id="admValVignette" class="text-sky-400 font-mono font-bold">0%</span>
                   </div>
-                  <input type="range" id="admSliderVignette" min="0" max="100" value="8" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderVignette" min="0" max="100" value="0" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
               </div>
 
@@ -723,17 +723,17 @@
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-xs mb-1">
                     <span class="text-slate-300">지그재그 점묘화 스케일</span>
-                    <span id="admValStipple" class="text-sky-400 font-mono font-bold">2.2x</span>
+                    <span id="admValStipple" class="text-sky-400 font-mono font-bold">1.6x</span>
                   </div>
-                  <input type="range" id="admSliderStipple" min="10" max="35" step="1" value="22" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderStipple" min="10" max="35" step="1" value="16" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-xs mb-1">
                     <span class="text-slate-300">감열 인쇄 농도 (DENSITY)</span>
-                    <span id="admValDensity" class="text-sky-400 font-mono font-bold">+5</span>
+                    <span id="admValDensity" class="text-sky-400 font-mono font-bold">0</span>
                   </div>
-                  <input type="range" id="admSliderDensity" min="-30" max="30" step="5" value="5" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderDensity" min="-30" max="30" step="5" value="0" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
               </div>
             </div>
@@ -804,27 +804,29 @@
     const DEFAULT_TUNING_PARAMS = {
       whiteBalanceMode: 'continuous',
       flickerCompensation: 'auto',
-      presetName: '내추럴',
+      presetName: '클래식 정밀',
       customFilterStrength: 1.0,  // 100%
-      autoStrength: 0.38,         // 38%
-      algorithm: 'STIPPLE 2.2x',
-      stippleScale: 2.2,          // 2.2x 점묘화
-      printDensity: 5,            // +5 (인쇄 농도)
-      brightness: 12,             // 자연스러운 밝기 (+12)
-      contrast: 22,               // 또렷한 대비 (+22)
-      saturation: 10,             // 채도 (+10)
-      temperature: 5,             // 온도 (+5)
-      gamma: 1.05,                // 감마 (1.05)
-      vignette: 0.08              // 비네트 (8%)
+      autoStrength: 0.50,         // 50%
+      algorithm: 'STIPPLE 1.6x',
+      stippleScale: 1.6,          // 1.6x 미세 지그재그 점묘화
+      printDensity: 0,            // 0 (기준 인쇄 농도)
+      brightness: 0,              // 0 (과도한 노출 배제, 자연스러운 톤)
+      contrast: 16,               // +16 (안경테 및 턱선 명확한 대비)
+      saturation: 0,              // 0 (자연스러운 그레이스케일 계조)
+      temperature: 0,             // 0
+      gamma: 1.00,                // 1.00 (표준 선형 톤)
+      vignette: 0.00              // 0%
     };
 
     const TUNING_PARAMS = { ...DEFAULT_TUNING_PARAMS };
 
-    // 로컬 저장소 동기화
+    // 로컬 저장소 동기화 (새 기본 파라미터 적용을 위해 v4로 갱신)
     try {
-      const saved = localStorage.getItem('tm_m30_booth_tuning_v3');
+      const saved = localStorage.getItem('tm_m30_booth_tuning_v4');
       if (saved) {
         Object.assign(TUNING_PARAMS, JSON.parse(saved));
+      } else {
+        localStorage.setItem('tm_m30_booth_tuning_v4', JSON.stringify(TUNING_PARAMS));
       }
     } catch (e) {}
 
@@ -1405,7 +1407,7 @@
     function closeAdminModal() {
       adminModal.classList.add('hidden');
       try {
-        localStorage.setItem('tm_m30_booth_tuning_v3', JSON.stringify(TUNING_PARAMS));
+        localStorage.setItem('tm_m30_booth_tuning_v4', JSON.stringify(TUNING_PARAMS));
       } catch (e) {}
       showToast('관리자 설정이 저장되었습니다.');
     }
@@ -1438,7 +1440,7 @@
       updateAdminLabels();
       renderAdminQualityPreview();
       try {
-        localStorage.setItem('tm_m30_booth_tuning_v3', JSON.stringify(TUNING_PARAMS));
+        localStorage.setItem('tm_m30_booth_tuning_v4', JSON.stringify(TUNING_PARAMS));
       } catch (e) {}
     }
 
@@ -1460,7 +1462,7 @@
       syncTuningParamsToAdminUI();
       renderAdminQualityPreview();
       try {
-        localStorage.setItem('tm_m30_booth_tuning_v3', JSON.stringify(TUNING_PARAMS));
+        localStorage.setItem('tm_m30_booth_tuning_v4', JSON.stringify(TUNING_PARAMS));
       } catch (e) {}
       showToast('자연스러운 인쇄 기본값으로 초기화되었습니다.');
     }
