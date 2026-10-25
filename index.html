@@ -541,11 +541,10 @@
 
       const cx = targetWidth / 2;
       const cy = targetHeight / 2;
-      // [핵심] 원의 곡률 반경을 5배로 초대형 확장하여 원형 등고선이 완전히 평면화되도록 설정
-      const maxRadius = Math.sqrt(cx * cx + cy * cy) * 5.0;
+      // [핵심] 원의 곡률 반경을 20배로 초대형 확장하여 완벽한 절대 수평 평면화
+      const maxRadius = Math.sqrt(cx * cx + cy * cy) * 20.0;
 
-      // 1단계: BT.709 표준 인지 휘도 + 태블릿 광각 렌즈 5배 울트라 와이드 평탄화(Ultra-Wide Flat-Field)
-      // 곡률 반경을 5배로 크게 넓혀 원형 교차 및 가운데 다이아몬드 공백을 완벽한 평면으로 메움
+      // 1단계: BT.709 표준 인지 휘도 + 태블릿 광각 렌즈 20배 울트라 와이드 평탄화
       for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
         const dy = y - cy;
@@ -559,10 +558,10 @@
           // 기본 인지 휘도
           let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-          // 원을 5배로 넓게 펼쳐 곡률을 평평하게 만듦 (동심원/다이아몬드 100% 제거)
+          // 원을 20배로 넓게 펼쳐 곡률을 완전한 평면으로 만듦
           const dx = x - cx;
           const dist = Math.sqrt(dx * dx + dy * dy) / maxRadius;
-          const centerCompensation = Math.max(0, (1.0 - dist * dist)) * 22.0; // 5배 넓고 균일한 중심 평탄화
+          const centerCompensation = Math.max(0, (1.0 - dist * dist)) * 22.0;
 
           lum = lum - centerCompensation;
 
