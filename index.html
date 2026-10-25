@@ -368,7 +368,7 @@
     }
 
     /* ============================================================
-       감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 전용 가득 채움)
+       감열 영수증 인쇄 전용 CSS (Epson TM-m30III & TM Print Assistant 80mm 전용 가득 채움)
        ============================================================ */
     @page {
       size: 80mm auto;
@@ -379,10 +379,13 @@
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
 
       html, body {
-        width: 80mm !important;
+        width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -394,16 +397,15 @@
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
+        width: 0 !important;
       }
 
       #printOutputZone {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
+        display: block !important;
         visibility: visible !important;
-        width: 80mm !important;
-        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
         padding: 0 !important;
         background: #ffffff !important;
         page-break-inside: avoid !important;
@@ -411,8 +413,10 @@
       }
 
       #printOutputZone img {
-        width: 72mm !important; /* TM-m30III 203 DPI 헤드 가로 576 도트 1:1 매칭 (용지 가득 채움) */
-        max-width: 72mm !important;
+        /* TM Print Assistant 앱 및 모바일 브라우저 축소 방지: 용지 인쇄폭 100% 가득 채움 */
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
         height: auto !important;
         display: block !important;
         margin: 0 auto !important;
