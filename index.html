@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&family=Space+Mono:wght@700&display=swap');
 
     *, *::before, *::after {
       box-sizing: border-box;
@@ -19,7 +19,7 @@
       user-select: none;
       -webkit-user-select: none;
       touch-action: manipulation;
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Pretendard', sans-serif;
     }
 
     html, body {
@@ -27,7 +27,7 @@
       height: 100vh;
       overflow: hidden;
       background: #000000;
-      color: #1e293b;
+      color: #0f172a;
     }
 
     #appContainer {
@@ -50,10 +50,10 @@
     }
 
     .top-pill-btn {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.95);
       border: 1px solid rgba(0, 0, 0, 0.12);
       border-radius: 9999px;
-      padding: 9px 18px;
+      padding: 8px 16px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -61,14 +61,12 @@
       color: #0f172a;
       font-size: 13px;
       font-weight: 800;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
       transition: all 0.2s ease;
     }
     .top-pill-btn:hover {
       background: #ffffff;
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.16);
     }
     .top-pill-btn:active {
       transform: scale(0.96);
@@ -81,10 +79,10 @@
       width: 100%;
       height: 100vh;
       min-height: 0;
-      background: #e7e9df; /* 실제 촬영기기 웜그레이 배경 */
+      background: #e7e9df; /* 실제 촬영기기 웜베이지 배경 */
     }
 
-    /* [좌측 뷰파인더 영역] */
+    /* 좌측 뷰파인더 영역 */
     #viewfinderContainer {
       flex: 1;
       height: 100%;
@@ -105,11 +103,11 @@
       display: block;
     }
 
-    /* 3x3 격자 가이드선 (첨부 이미지 규격) */
+    /* 3x3 격자 가이드선 */
     .grid-line {
       position: absolute;
       pointer-events: none;
-      background: rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.4);
       z-index: 15;
     }
     .grid-v1 { left: 33.333%; top: 0; bottom: 0; width: 1.5px; }
@@ -125,10 +123,10 @@
       pointer-events: none;
       z-index: 16;
     }
-    .corner-tl { top: 20px; left: 20px; border-top: 3.5px solid rgba(255, 255, 255, 0.9); border-left: 3.5px solid rgba(255, 255, 255, 0.9); border-top-left-radius: 4px; }
-    .corner-tr { top: 20px; right: 20px; border-top: 3.5px solid rgba(255, 255, 255, 0.9); border-right: 3.5px solid rgba(255, 255, 255, 0.9); border-top-right-radius: 4px; }
-    .corner-bl { bottom: 20px; left: 20px; border-bottom: 3.5px solid rgba(255, 255, 255, 0.9); border-left: 3.5px solid rgba(255, 255, 255, 0.9); border-bottom-left-radius: 4px; }
-    .corner-br { bottom: 20px; right: 20px; border-bottom: 3.5px solid rgba(255, 255, 255, 0.9); border-right: 3.5px solid rgba(255, 255, 255, 0.9); border-bottom-right-radius: 4px; }
+    .corner-tl { top: 20px; left: 20px; border-top: 3.5px solid rgba(255, 255, 255, 0.9); border-left: 3.5px solid rgba(255, 255, 255, 0.9); }
+    .corner-tr { top: 20px; right: 20px; border-top: 3.5px solid rgba(255, 255, 255, 0.9); border-right: 3.5px solid rgba(255, 255, 255, 0.9); }
+    .corner-bl { bottom: 20px; left: 20px; border-bottom: 3.5px solid rgba(255, 255, 255, 0.9); border-left: 3.5px solid rgba(255, 255, 255, 0.9); }
+    .corner-br { bottom: 20px; right: 20px; border-bottom: 3.5px solid rgba(255, 255, 255, 0.9); border-right: 3.5px solid rgba(255, 255, 255, 0.9); }
 
     /* 좌상단 ● LIVE 뱃지 */
     .live-badge {
@@ -136,7 +134,7 @@
       top: 24px;
       left: 26px;
       z-index: 20;
-      background: rgba(0, 0, 0, 0.55);
+      background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(6px);
       padding: 6px 14px;
       border-radius: 999px;
@@ -159,7 +157,7 @@
     }
     @keyframes pulseDot {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.85); }
+      50% { opacity: 0.4; transform: scale(0.85); }
     }
 
     /* 플래시 오버레이 */
@@ -197,9 +195,9 @@
       text-shadow: 0 4px 30px rgba(0,0,0,0.8);
     }
 
-    /* [우측 패널 영역] */
+    /* 우측 패널 영역 */
     #sideActionPanel {
-      width: clamp(300px, 35vw, 460px);
+      width: clamp(320px, 36vw, 480px);
       height: 100%;
       background: #e7e9df;
       display: flex;
@@ -217,7 +215,7 @@
       align-items: center;
       text-align: center;
       margin-bottom: 38px;
-      max-width: 340px;
+      max-width: 360px;
     }
 
     .booth-chip {
@@ -236,7 +234,7 @@
     }
 
     .booth-main-title {
-      font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+      font-size: clamp(1.4rem, 2.5vw, 1.85rem);
       font-weight: 900;
       color: #1e293b;
       letter-spacing: -0.6px;
@@ -248,19 +246,19 @@
       font-size: 13.5px;
       color: #64748b;
       margin-top: 8px;
-      font-weight: 500;
+      font-weight: 600;
     }
 
-    /* 큰 알약형 "촬영하기" 버튼 (첨부 사진 디자인) */
+    /* 큰 알약형 촬영하기 버튼 */
     .pill-shoot-btn {
-      width: min(92%, 290px);
+      width: min(92%, 300px);
       padding: 24px 32px;
       background: #f1f3ee;
-      border: 1px solid #d5d8cd;
+      border: 1.5px solid #d0d4c5;
       border-radius: 9999px;
-      font-size: 1.55rem;
-      font-weight: 800;
-      color: #1a1a1a;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #111827;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0,0,0,0.04);
       cursor: pointer;
       display: flex;
@@ -276,22 +274,21 @@
     }
     .pill-shoot-btn:active {
       transform: scale(0.96);
-      background: #e2e5da;
     }
 
     /* ============================================================
-       [결과 모달 화면] - 캔버스 직결 렌더링으로 즉각 출력 & 100% 가득 참
+       [촬영 결과 모달] - 화면에 100% 가득 차고 선명한 프리뷰 스테이지
        ============================================================ */
     #resultModal {
       position: fixed;
       inset: 0;
-      background: rgba(10, 15, 30, 0.92);
-      backdrop-filter: blur(12px);
+      background: rgba(10, 15, 30, 0.94);
+      backdrop-filter: blur(14px);
       z-index: 100;
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px;
     }
 
     .result-content-box {
@@ -299,42 +296,43 @@
       border-radius: 28px;
       border: 1px solid #334155;
       width: 100%;
-      max-width: 980px;
-      max-height: 94vh;
+      max-width: 1020px;
+      height: min(92vh, 840px);
       display: flex;
       flex-direction: row;
-      gap: 32px;
+      gap: 36px;
       padding: 28px;
-      box-shadow: 0 25px 70px -15px rgba(0,0,0,0.95);
+      box-shadow: 0 25px 70px rgba(0,0,0,0.95);
       align-items: center;
     }
 
-    /* 영수증 미리보기 스테이지 */
+    /* 영수증 프리뷰 스테이지: 세로 높이를 최대로 가득 채움 */
     .receipt-preview-stage {
+      flex: 1;
+      height: 100%;
       background: #090e1a;
-      padding: 14px;
       border-radius: 20px;
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.7);
+      padding: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: min(86vh, 760px);
-      flex-shrink: 0;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.7);
+      overflow: hidden;
     }
 
     .receipt-paper-card {
+      height: 100%;
+      max-height: 100%;
+      aspect-ratio: 800 / 1130;
       background: #ffffff;
       border-radius: 4px;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.5);
-      height: 100%;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.6);
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      aspect-ratio: 800 / 1520;
     }
 
-    /* 캔버스 직접 바인딩으로 흰 화면 및 로딩 오류 원천 차단 */
     #previewDirectCanvas {
       width: 100%;
       height: 100%;
@@ -344,20 +342,13 @@
     }
 
     .result-control-area {
-      flex: 1;
+      width: clamp(280px, 32vw, 360px);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       color: #f8fafc;
-      min-width: 280px;
       height: 100%;
-    }
-
-    .action-group {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 28px;
+      flex-shrink: 0;
     }
 
     .print-main-btn {
@@ -418,9 +409,10 @@
     }
 
     /* ============================================================
-       감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 전용)
+       감열 영수증 인쇄 전용 CSS (1페이지 가득 차게 강제 출력)
        ============================================================ */
     @page {
+      size: auto;
       margin: 0 !important;
     }
 
@@ -433,9 +425,7 @@
 
       html, body {
         width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
+        height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -446,46 +436,36 @@
       body > *:not(#printOutputZone) {
         display: none !important;
         visibility: hidden !important;
-        height: 0 !important;
-        max-height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
       }
 
       #printOutputZone {
-        display: block !important;
+        display: flex !important;
         visibility: visible !important;
         width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
         margin: 0 !important;
         padding: 0 !important;
-        background: #ffffff !important;
-        line-height: 0 !important;
-        font-size: 0 !important;
-        overflow: hidden !important;
-        page-break-before: avoid !important;
+        align-items: center !important;
+        justify-content: center !important;
         page-break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-before: avoid !important;
         break-inside: avoid !important;
+        page-break-after: avoid !important;
         break-after: avoid !important;
       }
 
       #printOutputZone img {
         width: 100% !important;
-        min-width: 100% !important;
         max-width: 100% !important;
-        height: auto !important;
+        height: 100% !important;
+        max-height: 100vh !important;
+        object-fit: contain !important;
         display: block !important;
         margin: 0 auto !important;
         padding: 0 !important;
         border: none !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
       }
     }
   </style>
@@ -493,7 +473,7 @@
 <body>
 
   <div id="appContainer">
-    <!-- 상단 플로팅 컨트롤 바 (관리자 설정 & 전체화면) -->
+    <!-- 상단 플로팅 컨트롤 바 -->
     <div class="floating-top-bar">
       <!-- 관리자 모달 호출 버튼 -->
       <button type="button" class="top-pill-btn" onclick="openAdminModal()" title="인쇄 및 카메라 관리자 설정">
@@ -510,7 +490,7 @@
 
     <!-- 메인 뷰파인더 & 우측 패널 -->
     <main id="mainBoothArea">
-      <!-- 좌측 뷰파인더 (실시간 화면 + 3x3 그리드 + L자 코너 가이드) -->
+      <!-- 좌측 뷰파인더 -->
       <section id="viewfinderContainer">
         <video id="webcamView" autoplay playsinline muted></video>
 
@@ -520,7 +500,7 @@
           <span>LIVE</span>
         </div>
 
-        <!-- 3x3 격자 가이드선 (첨부 사진과 100% 동일) -->
+        <!-- 3x3 격자 가이드선 -->
         <div class="grid-line grid-v1"></div>
         <div class="grid-line grid-v2"></div>
         <div class="grid-line grid-h1"></div>
@@ -543,7 +523,7 @@
 
       <!-- 우측 컨트롤 패널 -->
       <aside id="sideActionPanel">
-        <!-- 촬영하기 위쪽 전용 타이틀 영역 -->
+        <!-- 촬영하기 위쪽 타이틀 -->
         <div class="side-title-container">
           <div class="booth-chip">
             <i class="ph-bold ph-sparkle text-xs"></i>
@@ -555,7 +535,7 @@
           <p class="booth-sub-caption">카메라를 바라보고 버튼을 눌러주세요</p>
         </div>
 
-        <!-- 촬영하기 큰 알약형 버튼 -->
+        <!-- 촬영하기 버튼 -->
         <button id="shootButton" class="pill-shoot-btn" onclick="triggerPhotoShoot()">
           촬영하기
         </button>
@@ -564,19 +544,19 @@
   </div>
 
   <!-- ============================================================
-       3. 촬영 결과 모달 (캔버스 직결로 한 화면에 깨짐 없이 가득 채움)
+       촬영 결과 모달 (화면 가득 찬 고해상도 미리보기)
        ============================================================ -->
   <div id="resultModal">
     <div class="result-content-box">
       <!-- 좌측: 영수증 전체가 한눈에 들어오는 스테이지 -->
       <div class="receipt-preview-stage">
         <div class="receipt-paper-card">
-          <!-- 캔버스에 직접 그려서 흰 화면 에러를 원천 차단 -->
-          <canvas id="previewDirectCanvas" width="800" height="1520"></canvas>
+          <!-- 캔버스에 직접 그려서 흰 화면 에러를 원천 차단하고 가득 채움 -->
+          <canvas id="previewDirectCanvas" width="800" height="1130"></canvas>
         </div>
       </div>
 
-      <!-- 우측: 결과 안내 및 조작 버튼 (필터/기술 설정 삭제 완료) -->
+      <!-- 우측: 결과 안내 및 조작 버튼 (필터/기술설정 삭제 완료) -->
       <div class="result-control-area">
         <div>
           <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold mb-3">
@@ -586,11 +566,11 @@
             영수증 사진이<br/>완성되었습니다! 🎉
           </h2>
           <p class="text-sm text-slate-400 leading-relaxed">
-            화면 미리보기는 선명한 고화질 컬러로 확인하실 수 있으며, 인쇄하기를 누르면 Epson TM-m30III 감열 영수증 지그재그 점묘화 엔진으로 즉시 출력됩니다.
+            화면 미리보기는 선명한 고화질 컬러로 확인하실 수 있으며, 인쇄하기를 누르면 감열 영수증 지그재그 점묘화 엔진으로 1페이지에 딱 맞게 출력됩니다.
           </p>
         </div>
 
-        <div class="action-group">
+        <div class="space-y-3">
           <button id="printBtn" class="print-main-btn" onclick="printReceipt()">
             <i class="ph-bold ph-printer text-2xl"></i>
             <span id="printBtnText">영수증 인쇄하기</span>
@@ -605,54 +585,51 @@
   </div>
 
   <!-- ============================================================
-       4. [관리자 설정 모달] - 인쇄품질 실시간 시뮬레이터 & 하드웨어 제어
+       관리자 설정 모달 (좌측 슬라이더 & 우측 실시간 인쇄품질 시뮬레이터)
        ============================================================ -->
   <div id="adminModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
-    <div class="bg-slate-900 border border-slate-800 max-w-4xl w-full rounded-3xl p-5 sm:p-7 shadow-2xl relative max-h-[92vh] flex flex-col">
+    <div class="bg-slate-900 border border-slate-800 max-w-5xl w-full rounded-3xl p-5 sm:p-7 shadow-2xl relative max-h-[92vh] flex flex-col">
       <!-- 모달 상단 헤더 -->
       <div class="flex items-center justify-between pb-4 border-b border-slate-800 flex-shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white shadow-lg">
             <i class="ph-bold ph-faders text-2xl"></i>
           </div>
           <div>
-            <h3 class="text-lg font-black text-white flex items-center gap-2">
-              TM-m30III 영수증 스튜디오 관리자
-            </h3>
-            <p class="text-xs text-slate-400">하드웨어 직결 연결 • 라이브 필터링 • 디더링 알고리즘 정밀 제어</p>
+            <h3 class="text-lg font-black text-white">TM-m30III 영수증 스튜디오 관리자</h3>
+            <p class="text-xs text-slate-400">하드웨어 직결 연결 • 라이브 튜닝 • 실시간 디더링 시뮬레이션</p>
           </div>
         </div>
-        <button onclick="closeAdminModal()" class="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition">
+        <button onclick="closeAdminModal()" class="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition">
           <i class="ph-bold ph-x text-xl"></i>
         </button>
       </div>
 
-      <!-- 모달 내부 스크롤 영역 (2단 스플릿: 좌측 슬라이더 & 설정 / 우측 실시간 인쇄품질 뷰어) -->
+      <!-- 모달 내부 스크롤 영역 -->
       <div class="flex-1 overflow-y-auto pr-1 py-4">
-        
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
-          <!-- [좌측 7컬럼] 프린터 연결 및 튜닝 슬라이더 제어부 -->
+          <!-- [좌측 7컬럼] 컨트롤 및 튜닝 슬라이더 -->
           <div class="lg:col-span-7 space-y-4">
             
-            <!-- 1. 프린터 연결 제어부 (블루투스 / USB / 테스트) -->
+            <!-- 프린터 연결 제어부 -->
             <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-2">
                   <i class="ph-bold ph-plugs-connected text-base"></i> 프린터 연결 상태 (ESC/POS)
                 </span>
-                <div id="connectionBadge" class="flex items-center space-x-1 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs">
+                <div class="flex items-center space-x-1 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs">
                   <span id="connStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
                   <span id="connStatusText" class="text-slate-300 font-medium text-[11px]">미연결</span>
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <button id="btnConnectBT" onclick="connectBluetooth()" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-white flex items-center justify-center gap-2 transition">
+              <div class="grid grid-cols-3 gap-2.5">
+                <button onclick="connectBluetooth()" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-white flex items-center justify-center gap-2 transition">
                   <i class="ph-bold ph-bluetooth text-base text-sky-400"></i>
-                  <span>블루투스 검색</span>
+                  <span>블루투스</span>
                 </button>
-                <button id="btnConnectUSB" onclick="connectUSB()" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-white flex items-center justify-center gap-2 transition">
+                <button onclick="connectUSB()" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-white flex items-center justify-center gap-2 transition">
                   <i class="ph-bold ph-usb text-base text-cyan-400"></i>
                   <span>USB 직결</span>
                 </button>
@@ -663,17 +640,17 @@
               </div>
             </div>
 
-            <!-- 2. 필터 강도 및 튜닝 슬라이더 -->
+            <!-- 필터 및 튜닝 슬라이더 -->
             <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
               <div class="flex items-center justify-between border-b border-slate-800 pb-2">
                 <span class="text-xs font-bold text-sky-400 flex items-center gap-2">
-                  <i class="ph-bold ph-sliders text-base"></i> 커스텀 튜닝 및 디더링 스펙
+                  <i class="ph-bold ph-sliders text-base"></i> 인쇄 화질 튜닝 슬라이더
                 </span>
-                <button onclick="resetTuningToDefault()" class="text-xs text-slate-400 hover:text-sky-400 transition">기본값 리셋</button>
+                <button onclick="resetTuningToDefault()" class="text-xs text-slate-400 hover:text-sky-400 transition">자연스러운 기본값 리셋</button>
               </div>
 
               <!-- 듀얼 강도 바 -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="grid grid-cols-2 gap-3">
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-xs mb-1">
                     <span class="text-slate-300">필터 강도 (FILTER)</span>
@@ -690,81 +667,81 @@
                 </div>
               </div>
 
-              <!-- 6종 커스텀 파라미터 그리드 -->
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <!-- 커스텀 슬라이더 -->
+              <div class="grid grid-cols-3 gap-3">
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">밝기 (BRIGHT)</span>
-                    <span id="admValBright" class="text-sky-400 font-mono font-bold">+60</span>
+                    <span id="admValBright" class="text-sky-400 font-mono font-bold">+12</span>
                   </div>
-                  <input type="range" id="admSliderBright" min="-60" max="80" value="60" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderBright" min="-60" max="80" value="12" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">대비 (CONTRAST)</span>
-                    <span id="admValContrast" class="text-sky-400 font-mono font-bold">+20</span>
+                    <span id="admValContrast" class="text-sky-400 font-mono font-bold">+22</span>
                   </div>
-                  <input type="range" id="admSliderContrast" min="-60" max="60" value="20" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderContrast" min="-60" max="60" value="22" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">채도 (SATUR)</span>
-                    <span id="admValSatur" class="text-sky-400 font-mono font-bold">+100</span>
+                    <span id="admValSatur" class="text-sky-400 font-mono font-bold">+10</span>
                   </div>
-                  <input type="range" id="admSliderSatur" min="-100" max="100" value="100" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderSatur" min="-100" max="100" value="10" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">색온도 (TEMP)</span>
-                    <span id="admValTemp" class="text-sky-400 font-mono font-bold">+20</span>
+                    <span id="admValTemp" class="text-sky-400 font-mono font-bold">+5</span>
                   </div>
-                  <input type="range" id="admSliderTemp" min="-50" max="50" value="20" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderTemp" min="-50" max="50" value="5" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">감마 (GAMMA)</span>
-                    <span id="admValGamma" class="text-sky-400 font-mono font-bold">1.10</span>
+                    <span id="admValGamma" class="text-sky-400 font-mono font-bold">1.05</span>
                   </div>
-                  <input type="range" id="admSliderGamma" min="0.5" max="1.8" step="0.05" value="1.10" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderGamma" min="0.5" max="1.8" step="0.05" value="1.05" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-[11px] mb-1">
                     <span class="text-slate-400">비네트 (VIGNETTE)</span>
-                    <span id="admValVignette" class="text-sky-400 font-mono font-bold">10%</span>
+                    <span id="admValVignette" class="text-sky-400 font-mono font-bold">8%</span>
                   </div>
-                  <input type="range" id="admSliderVignette" min="0" max="100" value="10" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderVignette" min="0" max="100" value="8" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
               </div>
 
               <!-- 점묘화 스케일 & 인쇄 농도 -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div class="grid grid-cols-2 gap-3 pt-2">
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-xs mb-1">
                     <span class="text-slate-300">지그재그 점묘화 스케일</span>
-                    <span id="admValStipple" class="text-sky-400 font-mono font-bold">3.0x</span>
+                    <span id="admValStipple" class="text-sky-400 font-mono font-bold">2.2x</span>
                   </div>
-                  <input type="range" id="admSliderStipple" min="10" max="35" step="1" value="30" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderStipple" min="10" max="35" step="1" value="22" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
                   <div class="flex justify-between text-xs mb-1">
                     <span class="text-slate-300">감열 인쇄 농도 (DENSITY)</span>
-                    <span id="admValDensity" class="text-sky-400 font-mono font-bold">0</span>
+                    <span id="admValDensity" class="text-sky-400 font-mono font-bold">+5</span>
                   </div>
-                  <input type="range" id="admSliderDensity" min="-30" max="30" step="5" value="0" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  <input type="range" id="admSliderDensity" min="-30" max="30" step="5" value="5" oninput="updateAdminParams()" class="w-full accent-sky-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
               </div>
             </div>
 
-            <!-- 3. 실시간 로그 콘솔 -->
+            <!-- 로그 박스 -->
             <div class="p-3 bg-slate-950 rounded-2xl border border-slate-800">
               <div class="flex justify-between text-[10px] text-slate-500 font-mono mb-1">
-                <span>PRINT ENGINE LOG</span>
+                <span>PRINT LOG</span>
                 <span id="adminLogStatus">READY</span>
               </div>
               <div id="adminLogBox" class="text-[11px] text-sky-400 font-mono h-12 overflow-y-auto whitespace-pre-wrap select-text leading-tight">관리자 준비 완료.</div>
@@ -772,24 +749,24 @@
 
           </div>
 
-          <!-- [우측 5컬럼] 슬라이더 값을 실시간 대조하는 인쇄품질 시뮬레이터 -->
+          <!-- [우측 5컬럼] 슬라이더 값을 실시간 대조하는 인쇄품질 뷰어 -->
           <div class="lg:col-span-5 lg:sticky lg:top-0 space-y-3">
             <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center">
               <div class="w-full flex items-center justify-between mb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                  <i class="ph-bold ph-eye text-base"></i> 실시간 인쇄품질
+                  <i class="ph-bold ph-eye text-base"></i> 실시간 인쇄품질 시뮬레이터
                 </span>
-                <span class="text-[10px] text-slate-400 font-mono">1-Bit Stipple (203 DPI)</span>
+                <span class="text-[10px] text-slate-400 font-mono">1-Bit Stipple Preview</span>
               </div>
 
-              <!-- 흑백 점묘화 1:1 정방형 뷰어 캔버스 (Epson TM-m30III 출력 질감 직결) -->
+              <!-- 흑백 점묘화 1:1 정방형 뷰어 캔버스 -->
               <div class="w-full aspect-square max-w-[340px] bg-white rounded-xl shadow-2xl overflow-hidden border-2 border-slate-700 flex items-center justify-center p-0.5">
                 <canvas id="adminQualityCanvas" width="576" height="576" class="w-full h-full object-cover block bg-white"></canvas>
               </div>
 
               <div class="w-full mt-3 space-y-2">
                 <p class="text-[11px] text-slate-400 leading-tight">
-                  👈 좌측 슬라이더를 조절하면 <b>안경테, 턱선, 피부톤의 도트 밀도</b>가 즉각 시뮬레이션됩니다.
+                  👈 좌측 슬라이더를 조절하면 <b>안경테, 턱선, 피부톤의 도트 밀도</b>가 즉각 반영됩니다.
                 </p>
                 <button type="button" onclick="renderAdminQualityPreview()" class="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-sky-400 font-bold text-xs transition flex items-center justify-center gap-1.5">
                   <i class="ph-bold ph-arrows-clockwise text-sm"></i>
@@ -800,7 +777,6 @@
           </div>
 
         </div>
-
       </div>
 
       <!-- 모달 하단 버튼 -->
@@ -812,8 +788,8 @@
     </div>
   </div>
 
-  <!-- 인쇄용 숨김 DOM (스펙 박스 삭제로 높이를 최적화: 1240px) -->
-  <canvas id="offscreenReceiptCanvas" width="800" height="1240" style="display: none;"></canvas>
+  <!-- 인쇄 전용 숨김 영역 (800x1130px 규격으로 1장에 꽉 차게 출력) -->
+  <canvas id="offscreenReceiptCanvas" width="800" height="1130" style="display: none;"></canvas>
   <div id="printOutputZone" style="display: none;">
     <img id="printTargetImg" src="" alt="print-paper" />
   </div>
@@ -825,34 +801,30 @@
     /* ============================================================
        0. 기본 파라미터 및 하드웨어 연동 상태 관리
        ============================================================ */
-    // 자연스러운 인물 피부톤과 또렷한 턱선/안경테를 위한 최적 기본값 설정
     const DEFAULT_TUNING_PARAMS = {
       whiteBalanceMode: 'continuous',
       flickerCompensation: 'auto',
       presetName: '내추럴',
-      printSize: '79x79mm (1:1)',
-      customFilterStrength: 0.85, // 85%
-      autoStrength: 0.50,         // 50%
+      customFilterStrength: 1.0,  // 100%
+      autoStrength: 0.38,         // 38%
       algorithm: 'STIPPLE 2.2x',
-      stippleScale: 2.2,          // 2.2x (더 촘촘하고 부드러운 명암)
-      printDensity: 5,            // +5 (선명도 보강)
-      brightness: 12,             // 과도한 +60에서 자연스러운 +12로 대폭 조정
-      contrast: 22,               // +22 (또렷한 눈코입)
-      saturation: 10,             // 과도한 +100에서 자연스러운 +10으로 조정
-      temperature: 5,             // +5
-      gamma: 1.05,                // 1.05 (미드톤 보존)
-      vignette: 0.08              // 8%
+      stippleScale: 2.2,          // 2.2x 점묘화
+      printDensity: 5,            // +5 (인쇄 농도)
+      brightness: 12,             // 자연스러운 밝기 (+12)
+      contrast: 22,               // 또렷한 대비 (+22)
+      saturation: 10,             // 채도 (+10)
+      temperature: 5,             // 온도 (+5)
+      gamma: 1.05,                // 감마 (1.05)
+      vignette: 0.08              // 비네트 (8%)
     };
 
     const TUNING_PARAMS = { ...DEFAULT_TUNING_PARAMS };
 
-    // 로컬 스토리지에 이전의 과도하게 밝은 값이 남아있는 경우 초기화
+    // 로컬 저장소 동기화
     try {
-      const saved = localStorage.getItem('tm_m30_booth_tuning_v2');
+      const saved = localStorage.getItem('tm_m30_booth_tuning_v3');
       if (saved) {
         Object.assign(TUNING_PARAMS, JSON.parse(saved));
-      } else {
-        localStorage.removeItem('tm_m30_booth_tuning'); // 구버전 캐시 삭제
       }
     } catch (e) {}
 
@@ -886,7 +858,7 @@
     let usbEndpointOut = null;
 
     /**
-     * 1. 웹캠 초기화 (하드웨어 옵션 연속 화이트밸런스 및 플리커 보정)
+     * 1. 웹캠 초기화 (하드웨어 continuous 화이트밸런스 및 플리커 보정)
      */
     async function initializeCamera() {
       const constraints = {
@@ -911,7 +883,7 @@
             video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
           });
         } catch (err2) {
-          showToast('카메라 권한을 허용해주세요.');
+          showToast('카메라를 허용해주세요. 기본 샘플로 준비됩니다.');
           createMockCapturedSample();
           return;
         }
@@ -925,7 +897,7 @@
     }
 
     /**
-     * 기본 샘플 생성 (카메라 로딩 전 또는 미허용 시에도 시각화 보장)
+     * 기본 샘플 생성 (카메라 로딩 전에도 실시간 미리보기 보장)
      */
     function createMockCapturedSample() {
       if (capturedRawCanvas) return;
@@ -936,7 +908,6 @@
       sCtx.fillStyle = '#f8fafc';
       sCtx.fillRect(0, 0, 800, 800);
 
-      // 인물 그라데이션 및 안경/턱선 기본 실루엣
       const grad = sCtx.createRadialGradient(400, 370, 40, 400, 370, 240);
       grad.addColorStop(0, '#ffffff');
       grad.addColorStop(0.5, '#cbd5e1');
@@ -965,7 +936,7 @@
     }
 
     /**
-     * 2. 이미지 컬러 보정 & 튜닝 (안경테 및 턱선 음영 보존)
+     * 2. 이미지 컬러 및 커스텀 튜닝 (안경테 및 턱선 보존)
      */
     function applyColorAndCustomTuning(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
@@ -998,7 +969,7 @@
         let g = data[i + 1];
         let b = data[i + 2];
 
-        // 안경테와 어두운 턱선 그림자 보존 (Dark Protection)
+        // 안경테와 어두운 윤곽선 보존
         const origLuma = 0.299 * r + 0.587 * g + 0.114 * b;
         const darkProtect = origLuma < 90 ? (origLuma / 90) : 1.0;
         const effectiveBrightness = bOffset * (0.35 + 0.65 * darkProtect);
@@ -1041,7 +1012,7 @@
 
       ctx.putImageData(imgData, 0, 0);
 
-      // 고해상도 언샵 마스크(Unsharp Mask) 샤프닝
+      // 언샵 마스크 샤프닝
       const sharpCanvas = document.createElement('canvas');
       sharpCanvas.width = targetWidth;
       sharpCanvas.height = targetHeight;
@@ -1087,7 +1058,7 @@
     }
 
     /**
-     * 3. 하프톤 디더링 (지그재그 점묘화 3.0x Stipple Dithering)
+     * 3. 지그재그 점묘화 하프톤 디더링 (Stipple Dithering)
      */
     function applyZigzagStippleDithering(tunedCanvas, width, height) {
       const ditherCanvas = document.createElement('canvas');
@@ -1191,107 +1162,103 @@
     }
 
     /**
-     * 4. 영수증 전체 합성 렌더러
-     * @param {CanvasRenderingContext2D} targetCtx 대상 컨텍스트
-     * @param {boolean} forPrint true면 흑백 점묘화, false면 고화질 원본 컬러
+     * 4. 영수증 전체 합성 (1페이지 가득 차는 800x1130px 규격)
      */
     function renderFullReceiptToContext(targetCtx, forPrint = false) {
       if (!capturedRawCanvas) createMockCapturedSample();
 
       const tw = 800;
-      const th = 1240; // 바코드 아래 스펙 박스 제거로 영수증 높이 최적화 (1520px -> 1240px)
+      const th = 1130;
 
-      // 흰색 바탕
+      // 흰색 배경
       targetCtx.fillStyle = '#ffffff';
       targetCtx.fillRect(0, 0, tw, th);
 
-      // 상단 타이틀
+      // 상단 헤더
       targetCtx.fillStyle = '#000000';
       targetCtx.textAlign = 'center';
-      targetCtx.font = '900 48px sans-serif';
-      targetCtx.fillText('2026 AI·SW체험', tw / 2, 88);
+      targetCtx.font = '900 46px sans-serif';
+      targetCtx.fillText('2026 AI·SW체험', tw / 2, 78);
 
-      targetCtx.font = '900 42px sans-serif';
-      targetCtx.fillText('수피아여고 포토부스', tw / 2, 142);
+      targetCtx.font = '900 40px sans-serif';
+      targetCtx.fillText('수피아여고 포토부스', tw / 2, 130);
 
-      // 절취선 데코
+      // 절취선
       const drawDecoDashes = (y) => {
         targetCtx.save();
         targetCtx.strokeStyle = '#000000';
         targetCtx.lineWidth = 2;
         targetCtx.beginPath();
-        targetCtx.moveTo(30, y - 4);
-        targetCtx.lineTo(tw - 30, y - 4);
+        targetCtx.moveTo(35, y - 4);
+        targetCtx.lineTo(tw - 35, y - 4);
         targetCtx.stroke();
 
         targetCtx.lineWidth = 2.5;
         targetCtx.setLineDash([10, 6, 3, 6]);
         targetCtx.beginPath();
-        targetCtx.moveTo(30, y + 3);
-        targetCtx.lineTo(tw - 30, y + 3);
+        targetCtx.moveTo(35, y + 3);
+        targetCtx.lineTo(tw - 35, y + 3);
         targetCtx.stroke();
         targetCtx.restore();
       };
-      drawDecoDashes(184);
+      drawDecoDashes(168);
 
-      // 79x79mm (1:1 정방형) 740x740px 사진 영역
-      const photoW = 740;
-      const photoH = 740;
-      const photoX = (tw - photoW) / 2;
-      const photoY = 212;
+      // 1:1 사진 영역 (670x670px)
+      const photoSize = 670;
+      const photoX = (tw - photoSize) / 2;
+      const photoY = 194;
 
       if (forPrint) {
-        const tunedPhoto = applyColorAndCustomTuning(capturedRawCanvas, photoW, photoH);
-        const ditheredPhoto = applyZigzagStippleDithering(tunedPhoto, photoW, photoH);
-        targetCtx.drawImage(ditheredPhoto, photoX, photoY, photoW, photoH);
+        const tuned = applyColorAndCustomTuning(capturedRawCanvas, photoSize, photoSize);
+        const dithered = applyZigzagStippleDithering(tuned, photoSize, photoSize);
+        targetCtx.drawImage(dithered, photoX, photoY, photoSize, photoSize);
       } else {
-        // 화면 미리보기: 생생한 고화질 원본 컬러
-        targetCtx.drawImage(capturedRawCanvas, photoX, photoY, photoW, photoH);
+        targetCtx.drawImage(capturedRawCanvas, photoX, photoY, photoSize, photoSize);
       }
 
       targetCtx.strokeStyle = '#000000';
       targetCtx.lineWidth = 3;
-      targetCtx.strokeRect(photoX, photoY, photoW, photoH);
+      targetCtx.strokeRect(photoX, photoY, photoSize, photoSize);
 
-      const bottomDashY = photoY + photoH + 34;
+      const bottomDashY = photoY + photoSize + 30;
       drawDecoDashes(bottomDashY);
 
+      // 날짜 및 감사 문구
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      targetCtx.font = 'bold 26px monospace';
+      targetCtx.font = 'bold 25px monospace';
       targetCtx.fillStyle = '#000000';
-      targetCtx.fillText(`DATE: ${dateStr}`, tw / 2, bottomDashY + 48);
+      targetCtx.fillText(`DATE: ${dateStr}`, tw / 2, bottomDashY + 44);
 
-      targetCtx.font = 'bold 32px sans-serif';
-      targetCtx.fillText('방문해주셔서 감사합니다!', tw / 2, bottomDashY + 92);
+      targetCtx.font = 'bold 30px sans-serif';
+      targetCtx.fillText('방문해주셔서 감사합니다!', tw / 2, bottomDashY + 86);
 
-      // 바코드 그래픽
-      const barcodeY = bottomDashY + 116;
-      const barcodeH = 38;
+      // 바코드
+      const barcodeY = bottomDashY + 108;
+      const barcodeH = 36;
       const barPattern = [
         3,2,1,3,2,1,4,1,2,3,1,2,4,2,1,3,2,1,3,4,1,2,3,1,2,4,1,3,2,1,
         2,3,1,4,2,1,3,2,1,3,2,4,1,2,3,1,3,2,4,1,2,1,3,2,4,1,3,2,1,2
       ];
       let totalBarW = 0;
-      for (let i = 0; i < barPattern.length; i++) totalBarW += barPattern[i] * 3.6;
+      for (let i = 0; i < barPattern.length; i++) totalBarW += barPattern[i] * 3.5;
       let startBx = (tw - totalBarW) / 2;
 
       for (let i = 0; i < barPattern.length; i++) {
-        const w = barPattern[i] * 3.6;
+        const w = barPattern[i] * 3.5;
         if (i % 2 === 0) targetCtx.fillRect(startBx, barcodeY, w - 0.5, barcodeH);
         startBx += w;
       }
 
-      // [수정] 바코드 밑 [PRINT CONFIG SPEC] 점선 박스를 완전히 삭제하고 하단 마무리 텍스트만 배치
-      targetCtx.font = 'bold 23px sans-serif';
+      // 하단 마무리 텍스트
+      targetCtx.font = 'bold 22px sans-serif';
       targetCtx.fillStyle = '#111111';
-      targetCtx.textAlign = 'center';
-      targetCtx.fillText('광주수피아여자고등학교 AI·SW체험관', tw / 2, barcodeY + barcodeH + 42);
+      targetCtx.fillText('광주수피아여자고등학교 AI·SW체험관', tw / 2, barcodeY + barcodeH + 36);
     }
 
     /**
-     * 5. 관리자 페이지 내 실시간 인쇄품질(1-bit Stipple) 시뮬레이션
+     * 5. 관리자 페이지 내 실시간 인쇄품질 시뮬레이션
      */
     function renderAdminQualityPreview() {
       if (!adminQualityCtx) return;
@@ -1322,7 +1289,7 @@
     }
 
     /**
-     * 6. 촬영 시퀀스 (3초 카운트다운 -> 플래시 -> 캔버스 직접 렌더링)
+     * 6. 촬영 시퀀스
      */
     async function triggerPhotoShoot() {
       shootButton.disabled = true;
@@ -1334,7 +1301,7 @@
       }
       countdownBox.style.display = 'none';
 
-      // 플래시 효과
+      // 플래시
       flashOverlay.classList.remove('flash-anim');
       void flashOverlay.offsetWidth;
       flashOverlay.classList.add('flash-anim');
@@ -1352,29 +1319,29 @@
       tCtx.imageSmoothingEnabled = true;
       tCtx.imageSmoothingQuality = 'high';
 
-      // 글씨와 얼굴이 올바른 방향으로 나오도록 정상 캡처
+      // 글자와 얼굴이 바르게 읽히도록 캡처
       tCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, tempCanvas.width, tempCanvas.height);
       capturedRawCanvas = tempCanvas;
 
-      // [미리보기] 화면 결과 모달용 캔버스에 직접 즉시 렌더링 (스펙 박스 제거된 800x1240 최적 비율)
+      // 1) 화면 미리보기 캔버스 직결 렌더링 (풀컬러)
       previewDirectCanvas.width = 800;
-      previewDirectCanvas.height = 1240;
+      previewDirectCanvas.height = 1130;
       renderFullReceiptToContext(previewDirectCtx, false);
 
-      // 인쇄용 데이터 생성
+      // 2) 실제 인쇄용 흑백 점묘화 렌더링
       offscreenCanvas.width = 800;
-      offscreenCanvas.height = 1240;
+      offscreenCanvas.height = 1130;
       renderFullReceiptToContext(offscreenCtx, true);
       finalPrintDataUrl = offscreenCanvas.toDataURL('image/png');
 
-      // 모달 표시
+      // 3) 결과 모달 표시
       resultModal.style.display = 'flex';
       shootButton.disabled = false;
       renderAdminQualityPreview();
     }
 
     /**
-     * 7. 영수증 인쇄 (직결 연결 시 ESC/POS, 미연결 시 OS 브라우저 인쇄)
+     * 7. 영수증 인쇄 (ESC/POS 직결 또는 시스템 1페이지 인쇄)
      */
     async function printReceipt() {
       printBtn.disabled = true;
@@ -1382,14 +1349,14 @@
 
       if (activeConnectionType) {
         try {
-          adminLog(`직결(${activeConnectionType}) 프린터로 ESC/POS 바이너리 전송...`);
+          adminLog(`직결(${activeConnectionType}) 프린터로 전송 시작...`);
           const fullImgData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
           const commands = buildBandedEscPosCommands(fullImgData);
           for (let i = 0; i < commands.length; i++) {
             await sendRawBytes(commands[i]);
           }
           adminLog('직결 인쇄 완료!');
-          showToast('TM-m30III로 영수증이 출력되었습니다.');
+          showToast('TM-m30III 영수증 출력이 완료되었습니다.');
           setTimeout(() => {
             printBtn.disabled = false;
             printBtnText.innerText = '영수증 인쇄하기';
@@ -1397,11 +1364,11 @@
           }, 2000);
           return;
         } catch (err) {
-          console.warn('직결 전송 실패 -> 브라우저 인쇄로 자동 폴백', err);
+          console.warn('직결 전송 실패 -> 브라우저 인쇄 자동 폴백', err);
         }
       }
 
-      // 브라우저 기본 인쇄 폴백
+      // 브라우저 인쇄 폴백
       if (printTargetImg) {
         printTargetImg.src = finalPrintDataUrl;
         if (printTargetImg.decode) {
@@ -1417,8 +1384,8 @@
           printBtn.disabled = false;
           printBtnText.innerText = '영수증 인쇄하기';
           closeModalAndResume();
-        }, 2500);
-      }, 350);
+        }, 2200);
+      }, 250);
     }
 
     function closeModalAndResume() {
@@ -1438,7 +1405,7 @@
     function closeAdminModal() {
       adminModal.classList.add('hidden');
       try {
-        localStorage.setItem('tm_m30_booth_tuning', JSON.stringify(TUNING_PARAMS));
+        localStorage.setItem('tm_m30_booth_tuning_v3', JSON.stringify(TUNING_PARAMS));
       } catch (e) {}
       showToast('관리자 설정이 저장되었습니다.');
     }
@@ -1467,12 +1434,11 @@
       TUNING_PARAMS.gamma = parseFloat(document.getElementById('admSliderGamma').value);
       TUNING_PARAMS.vignette = parseInt(document.getElementById('admSliderVignette').value) / 100;
       TUNING_PARAMS.stippleScale = parseInt(document.getElementById('admSliderStipple').value) / 10;
-      TUNING_PARAMS.algorithm = `STIPPLE ${TUNING_PARAMS.stippleScale.toFixed(1)}x`;
       TUNING_PARAMS.printDensity = parseInt(document.getElementById('admSliderDensity').value);
       updateAdminLabels();
       renderAdminQualityPreview();
       try {
-        localStorage.setItem('tm_m30_booth_tuning_v2', JSON.stringify(TUNING_PARAMS));
+        localStorage.setItem('tm_m30_booth_tuning_v3', JSON.stringify(TUNING_PARAMS));
       } catch (e) {}
     }
 
@@ -1494,7 +1460,7 @@
       syncTuningParamsToAdminUI();
       renderAdminQualityPreview();
       try {
-        localStorage.setItem('tm_m30_booth_tuning_v2', JSON.stringify(TUNING_PARAMS));
+        localStorage.setItem('tm_m30_booth_tuning_v3', JSON.stringify(TUNING_PARAMS));
       } catch (e) {}
       showToast('자연스러운 인쇄 기본값으로 초기화되었습니다.');
     }
@@ -1508,7 +1474,7 @@
     }
 
     // ============================================================
-    // 9. 하드웨어 직결 통신 (BLE & USB WebAPI 지원)
+    // 9. 하드웨어 직결 통신 (BLE & USB)
     // ============================================================
     const EPSON_BLE_SERVICES = [
       'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
@@ -1519,16 +1485,15 @@
 
     async function connectBluetooth() {
       if (!navigator.bluetooth) {
-        showToast('이 브라우저는 Web Bluetooth를 지원하지 않습니다.');
+        showToast('Web Bluetooth를 지원하지 않는 브라우저입니다.');
         return;
       }
       try {
-        adminLog('블루투스 장치 스캔 중...');
+        adminLog('블루투스 장치 검색 중...');
         bluetoothDevice = await navigator.bluetooth.requestDevice({
           acceptAllDevices: true,
           optionalServices: EPSON_BLE_SERVICES
         });
-        adminLog(`GATT 연결 시도: ${bluetoothDevice.name || 'TM-m30III'}`);
         const server = await bluetoothDevice.gatt.connect();
 
         for (const sUuid of EPSON_BLE_SERVICES) {
@@ -1557,13 +1522,13 @@
 
     async function connectUSB() {
       if (!navigator.usb) {
-        showToast('이 브라우저는 WebUSB를 지원하지 않습니다.');
+        showToast('WebUSB를 지원하지 않는 브라우저입니다.');
         return;
       }
       try {
         adminLog('USB 프린터 탐색 중...');
         usbDevice = await navigator.usb.requestDevice({
-          filters: [{ vendorId: 0x04b8 }] // Epson Vendor ID
+          filters: [{ vendorId: 0x04b8 }]
         });
         await usbDevice.open();
         if (usbDevice.configuration === null) await usbDevice.selectConfiguration(1);
@@ -1632,7 +1597,7 @@
         const enc = new TextEncoder();
         const bytes = enc.encode("\n=== TM-m30III TEST OK ===\n2026 AI SW SPEER HIGH SCHOOL\n\n\n");
         const init = [0x1B, 0x40];
-        const cut = [0x1B, 0x64, 0x03, 0x1D, 0x56, 0x42, 0x00];
+        const cut = [0x1B, 0x64, 0x02, 0x1D, 0x56, 0x42, 0x00];
         const merged = new Uint8Array(init.length + bytes.length + cut.length);
         merged.set(init, 0);
         merged.set(bytes, init.length);
@@ -1647,7 +1612,7 @@
 
     function buildBandedEscPosCommands(imgData) {
       const w = 576;
-      const totalH = Math.min(imgData.height, 1240);
+      const totalH = Math.min(imgData.height, 1130);
       const widthBytes = w / 8; // 72 bytes
       const data = imgData.data;
       const BAND_HEIGHT = 24;
@@ -1678,69 +1643,17 @@
         commands.push(new Uint8Array(band));
       }
 
-      // 여백 급지를 4행에서 2행으로 최적화하고 즉시 컷팅하여 1페이지로 완벽 제한
       commands.push(new Uint8Array([0x1B, 0x64, 0x02])); // Feed 2 lines
       commands.push(new Uint8Array([0x1D, 0x56, 0x42, 0x00])); // Auto cut
       return commands;
-    }
-
-    /**
-     * 7. 영수증 인쇄 (직결 연결 시 ESC/POS, 미연결 시 OS 브라우저 인쇄)
-     */
-    async function printReceipt() {
-      printBtn.disabled = true;
-      printBtnText.innerText = '인쇄 전송 중...';
-
-      if (activeConnectionType) {
-        try {
-          adminLog(`직결(${activeConnectionType}) 프린터로 ESC/POS 바이너리 전송...`);
-          const fullImgData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-          const commands = buildBandedEscPosCommands(fullImgData);
-          for (let i = 0; i < commands.length; i++) {
-            await sendRawBytes(commands[i]);
-          }
-          adminLog('직결 인쇄 완료!');
-          showToast('TM-m30III로 영수증이 출력되었습니다.');
-          setTimeout(() => {
-            printBtn.disabled = false;
-            printBtnText.innerText = '영수증 인쇄하기';
-            closeModalAndResume();
-          }, 2000);
-          return;
-        } catch (err) {
-          console.warn('직결 전송 실패 -> 브라우저 인쇄로 자동 폴백', err);
-        }
-      }
-
-      // 브라우저 기본 인쇄 폴백 (1페이지 고정)
-      if (printTargetImg) {
-        printTargetImg.src = finalPrintDataUrl;
-        if (printTargetImg.decode) {
-          try { await printTargetImg.decode(); } catch (e) {}
-        }
-      }
-
-      // 프린터 버퍼 대기 후 출력 창 열기
-      setTimeout(() => {
-        window.print();
-        printBtnText.innerText = '인쇄 완료!';
-        showToast('영수증 출력이 시작되었습니다.');
-        setTimeout(() => {
-          printBtn.disabled = false;
-          printBtnText.innerText = '영수증 인쇄하기';
-          closeModalAndResume();
-        }, 2000);
-      }, 250);
     }
 
     function toggleFullscreen() {
       try {
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen();
-        } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          }
+        } else if (document.exitFullscreen) {
+          document.exitFullscreen();
         }
       } catch (e) {
         console.warn('전체화면 전환 실패', e);
@@ -1753,7 +1666,7 @@
       toast.style.opacity = '1';
       setTimeout(() => {
         toast.style.opacity = '0';
-      }, 2600);
+      }, 2400);
     }
 
     function sleep(ms) {
