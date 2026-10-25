@@ -422,7 +422,7 @@
        ============================================================ */
     @page {
       size: 80mm auto;
-      margin: 0 !important;
+      margin: 0mm !important;
     }
 
     @media print {
@@ -433,11 +433,14 @@
       }
 
       html, body {
-        width: 100% !important;
+        width: 80mm !important;
+        max-width: 80mm !important;
         height: auto !important;
+        max-height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
+        color: #000000 !important;
         overflow: hidden !important;
       }
 
@@ -445,19 +448,23 @@
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
+        max-height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
+        overflow: hidden !important;
       }
 
       #printOutputZone {
         display: block !important;
         visibility: visible !important;
         width: 100% !important;
-        margin: 0 !important;
+        max-width: 79mm !important;
+        margin: 0 auto !important;
         padding: 0 !important;
         background: #ffffff !important;
         line-height: 0 !important;
         font-size: 0 !important;
+        overflow: hidden !important;
         page-break-before: avoid !important;
         page-break-inside: avoid !important;
         page-break-after: avoid !important;
@@ -471,11 +478,13 @@
         max-width: 100% !important;
         height: auto !important;
         display: block !important;
-        margin: 0 !important;
+        margin: 0 auto !important;
         padding: 0 !important;
         border: none !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
     }
   </style>
@@ -815,28 +824,35 @@
     /* ============================================================
        0. 기본 파라미터 및 하드웨어 연동 상태 관리
        ============================================================ */
-    const TUNING_PARAMS = {
+    // 자연스러운 인물 피부톤과 또렷한 턱선/안경테를 위한 최적 기본값 설정
+    const DEFAULT_TUNING_PARAMS = {
       whiteBalanceMode: 'continuous',
       flickerCompensation: 'auto',
-      presetName: '커스텀',
+      presetName: '내추럴',
       printSize: '79x79mm (1:1)',
-      customFilterStrength: 1.0,  // 100%
-      autoStrength: 0.38,         // 38%
-      algorithm: 'STIPPLE 3.0x',
-      stippleScale: 3.0,          // 3.0x
-      printDensity: 0,            // 0
-      brightness: 60,             // +60
-      contrast: 20,               // +20
-      saturation: 100,            // +100
-      temperature: 20,            // +20
-      gamma: 1.10,                // 1.10
-      vignette: 0.10              // 10%
+      customFilterStrength: 0.85, // 85%
+      autoStrength: 0.50,         // 50%
+      algorithm: 'STIPPLE 2.2x',
+      stippleScale: 2.2,          // 2.2x (더 촘촘하고 부드러운 명암)
+      printDensity: 5,            // +5 (선명도 보강)
+      brightness: 12,             // 과도한 +60에서 자연스러운 +12로 대폭 조정
+      contrast: 22,               // +22 (또렷한 눈코입)
+      saturation: 10,             // 과도한 +100에서 자연스러운 +10으로 조정
+      temperature: 5,             // +5
+      gamma: 1.05,                // 1.05 (미드톤 보존)
+      vignette: 0.08              // 8%
     };
 
-    // 로컬 스토리지 복원
+    const TUNING_PARAMS = { ...DEFAULT_TUNING_PARAMS };
+
+    // 로컬 스토리지에 이전의 과도하게 밝은 값이 남아있는 경우 초기화
     try {
-      const saved = localStorage.getItem('tm_m30_booth_tuning');
-      if (saved) Object.assign(TUNING_PARAMS, JSON.parse(saved));
+      const saved = localStorage.getItem('tm_m30_booth_tuning_v2');
+      if (saved) {
+        Object.assign(TUNING_PARAMS, JSON.parse(saved));
+      } else {
+        localStorage.removeItem('tm_m30_booth_tuning'); // 구버전 캐시 삭제
+      }
     } catch (e) {}
 
     // DOM 캐싱
@@ -1454,6 +1470,32 @@
       TUNING_PARAMS.printDensity = parseInt(document.getElementById('admSliderDensity').value);
       updateAdminLabels();
       renderAdminQualityPreview();
+      try {
+        localStorage.setItem('tm_m30_booth_tuning_v2', JSON.stringify(TUNING_PARAMS));
+      } catch (e) {}
+    }
+
+    function updateAdminLabels() {
+      document.getElementById('admValFilter').innerText = `${Math.round(TUNING_PARAMS.customFilterStrength * 100)}%`;
+      document.getElementById('admValAuto').innerText = `${Math.round(TUNING_PARAMS.autoStrength * 100)}%`;
+      document.getElementById('admValBright').innerText = (TUNING_PARAMS.brightness > 0 ? '+' : '') + TUNING_PARAMS.brightness;
+      document.getElementById('admValContrast').innerText = (TUNING_PARAMS.contrast > 0 ? '+' : '') + TUNING_PARAMS.contrast;
+      document.getElementById('admValSatur').innerText = (TUNING_PARAMS.saturation > 0 ? '+' : '') + TUNING_PARAMS.saturation;
+      document.getElementById('admValTemp').innerText = (TUNING_PARAMS.temperature > 0 ? '+' : '') + TUNING_PARAMS.temperature;
+      document.getElementById('admValGamma').innerText = TUNING_PARAMS.gamma.toFixed(2);
+      document.getElementById('admValVignette').innerText = `${Math.round(TUNING_PARAMS.vignette * 100)}%`;
+      document.getElementById('admValStipple').innerText = `${TUNING_PARAMS.stippleScale.toFixed(1)}x`;
+      document.getElementById('admValDensity').innerText = (TUNING_PARAMS.printDensity > 0 ? '+' : '') + TUNING_PARAMS.printDensity;
+    }
+
+    function resetTuningToDefault() {
+      Object.assign(TUNING_PARAMS, DEFAULT_TUNING_PARAMS);
+      syncTuningParamsToAdminUI();
+      renderAdminQualityPreview();
+      try {
+        localStorage.setItem('tm_m30_booth_tuning_v2', JSON.stringify(TUNING_PARAMS));
+      } catch (e) {}
+      showToast('자연스러운 인쇄 기본값으로 초기화되었습니다.');
     }
 
     function updateAdminLabels() {
@@ -1674,14 +1716,62 @@
     }
 
     /**
-     * 유틸리티
+     * 7. 영수증 인쇄 (직결 연결 시 ESC/POS, 미연결 시 OS 브라우저 인쇄)
      */
-    async function toggleFullscreen() {
+    async function printReceipt() {
+      printBtn.disabled = true;
+      printBtnText.innerText = '인쇄 전송 중...';
+
+      if (activeConnectionType) {
+        try {
+          adminLog(`직결(${activeConnectionType}) 프린터로 ESC/POS 바이너리 전송...`);
+          const fullImgData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+          const commands = buildBandedEscPosCommands(fullImgData);
+          for (let i = 0; i < commands.length; i++) {
+            await sendRawBytes(commands[i]);
+          }
+          adminLog('직결 인쇄 완료!');
+          showToast('TM-m30III로 영수증이 출력되었습니다.');
+          setTimeout(() => {
+            printBtn.disabled = false;
+            printBtnText.innerText = '영수증 인쇄하기';
+            closeModalAndResume();
+          }, 2000);
+          return;
+        } catch (err) {
+          console.warn('직결 전송 실패 -> 브라우저 인쇄로 자동 폴백', err);
+        }
+      }
+
+      // 브라우저 기본 인쇄 폴백 (1페이지 고정)
+      if (printTargetImg) {
+        printTargetImg.src = finalPrintDataUrl;
+        if (printTargetImg.decode) {
+          try { await printTargetImg.decode(); } catch (e) {}
+        }
+      }
+
+      // 프린터 버퍼 대기 후 출력 창 열기
+      setTimeout(() => {
+        window.print();
+        printBtnText.innerText = '인쇄 완료!';
+        showToast('영수증 출력이 시작되었습니다.');
+        setTimeout(() => {
+          printBtn.disabled = false;
+          printBtnText.innerText = '영수증 인쇄하기';
+          closeModalAndResume();
+        }, 2000);
+      }, 250);
+    }
+
+    function toggleFullscreen() {
       try {
         if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
+          document.documentElement.requestFullscreen();
         } else {
-          await document.exitFullscreen();
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
         }
       } catch (e) {
         console.warn('전체화면 전환 실패', e);
