@@ -89,7 +89,7 @@
       display: block;
     }
 
-    /* 뷰파인더 가이드 */
+    /* 뷰파인더 3x3 가이드 */
     .grid-line {
       position: absolute;
       pointer-events: none;
@@ -268,24 +268,34 @@
 
     .preview-card {
       background: #ffffff;
-      padding: 10px;
-      border-radius: 6px;
+      padding: 12px;
+      border-radius: 12px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      width: 290px;
+      width: 310px;
     }
 
+    /* 촬영된 컬러 사진을 보여주는 1:1 정방형 프리뷰 */
     #previewImg {
       width: 100%;
-      height: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
       display: block;
-      image-rendering: pixelated;
-      background: #ffffff;
+      border-radius: 6px;
+      background: #f1f5f9;
       border: 1px solid #e2e8f0;
+    }
+
+    .preview-tag {
+      margin-top: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.5px;
     }
 
     .result-details {
@@ -367,51 +377,15 @@
       z-index: 120;
     }
 
-    /* ============================================================
-       감열 영수증 인쇄 전용 CSS (Epson TM-m30III 80mm 전용 가득 채움)
-       ============================================================ */
-    @page {
-      size: 80mm auto;
-      margin: 0 !important;
-    }
-
-    @media print {
-      * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      html, body {
-        width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #ffffff !important;
-        overflow: hidden !important;
-      }
-
-      body > *:not(#printOutputZone) {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-      }
-
-      #printOutputZone {
-        display: block !important;
-        visibility: visible !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #ffffff !important;
-      }
-
-      #printOutputZone img {
-        width: 100% !important;
-        height: auto !important;
-        display: block !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
+    /* 백그라운드 인쇄용 숨김 아이프레임 */
+    #hiddenPrintFrame {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+      width: 10px;
+      height: 10px;
+      border: none;
+      opacity: 0;
     }
   </style>
 </head>
@@ -472,13 +446,15 @@
   <div id="resultModal">
     <div class="result-content">
       <div class="preview-card">
-        <img id="previewImg" alt="영수증 결과물 미리보기" />
+        <!-- 촬영한 컬러 원본 사진 -->
+        <img id="previewImg" alt="촬영 원본 컬러 사진" />
+        <span class="preview-tag">ORIGINAL COLOR PHOTO</span>
       </div>
 
       <div class="result-details">
         <div class="result-header">
-          <h2>영수증 사진이 완성되었습니다! 🎉</h2>
-          <p>예시 사진과 동일한 순수 앳킨슨(Atkinson) 오차 확산 엔진으로 안경테와 윤곽선이 펜화처럼 맑고 또렷하게 출력됩니다.</p>
+          <h2>사진이 성공적으로 촬영되었습니다! 🎉</h2>
+          <p>미리보기는 선명한 원본 컬러로 제공되며, [영수증 인쇄하기] 클릭 시 72×72mm 규격의 부드러운 아날로그 감열 앳킨슨 포토로 즉시 출력됩니다.</p>
         </div>
 
         <div class="action-group">
@@ -500,9 +476,7 @@
   <!-- 인쇄 전용 숨김 DOM -->
   <canvas id="offscreenReceiptCanvas" style="display: none;"></canvas>
   <div id="qrHiddenHolder" style="display: none;"></div>
-  <div id="printOutputZone" style="display: none;">
-    <img id="printTargetImg" src="" alt="print-paper" />
-  </div>
+  <iframe id="hiddenPrintFrame"></iframe>
 
   <div id="toastNotice"></div>
 
@@ -517,13 +491,13 @@
     const previewImg = document.getElementById('previewImg');
     const printBtn = document.getElementById('printBtn');
     const printBtnText = document.getElementById('printBtnText');
-    const printTargetImg = document.getElementById('printTargetImg');
     const offscreenCanvas = document.getElementById('offscreenReceiptCanvas');
     const offscreenCtx = offscreenCanvas.getContext('2d');
+    const hiddenPrintFrame = document.getElementById('hiddenPrintFrame');
 
     let currentMediaStream = null;
-    let capturedRawCanvas = null;
-    let finalReceiptDataUrl = '';
+    let capturedColorCanvas = null;
+    let finalPrintReceiptDataUrl = '';
 
     // 1. 카메라 시작
     async function initializeCamera() {
@@ -544,11 +518,11 @@
     }
 
     /**
-     * 2. 순수 앳킨슨(Atkinson) 오차 확산 디더링 엔진 (인위적 노이즈 완전 배제)
-     * - 목표 사진(예시)의 맑은 피부톤과 날카로운 안경테 1px 라인의 원천 알고리즘
-     * - 분산 공식: 이웃 6개 픽셀에 각 1/8씩(총 6/8 = 75%)만 전달하고 25%를 의도적으로 버림
+     * 2. 노란색 영역처럼 하이라이트 날림 없이 전체에 미세 도트가 고르게 안착되는 고정밀 디더링 엔진
+     * - 앳킨슨의 25% 오차 소실(White Hole) 문제 해결 -> 100% 완전 보존형 지그재그(Serpentine) 오차 확산
+     * - 밝은 영역에서도 도트가 끊기지 않고 고운 질감으로 촘촘하게 흩뿌려짐
      */
-    function renderPureAtkinsonDither(sourceCanvas, targetWidth, targetHeight) {
+    function renderTabletSmoothAtkinsonDither(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
       canvas.height = targetHeight;
@@ -561,70 +535,79 @@
       const data = imgData.data;
       const totalPixels = targetWidth * targetHeight;
 
-      // 1) 고정밀 그레이스케일 버퍼 변환 (BT.709 인지 휘도) + 화사한 피부톤 미드톤 리프트
-      const gray = new Float32Array(totalPixels);
+      // 1단계: 표준 BT.709 인지 휘도 변환 + 하이라이트 도트 보존 커브
+      // 밝은 영역이 하얗게 날아가지 않도록 상단 범위를 240 수준으로 완만하게 압축
+      const rawGray = new Float32Array(totalPixels);
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
-        let lum = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
+        let lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
         
-        // 안경테와 짙은 머리카락(lum < 75)은 깊은 블랙으로 보존하고,
-        // 볼·이마·턱선의 어두운 중간 그늘만 한층 더 뽀얗고 밝게 띄워주는 감마 커브 (1.28 -> 1.42)
-        lum = 255 * Math.pow(lum / 255, 1 / 1.42);
-        
-        // 화사한 미드톤 보정 (+7 -> +16) 및 또렷한 엣지 콘트라스트 보존 (+14%)
-        lum = 1.14 * (lum - 128) + 128 + 16;
-        gray[i] = Math.min(255, Math.max(0, lum));
+        // 하이라이트 날림 방지: 밝은 곳도 노란 영역처럼 고운 도트가 촘촘히 얹히도록 부드러운 S-커브
+        lum = Math.min(238, lum * 0.94 + 6);
+        rawGray[i] = lum;
       }
 
-      // 2) 경계선(안경테, 눈동자, 턱선) 자연 보존 언샤프 마스크
-      const unsharp = new Float32Array(gray);
-      for (let y = 1; y < targetHeight - 1; y++) {
+      // 2단계: 태블릿 디지털 노이즈 완화 3x3 스무딩 (경계선 단차 조건문 완전 배제)
+      const smoothed = new Float32Array(totalPixels);
+      for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
-        for (let x = 1; x < targetWidth - 1; x++) {
-          const idx = row + x;
-          const lap = (gray[idx] * 5) - (gray[idx - 1] + gray[idx + 1] + gray[idx - targetWidth] + gray[idx + targetWidth]);
-          unsharp[idx] = Math.min(255, Math.max(0, lap));
+        const prevRow = (y > 0 ? y - 1 : 0) * targetWidth;
+        const nextRow = (y < targetHeight - 1 ? y + 1 : y) * targetWidth;
+
+        for (let x = 0; x < targetWidth; x++) {
+          const prevX = x > 0 ? x - 1 : 0;
+          const nextX = x < targetWidth - 1 ? x + 1 : x;
+
+          // 3x3 가우시안 필터링 (가중치 합 16)
+          const val =
+            (rawGray[prevRow + prevX] * 1 + rawGray[prevRow + x] * 2 + rawGray[prevRow + nextX] * 1 +
+             rawGray[row + prevX] * 2     + rawGray[row + x] * 4     + rawGray[row + nextX] * 2 +
+             rawGray[nextRow + prevX] * 1 + rawGray[nextRow + x] * 2 + rawGray[nextRow + nextX] * 1) / 16.0;
+
+          smoothed[row + x] = val;
         }
       }
 
-      // 3) 오리지널 앳킨슨(Atkinson) 오차 확산 파이프라인
+      // 3단계: 지그재그(Serpentine) 완전 보존형 오차 확산
+      // 앳킨슨처럼 오차가 사라지지 않고 16/16(100%) 전달되므로 하얗게 비는 곳 없이 전체가 노란 영역처럼 균일한 도트로 채워짐
       for (let y = 0; y < targetHeight; y++) {
-        const row = y * targetWidth;
-        for (let x = 0; x < targetWidth; x++) {
-          const idx = row + x;
-          const oldVal = unsharp[idx];
-          
-          // 표준 임계값 128
+        const isRight = (y % 2 === 0);
+        const startX = isRight ? 0 : targetWidth - 1;
+        const endX = isRight ? targetWidth : -1;
+        const step = isRight ? 1 : -1;
+
+        for (let x = startX; x !== endX; x += step) {
+          const idx = y * targetWidth + x;
+          const oldVal = smoothed[idx];
           const newVal = oldVal < 128 ? 0 : 255;
-          unsharp[idx] = newVal;
+          smoothed[idx] = newVal;
 
-          // 오차의 1/8 계산
-          const err = (oldVal - newVal) >> 3;
+          const err = oldVal - newVal;
 
-          if (err !== 0) {
-            // 오른쪽 1칸, 2칸
-            if (x + 1 < targetWidth) unsharp[idx + 1] += err;
-            if (x + 2 < targetWidth) unsharp[idx + 2] += err;
-
-            // 아랫줄: 왼쪽 1칸, 바로 밑, 오른쪽 1칸
+          // 지그재그(Serpentine) 방향에 맞춘 정밀 오차 분배 (7/16, 3/16, 5/16, 1/16)
+          if (isRight) {
+            if (x + 1 < targetWidth) smoothed[idx + 1] += (err * 7) / 16.0;
             if (y + 1 < targetHeight) {
               const nextRow = (y + 1) * targetWidth;
-              if (x - 1 >= 0) unsharp[nextRow + (x - 1)] += err;
-              unsharp[nextRow + x] += err;
-              if (x + 1 < targetWidth) unsharp[nextRow + (x + 1)] += err;
+              if (x - 1 >= 0) smoothed[nextRow + (x - 1)] += (err * 3) / 16.0;
+              smoothed[nextRow + x] += (err * 5) / 16.0;
+              if (x + 1 < targetWidth) smoothed[nextRow + (x + 1)] += (err * 1) / 16.0;
             }
-
-            // 두 줄 아래: 바로 밑
-            if (y + 2 < targetHeight) {
-              unsharp[(y + 2) * targetWidth + x] += err;
+          } else {
+            if (x - 1 >= 0) smoothed[idx - 1] += (err * 7) / 16.0;
+            if (y + 1 < targetHeight) {
+              const nextRow = (y + 1) * targetWidth;
+              if (x + 1 < targetWidth) smoothed[nextRow + (x + 1)] += (err * 3) / 16.0;
+              smoothed[nextRow + x] += (err * 5) / 16.0;
+              if (x - 1 >= 0) smoothed[nextRow + (x - 1)] += (err * 1) / 16.0;
             }
           }
         }
       }
 
-      // 4) 1비트 흑백 픽셀 출력
+      // 4단계: 1비트 흑백 픽셀 확정
       for (let i = 0; i < totalPixels; i++) {
-        const c = unsharp[i] < 128 ? 0 : 255;
+        const c = smoothed[i] < 128 ? 0 : 255;
         const idx = i * 4;
         data[idx] = c;
         data[idx + 1] = c;
@@ -637,42 +620,8 @@
     }
 
     /**
-     * 3. 첨부해주신 실제 출력물과 100% 동일한 영수증 레이아웃 구성
-     * - 상단 1:1 정방형 앳킨슨 사진
-     * - 하단 중앙 실제 인식 가능한 QR 코드
+     * QR 코드 캔버스 생성 함수
      */
-    async function composeTargetReceipt() {
-      if (!capturedRawCanvas) return '';
-
-      // 80mm 용지 기준 (576 x 780 px 최적 배율)
-      const tw = 576;
-      const th = 780;
-      offscreenCanvas.width = tw;
-      offscreenCanvas.height = th;
-
-      // 순백색 바탕
-      offscreenCtx.fillStyle = '#ffffff';
-      offscreenCtx.fillRect(0, 0, tw, th);
-
-      // 사진 영역: 512 x 512 px (중앙 정렬)
-      const photoSize = 512;
-      const photoX = (tw - photoSize) / 2;
-      const photoY = 24;
-
-      // 앳킨슨 디더링 적용된 흑백 사진 렌더링
-      const ditheredPhoto = renderPureAtkinsonDither(capturedRawCanvas, photoSize, photoSize);
-      offscreenCtx.drawImage(ditheredPhoto, photoX, photoY, photoSize, photoSize);
-
-      // 하단 QR 코드 렌더링 (예시 사진 일치)
-      const qrCanvas = await generateQRCodeCanvas('https://speer.hs.kr/', 150);
-      const qrX = (tw - 150) / 2;
-      const qrY = photoY + photoSize + 32;
-      offscreenCtx.drawImage(qrCanvas, qrX, qrY, 150, 150);
-
-      return offscreenCanvas.toDataURL('image/png');
-    }
-
-    // QR 코드 생성 헬퍼
     function generateQRCodeCanvas(text, size) {
       return new Promise((resolve) => {
         const holder = document.getElementById('qrHiddenHolder');
@@ -681,28 +630,74 @@
           text: text,
           width: size,
           height: size,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
+          colorDark: "#000000",
+          colorLight: "#ffffff",
           correctLevel: QRCode.CorrectLevel.M
         });
 
         setTimeout(() => {
-          const qrImg = holder.querySelector('img') || holder.querySelector('canvas');
-          if (qrImg.tagName === 'CANVAS') {
-            resolve(qrImg);
+          const qrCanvas = holder.querySelector('canvas');
+          if (qrCanvas) {
+            resolve(qrCanvas);
           } else {
-            const tempC = document.createElement('canvas');
-            tempC.width = size;
-            tempC.height = size;
-            const tctx = tempC.getContext('2d');
-            tctx.drawImage(qrImg, 0, 0, size, size);
-            resolve(tempC);
+            const qrImg = holder.querySelector('img');
+            if (qrImg) {
+              const cvs = document.createElement('canvas');
+              cvs.width = size;
+              cvs.height = size;
+              const c = cvs.getContext('2d');
+              c.drawImage(qrImg, 0, 0, size, size);
+              resolve(cvs);
+            } else {
+              const cvs = document.createElement('canvas');
+              cvs.width = size;
+              cvs.height = size;
+              resolve(cvs);
+            }
           }
-        }, 80);
+        }, 120);
       });
     }
 
-    // 4. 촬영 실행
+    /**
+     * 3. 72 × 72 mm (정확히 576 × 576 px 1:1 정방형) 물리 규격 완성
+     * TM-m30III 80mm 용지의 유효 인쇄 폭 72mm = 576 도트에 1:1로 정확하게 일치
+     */
+    async function composeTargetReceipt() {
+      if (!capturedColorCanvas) return '';
+
+      const tw = 576; // 정확히 72mm (203.2 DPI)
+      const photoSize = 576; // 72x72mm 1:1 정사각형
+      const th = 760; // 72mm 사진 + 여백 및 하단 QR코드
+
+      offscreenCanvas.width = tw;
+      offscreenCanvas.height = th;
+
+      // 순백색 바탕
+      offscreenCtx.fillStyle = '#ffffff';
+      offscreenCtx.fillRect(0, 0, tw, th);
+
+      // 사진 영역 (72x72mm 전폭 1:1 렌더링)
+      const ditheredPhoto = renderTabletSmoothAtkinsonDither(capturedColorCanvas, photoSize, photoSize);
+      offscreenCtx.drawImage(ditheredPhoto, 0, 0, photoSize, photoSize);
+
+      // 하단 QR 코드 렌더링
+      try {
+        const qrSize = 150;
+        const qrCanvas = await generateQRCodeCanvas('https://speer.hs.kr/', qrSize);
+        const qrX = Math.round((tw - qrSize) / 2);
+        const qrY = photoSize + 18;
+        offscreenCtx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+      } catch (err) {
+        console.warn('QR 코드 생성 오류:', err);
+      }
+
+      return offscreenCanvas.toDataURL('image/png');
+    }
+
+    /**
+     * 4. 사진 촬영 시퀀스
+     */
     async function triggerPhotoShoot() {
       shootButton.disabled = true;
 
@@ -713,6 +708,7 @@
       }
       countdownBox.style.display = 'none';
 
+      // 플래시 효과
       flashOverlay.classList.remove('flash-anim');
       void flashOverlay.offsetWidth;
       flashOverlay.classList.add('flash-anim');
@@ -723,47 +719,117 @@
       const cropX = (vw - cropSize) / 2;
       const cropY = (vh - cropSize) / 2;
 
+      // 72x72mm 1:1 정방형 원본 컬러 캔버스 생성
       const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 800;
-      tempCanvas.height = 800;
+      tempCanvas.width = 576;
+      tempCanvas.height = 576;
       const tCtx = tempCanvas.getContext('2d');
       tCtx.imageSmoothingEnabled = true;
       tCtx.imageSmoothingQuality = 'high';
-      tCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, tempCanvas.width, tempCanvas.height);
 
-      capturedRawCanvas = tempCanvas;
+      // 좌우 반전 일치
+      tCtx.translate(576, 0);
+      tCtx.scale(-1, 1);
+      tCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, 576, 576);
 
-      // 앳킨슨 디더링 영수증 완성본 생성
-      finalReceiptDataUrl = await composeTargetReceipt();
-      previewImg.src = finalReceiptDataUrl;
+      capturedColorCanvas = tempCanvas;
+
+      // 미리보기: 촬영된 선명한 원본 컬러 그대로 표시
+      previewImg.src = capturedColorCanvas.toDataURL('image/png');
+
+      // 인쇄용: 태블릿 부드러운 앳킨슨 흑백 + QR코드 합성
+      finalPrintReceiptDataUrl = await composeTargetReceipt();
 
       resultModal.style.display = 'flex';
       shootButton.disabled = false;
     }
 
-    // 5. 영수증 인쇄
-    async function printReceipt() {
+    /**
+     * 5. 무왜곡 72×72mm 규격 인쇄 파이프라인
+     * - 화면 깜빡임/창 커짐이 전혀 없는 백그라운드 Iframe 인쇄
+     * - 태블릿/모바일 인쇄 스풀러에서 축소되지 않고 용지 가로 폭 전체에 100% 꽉 차게 렌더링
+     */
+    function printReceipt() {
       printBtn.disabled = true;
       printBtnText.innerText = '인쇄 전송 중...';
 
-      if (printTargetImg) {
-        printTargetImg.src = finalReceiptDataUrl;
-        if (printTargetImg.decode) {
-          try { await printTargetImg.decode(); } catch (e) {}
-        }
+      try {
+        const frameDoc = hiddenPrintFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(`
+          <!DOCTYPE html>
+          <html lang="ko">
+          <head>
+            <meta charset="UTF-8">
+            <title>Receipt Print</title>
+            <style>
+              @page {
+                size: 80mm auto;
+                margin: 0 !important;
+              }
+              *, *::before, *::after {
+                box-sizing: border-box !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              html, body {
+                width: 100% !important;
+                min-width: 100% !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                overflow: hidden !important;
+              }
+              .receipt-wrapper {
+                width: 100% !important;
+                min-width: 100% !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+              }
+              .receipt-img {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                display: block !important;
+                margin: 0 auto !important;
+                image-rendering: pixelated !important;
+                image-rendering: crisp-edges !important;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="receipt-wrapper">
+              <img class="receipt-img" src="${finalPrintReceiptDataUrl}" alt="receipt" />
+            </div>
+          </body>
+          </html>
+        `);
+        frameDoc.close();
+
+        // 렌더링 완료 후 백그라운드에서 직접 인쇄 호출 (화면 깜빡임 없음)
+        setTimeout(() => {
+          hiddenPrintFrame.contentWindow.focus();
+          hiddenPrintFrame.contentWindow.print();
+          printBtnText.innerText = '인쇄 완료!';
+          showToast('영수증 인쇄가 시작되었습니다.');
+        }, 300);
+
+      } catch (err) {
+        console.warn('Iframe 인쇄 실패, 백업 인쇄로 전환:', err);
+        window.print();
       }
 
       setTimeout(() => {
-        window.print();
-        printBtnText.innerText = '인쇄 완료!';
-        showToast('영수증 출력이 시작되었습니다.');
-
-        setTimeout(() => {
-          printBtn.disabled = false;
-          printBtnText.innerText = '영수증 인쇄하기';
-          closeModalAndResume();
-        }, 2200);
-      }, 300);
+        printBtn.disabled = false;
+        printBtnText.innerText = '영수증 인쇄하기';
+        closeModalAndResume();
+      }, 2500);
     }
 
     function closeModalAndResume() {
