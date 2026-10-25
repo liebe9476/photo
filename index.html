@@ -50,25 +50,25 @@
     }
 
     .top-pill-btn {
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(0, 0, 0, 0.12);
       border-radius: 9999px;
-      padding: 8px 16px;
+      padding: 9px 18px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      color: #1e293b;
+      gap: 7px;
+      color: #0f172a;
       font-size: 13px;
-      font-weight: 700;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      font-weight: 800;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
       transition: all 0.2s ease;
     }
     .top-pill-btn:hover {
       background: #ffffff;
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.16);
     }
     .top-pill-btn:active {
       transform: scale(0.96);
@@ -81,7 +81,7 @@
       width: 100%;
       height: 100vh;
       min-height: 0;
-      background: #e7e9df; /* 부드러운 웜그레이 톤 */
+      background: #e7e9df; /* 실제 촬영기기 웜그레이 배경 */
     }
 
     /* [좌측 뷰파인더 영역] */
@@ -105,56 +105,61 @@
       display: block;
     }
 
-    /* 3x3 격자 가이드선 */
+    /* 3x3 격자 가이드선 (첨부 이미지 규격) */
     .grid-line {
       position: absolute;
       pointer-events: none;
       background: rgba(255, 255, 255, 0.45);
       z-index: 15;
     }
-    .grid-v1 { left: 33.333%; top: 0; bottom: 0; width: 1px; }
-    .grid-v2 { left: 66.666%; top: 0; bottom: 0; width: 1px; }
-    .grid-h1 { top: 33.333%; left: 0; right: 0; height: 1px; }
-    .grid-h2 { top: 66.666%; left: 0; right: 0; height: 1px; }
+    .grid-v1 { left: 33.333%; top: 0; bottom: 0; width: 1.5px; }
+    .grid-v2 { left: 66.666%; top: 0; bottom: 0; width: 1.5px; }
+    .grid-h1 { top: 33.333%; left: 0; right: 0; height: 1.5px; }
+    .grid-h2 { top: 66.666%; left: 0; right: 0; height: 1.5px; }
 
     /* 뷰파인더 코너 브래킷 */
     .corner-bracket {
       position: absolute;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       pointer-events: none;
       z-index: 16;
     }
-    .corner-tl { top: 18px; left: 18px; border-top: 3px solid rgba(255, 255, 255, 0.85); border-left: 3px solid rgba(255, 255, 255, 0.85); border-top-left-radius: 4px; }
-    .corner-tr { top: 18px; right: 18px; border-top: 3px solid rgba(255, 255, 255, 0.85); border-right: 3px solid rgba(255, 255, 255, 0.85); border-top-right-radius: 4px; }
-    .corner-bl { bottom: 18px; left: 18px; border-bottom: 3px solid rgba(255, 255, 255, 0.85); border-left: 3px solid rgba(255, 255, 255, 0.85); border-bottom-left-radius: 4px; }
-    .corner-br { bottom: 18px; right: 18px; border-bottom: 3px solid rgba(255, 255, 255, 0.85); border-right: 3px solid rgba(255, 255, 255, 0.85); border-bottom-right-radius: 4px; }
+    .corner-tl { top: 20px; left: 20px; border-top: 3.5px solid rgba(255, 255, 255, 0.9); border-left: 3.5px solid rgba(255, 255, 255, 0.9); border-top-left-radius: 4px; }
+    .corner-tr { top: 20px; right: 20px; border-top: 3.5px solid rgba(255, 255, 255, 0.9); border-right: 3.5px solid rgba(255, 255, 255, 0.9); border-top-right-radius: 4px; }
+    .corner-bl { bottom: 20px; left: 20px; border-bottom: 3.5px solid rgba(255, 255, 255, 0.9); border-left: 3.5px solid rgba(255, 255, 255, 0.9); border-bottom-left-radius: 4px; }
+    .corner-br { bottom: 20px; right: 20px; border-bottom: 3.5px solid rgba(255, 255, 255, 0.9); border-right: 3.5px solid rgba(255, 255, 255, 0.9); border-bottom-right-radius: 4px; }
 
     /* 좌상단 ● LIVE 뱃지 */
     .live-badge {
       position: absolute;
-      top: 22px;
-      left: 24px;
+      top: 24px;
+      left: 26px;
       z-index: 20;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(4px);
-      padding: 5px 12px;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      padding: 6px 14px;
       border-radius: 999px;
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
       color: #ffffff;
       font-size: 11px;
       font-weight: 800;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
       pointer-events: none;
     }
     .live-dot {
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       background: #ef4444;
       border-radius: 50%;
-      box-shadow: 0 0 8px #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+      animation: pulseDot 1.5s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
     }
 
     /* 플래시 오버레이 */
@@ -185,23 +190,23 @@
       pointer-events: none;
     }
     #countdownNum {
-      font-size: clamp(5rem, 15vw, 8.5rem);
+      font-size: clamp(5.5rem, 16vw, 9.5rem);
       font-weight: 900;
       color: #ffffff;
       font-family: monospace;
-      text-shadow: 0 4px 25px rgba(0,0,0,0.7);
+      text-shadow: 0 4px 30px rgba(0,0,0,0.8);
     }
 
     /* [우측 패널 영역] */
     #sideActionPanel {
-      width: clamp(280px, 34vw, 450px);
+      width: clamp(300px, 35vw, 460px);
       height: 100%;
       background: #e7e9df;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 36px 28px;
+      padding: 40px 32px;
       position: relative;
       flex-shrink: 0;
     }
@@ -211,27 +216,27 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      margin-bottom: 34px;
-      max-width: 320px;
+      margin-bottom: 38px;
+      max-width: 340px;
     }
 
     .booth-chip {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       background: rgba(2, 132, 199, 0.08);
-      border: 1px solid rgba(2, 132, 199, 0.2);
+      border: 1px solid rgba(2, 132, 199, 0.25);
       color: #0284c7;
       font-size: 11px;
       font-weight: 800;
-      letter-spacing: 0.5px;
-      padding: 4px 10px;
+      letter-spacing: 0.6px;
+      padding: 5px 12px;
       border-radius: 9999px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     .booth-main-title {
-      font-size: clamp(1.25rem, 2.3vw, 1.65rem);
+      font-size: clamp(1.35rem, 2.4vw, 1.75rem);
       font-weight: 900;
       color: #1e293b;
       letter-spacing: -0.6px;
@@ -240,23 +245,23 @@
     }
 
     .booth-sub-caption {
-      font-size: 13px;
+      font-size: 13.5px;
       color: #64748b;
-      margin-top: 6px;
+      margin-top: 8px;
       font-weight: 500;
     }
 
-    /* 큰 알약형 "촬영하기" 버튼 */
+    /* 큰 알약형 "촬영하기" 버튼 (첨부 사진 디자인) */
     .pill-shoot-btn {
-      width: min(90%, 280px);
-      padding: 22px 30px;
+      width: min(92%, 290px);
+      padding: 24px 32px;
       background: #f1f3ee;
       border: 1px solid #d5d8cd;
       border-radius: 9999px;
-      font-size: 1.45rem;
+      font-size: 1.55rem;
       font-weight: 800;
       color: #1a1a1a;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0,0,0,0.04);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0,0,0,0.04);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -267,7 +272,7 @@
     .pill-shoot-btn:hover {
       background: #ffffff;
       transform: translateY(-2px);
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
     }
     .pill-shoot-btn:active {
       transform: scale(0.96);
@@ -275,66 +280,64 @@
     }
 
     /* ============================================================
-       [결과 모달 화면] - 한 페이지에 꽉 차게 보기 최적화
+       [결과 모달 화면] - 캔버스 직결 렌더링으로 즉각 출력 & 100% 가득 참
        ============================================================ */
     #resultModal {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(8px);
+      background: rgba(10, 15, 30, 0.92);
+      backdrop-filter: blur(12px);
       z-index: 100;
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 20px;
     }
 
     .result-content-box {
       background: #1e293b;
-      border-radius: 24px;
+      border-radius: 28px;
       border: 1px solid #334155;
       width: 100%;
-      max-width: 960px;
+      max-width: 980px;
       max-height: 94vh;
       display: flex;
       flex-direction: row;
-      gap: 28px;
-      padding: 24px;
-      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.9);
+      gap: 32px;
+      padding: 28px;
+      box-shadow: 0 25px 70px -15px rgba(0,0,0,0.95);
       align-items: center;
     }
 
-    /* 영수증 미리보기를 한 화면에 가득 채우는 카드 */
+    /* 영수증 미리보기 스테이지 */
     .receipt-preview-stage {
-      background: #0f172a;
-      padding: 12px;
-      border-radius: 16px;
-      box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+      background: #090e1a;
+      padding: 14px;
+      border-radius: 20px;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.7);
       display: flex;
       align-items: center;
       justify-content: center;
-      max-height: 82vh;
-      height: 100%;
+      height: min(86vh, 760px);
       flex-shrink: 0;
     }
 
     .receipt-paper-card {
       background: #ffffff;
       border-radius: 4px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-      max-height: 78vh;
-      width: auto;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.5);
+      height: 100%;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      aspect-ratio: 800 / 1520;
     }
 
-    #previewImg {
-      max-height: 78vh;
-      width: auto;
-      max-width: 380px;
+    /* 캔버스 직접 바인딩으로 흰 화면 및 로딩 오류 원천 차단 */
+    #previewDirectCanvas {
+      width: 100%;
+      height: 100%;
       object-fit: contain;
       display: block;
       background: #ffffff;
@@ -346,7 +349,7 @@
       flex-direction: column;
       justify-content: space-between;
       color: #f8fafc;
-      min-width: 260px;
+      min-width: 280px;
       height: 100%;
     }
 
@@ -354,25 +357,25 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-top: 24px;
+      margin-top: 28px;
     }
 
     .print-main-btn {
       width: 100%;
-      padding: 16px;
-      border-radius: 14px;
+      padding: 18px;
+      border-radius: 16px;
       border: none;
       background: linear-gradient(135deg, #0ea5e9, #2563eb);
       color: #ffffff;
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 800;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
       transition: all 0.2s;
-      box-shadow: 0 8px 22px rgba(14, 165, 233, 0.4);
+      box-shadow: 0 10px 25px rgba(14, 165, 233, 0.45);
     }
     .print-main-btn:active {
       transform: scale(0.97);
@@ -380,12 +383,12 @@
 
     .retake-btn {
       width: 100%;
-      padding: 14px;
-      border-radius: 14px;
+      padding: 15px;
+      border-radius: 16px;
       border: 1px solid #475569;
       background: #334155;
       color: #e2e8f0;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
@@ -397,20 +400,21 @@
     /* 토스트 안내 */
     #toastNotice {
       position: fixed;
-      bottom: 24px;
+      bottom: 28px;
       left: 50%;
       transform: translateX(-50%);
       background: #0f172a;
       border: 1px solid #38bdf8;
       color: #ffffff;
-      padding: 10px 20px;
+      padding: 12px 24px;
       border-radius: 999px;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 800;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
       z-index: 120;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     }
 
     /* ============================================================
@@ -491,7 +495,7 @@
           <span>LIVE</span>
         </div>
 
-        <!-- 3x3 격자 가이드선 -->
+        <!-- 3x3 격자 가이드선 (첨부 사진과 100% 동일) -->
         <div class="grid-line grid-v1"></div>
         <div class="grid-line grid-v2"></div>
         <div class="grid-line grid-h1"></div>
@@ -534,44 +538,36 @@
     </main>
   </div>
 
-  <!-- 3. 촬영 결과 모달 (한 화면에 전체 가득 차게 최적화) -->
+  <!-- ============================================================
+       3. 촬영 결과 모달 (캔버스 직결로 한 화면에 깨짐 없이 가득 채움)
+       ============================================================ -->
   <div id="resultModal">
     <div class="result-content-box">
       <!-- 좌측: 영수증 전체가 한눈에 들어오는 스테이지 -->
       <div class="receipt-preview-stage">
         <div class="receipt-paper-card">
-          <img id="previewImg" alt="영수증 결과물 컬러 미리보기" />
+          <!-- 캔버스에 직접 그려서 흰 화면 에러를 원천 차단 -->
+          <canvas id="previewDirectCanvas" width="800" height="1520"></canvas>
         </div>
       </div>
 
-      <!-- 우측: 결과 안내 및 조작 버튼 -->
+      <!-- 우측: 결과 안내 및 조작 버튼 (필터/기술 설정 삭제 완료) -->
       <div class="result-control-area">
         <div>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold mb-3">
-            <i class="ph-bold ph-check-circle"></i> 촬영 완료
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold mb-3">
+            <i class="ph-bold ph-check-circle text-sm"></i> 촬영 완료
           </div>
-          <h2 class="text-2xl font-black text-white leading-tight mb-2">
-            영수증 사진이 완성되었습니다! 🎉
+          <h2 class="text-3xl font-black text-white leading-tight mb-3">
+            영수증 사진이<br/>완성되었습니다! 🎉
           </h2>
           <p class="text-sm text-slate-400 leading-relaxed">
-            화면 미리보기는 선명한 고화질 컬러로 확인하실 수 있으며, 인쇄 시에는 Epson 감열 영수증 지그재그 점묘화 엔진으로 즉시 출력됩니다.
+            화면 미리보기는 선명한 고화질 컬러로 확인하실 수 있으며, 인쇄하기를 누르면 Epson TM-m30III 감열 영수증 지그재그 점묘화 엔진으로 즉시 출력됩니다.
           </p>
-
-          <div class="mt-4 p-3 rounded-xl bg-slate-900 border border-slate-700/60 text-xs text-slate-300 font-mono space-y-1">
-            <div class="flex justify-between">
-              <span class="text-slate-400">포맷 규격:</span>
-              <span class="text-sky-400 font-bold">79x79mm (1:1)</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-400">하프톤 엔진:</span>
-              <span class="text-sky-400 font-bold" id="resEngineLabel">STIPPLE 3.0x</span>
-            </div>
-          </div>
         </div>
 
         <div class="action-group">
           <button id="printBtn" class="print-main-btn" onclick="printReceipt()">
-            <i class="ph-bold ph-printer text-xl"></i>
+            <i class="ph-bold ph-printer text-2xl"></i>
             <span id="printBtnText">영수증 인쇄하기</span>
           </button>
 
@@ -584,7 +580,7 @@
   </div>
 
   <!-- ============================================================
-       4. [관리자 설정 모달] - 버튼 클릭 시 노출되는 스튜디오 풀 패널
+       4. [관리자 설정 모달] - 인쇄품질 실시간 시뮬레이터 & 하드웨어 제어
        ============================================================ -->
   <div id="adminModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-slate-900 border border-slate-800 max-w-4xl w-full rounded-3xl p-5 sm:p-7 shadow-2xl relative max-h-[92vh] flex flex-col">
@@ -609,6 +605,34 @@
       <!-- 모달 내부 스크롤 영역 -->
       <div class="flex-1 overflow-y-auto space-y-5 pr-1 py-4">
         
+        <!-- [신설] 1-bit 감열 점묘화 인쇄품질 1:1 실시간 뷰어 -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+              <i class="ph-bold ph-eye text-base"></i> 인쇄 품질 실시간 시뮬레이터 (1-Bit Stipple Dithering)
+            </span>
+            <span class="text-[11px] text-slate-400 font-mono">203 DPI 헤드 가상 렌더링</span>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+            <!-- 흑백 점묘화 캔버스 뷰어 -->
+            <div class="w-48 h-48 bg-white rounded-lg shadow-lg flex items-center justify-center overflow-hidden border border-slate-700 flex-shrink-0">
+              <canvas id="adminQualityCanvas" width="576" height="576" class="w-full h-full object-cover"></canvas>
+            </div>
+            <div class="flex-1 text-xs text-slate-300 space-y-2">
+              <p class="font-bold text-white flex items-center gap-1.5">
+                <i class="ph-bold ph-check text-emerald-400"></i> 실제 종이 출력 상태 실시간 반영
+              </p>
+              <p class="text-slate-400 leading-relaxed">
+                아래 슬라이더(밝기, 대비, 감마, 점묘화 스케일 등)를 변경하면 좌측 캔버스에 <b>안경테, 턱선, 머릿결</b>의 도트 선명도가 즉시 시뮬레이션됩니다.
+              </p>
+              <button onclick="renderAdminQualityPreview()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-[11px] transition flex items-center gap-1.5">
+                <i class="ph-bold ph-arrows-clockwise"></i> 현재 프레임으로 품질 새로고침
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 1. 프린터 연결 제어부 (블루투스 / USB / IP) -->
         <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
           <div class="flex items-center justify-between">
@@ -756,7 +780,7 @@
   </div>
 
   <!-- 인쇄용 숨김 DOM -->
-  <canvas id="offscreenReceiptCanvas" style="display: none;"></canvas>
+  <canvas id="offscreenReceiptCanvas" width="800" height="1520" style="display: none;"></canvas>
   <div id="printOutputZone" style="display: none;">
     <img id="printTargetImg" src="" alt="print-paper" />
   </div>
@@ -799,18 +823,20 @@
     const countdownBox = document.getElementById('countdownBox');
     const countdownNum = document.getElementById('countdownNum');
     const resultModal = document.getElementById('resultModal');
-    const previewImg = document.getElementById('previewImg');
+    const previewDirectCanvas = document.getElementById('previewDirectCanvas');
+    const previewDirectCtx = previewDirectCanvas.getContext('2d');
     const printBtn = document.getElementById('printBtn');
     const printBtnText = document.getElementById('printBtnText');
     const printTargetImg = document.getElementById('printTargetImg');
     const offscreenCanvas = document.getElementById('offscreenReceiptCanvas');
     const offscreenCtx = offscreenCanvas.getContext('2d');
     const adminModal = document.getElementById('adminModal');
+    const adminQualityCanvas = document.getElementById('adminQualityCanvas');
+    const adminQualityCtx = adminQualityCanvas.getContext('2d');
 
     let currentMediaStream = null;
     let capturedRawCanvas = null;
     let finalPrintDataUrl = '';
-    let finalPreviewColorDataUrl = '';
 
     // 하드웨어 직결 통신 변수
     let activeConnectionType = null; // 'BLE' | 'USB' | null
@@ -820,7 +846,7 @@
     let usbEndpointOut = null;
 
     /**
-     * 1. 웹캠 초기화
+     * 1. 웹캠 초기화 (하드웨어 옵션 연속 화이트밸런스 및 플리커 보정)
      */
     async function initializeCamera() {
       const constraints = {
@@ -846,15 +872,60 @@
           });
         } catch (err2) {
           showToast('카메라 권한을 허용해주세요.');
+          createMockCapturedSample();
           return;
         }
       }
 
       webcamView.srcObject = currentMediaStream;
+      webcamView.onloadedmetadata = () => {
+        createMockCapturedSample();
+        renderAdminQualityPreview();
+      };
     }
 
     /**
-     * 2. 이미지 컬러 보정 & 튜닝
+     * 기본 샘플 생성 (카메라 로딩 전 또는 미허용 시에도 시각화 보장)
+     */
+    function createMockCapturedSample() {
+      if (capturedRawCanvas) return;
+      const sample = document.createElement('canvas');
+      sample.width = 800;
+      sample.height = 800;
+      const sCtx = sample.getContext('2d');
+      sCtx.fillStyle = '#f8fafc';
+      sCtx.fillRect(0, 0, 800, 800);
+
+      // 인물 그라데이션 및 안경/턱선 기본 실루엣
+      const grad = sCtx.createRadialGradient(400, 370, 40, 400, 370, 240);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.5, '#cbd5e1');
+      grad.addColorStop(1, '#64748b');
+      sCtx.fillStyle = grad;
+      sCtx.beginPath();
+      sCtx.arc(400, 370, 210, 0, Math.PI * 2);
+      sCtx.fill();
+
+      // 안경테 윤곽
+      sCtx.strokeStyle = '#0f172a';
+      sCtx.lineWidth = 10;
+      sCtx.beginPath();
+      sCtx.arc(320, 350, 52, 0, Math.PI * 2);
+      sCtx.arc(480, 350, 52, 0, Math.PI * 2);
+      sCtx.moveTo(372, 350);
+      sCtx.lineTo(428, 350);
+      sCtx.stroke();
+
+      // 입술/턱선
+      sCtx.beginPath();
+      sCtx.arc(400, 440, 30, 0.2, Math.PI - 0.2);
+      sCtx.stroke();
+
+      capturedRawCanvas = sample;
+    }
+
+    /**
+     * 2. 이미지 컬러 보정 & 튜닝 (안경테 및 턱선 음영 보존)
      */
     function applyColorAndCustomTuning(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
@@ -887,6 +958,7 @@
         let g = data[i + 1];
         let b = data[i + 2];
 
+        // 안경테와 어두운 턱선 그림자 보존 (Dark Protection)
         const origLuma = 0.299 * r + 0.587 * g + 0.114 * b;
         const darkProtect = origLuma < 90 ? (origLuma / 90) : 1.0;
         const effectiveBrightness = bOffset * (0.35 + 0.65 * darkProtect);
@@ -929,7 +1001,7 @@
 
       ctx.putImageData(imgData, 0, 0);
 
-      // 언샵 마스크(Unsharp Mask)
+      // 고해상도 언샵 마스크(Unsharp Mask) 샤프닝
       const sharpCanvas = document.createElement('canvas');
       sharpCanvas.width = targetWidth;
       sharpCanvas.height = targetHeight;
@@ -975,7 +1047,7 @@
     }
 
     /**
-     * 3. 하프톤 디더링 (지그재그 점묘화 3.0x)
+     * 3. 하프톤 디더링 (지그재그 점묘화 3.0x Stipple Dithering)
      */
     function applyZigzagStippleDithering(tunedCanvas, width, height) {
       const ditherCanvas = document.createElement('canvas');
@@ -995,6 +1067,7 @@
         buffer[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
+      // 소벨 에지 검출
       for (let y = 1; y < height - 1; y++) {
         const row = y * width;
         for (let x = 1; x < width - 1; x++) {
@@ -1078,46 +1151,46 @@
     }
 
     /**
-     * 4. 영수증 전체 합성 렌더러 (미리보기는 풀컬러 / 인쇄는 디더링)
+     * 4. 영수증 전체 합성 렌더러
+     * @param {CanvasRenderingContext2D} targetCtx 대상 컨텍스트
+     * @param {boolean} forPrint true면 흑백 점묘화, false면 고화질 원본 컬러
      */
-    function composeReceiptSticker(forPrint = false) {
-      if (!capturedRawCanvas) return '';
+    function renderFullReceiptToContext(targetCtx, forPrint = false) {
+      if (!capturedRawCanvas) createMockCapturedSample();
 
       const tw = 800;
       const th = 1520;
-      offscreenCanvas.width = tw;
-      offscreenCanvas.height = th;
 
       // 흰색 바탕
-      offscreenCtx.fillStyle = '#ffffff';
-      offscreenCtx.fillRect(0, 0, tw, th);
+      targetCtx.fillStyle = '#ffffff';
+      targetCtx.fillRect(0, 0, tw, th);
 
       // 타이틀
-      offscreenCtx.fillStyle = '#000000';
-      offscreenCtx.textAlign = 'center';
-      offscreenCtx.font = '900 48px sans-serif';
-      offscreenCtx.fillText('2026 AI·SW체험', tw / 2, 88);
+      targetCtx.fillStyle = '#000000';
+      targetCtx.textAlign = 'center';
+      targetCtx.font = '900 48px sans-serif';
+      targetCtx.fillText('2026 AI·SW체험', tw / 2, 88);
 
-      offscreenCtx.font = '900 42px sans-serif';
-      offscreenCtx.fillText('수피아여고 포토부스', tw / 2, 142);
+      targetCtx.font = '900 42px sans-serif';
+      targetCtx.fillText('수피아여고 포토부스', tw / 2, 142);
 
-      // 절취선
+      // 절취선 데코
       const drawDecoDashes = (y) => {
-        offscreenCtx.save();
-        offscreenCtx.strokeStyle = '#000000';
-        offscreenCtx.lineWidth = 2;
-        offscreenCtx.beginPath();
-        offscreenCtx.moveTo(30, y - 4);
-        offscreenCtx.lineTo(tw - 30, y - 4);
-        offscreenCtx.stroke();
+        targetCtx.save();
+        targetCtx.strokeStyle = '#000000';
+        targetCtx.lineWidth = 2;
+        targetCtx.beginPath();
+        targetCtx.moveTo(30, y - 4);
+        targetCtx.lineTo(tw - 30, y - 4);
+        targetCtx.stroke();
 
-        offscreenCtx.lineWidth = 2.5;
-        offscreenCtx.setLineDash([10, 6, 3, 6]);
-        offscreenCtx.beginPath();
-        offscreenCtx.moveTo(30, y + 3);
-        offscreenCtx.lineTo(tw - 30, y + 3);
-        offscreenCtx.stroke();
-        offscreenCtx.restore();
+        targetCtx.lineWidth = 2.5;
+        targetCtx.setLineDash([10, 6, 3, 6]);
+        targetCtx.beginPath();
+        targetCtx.moveTo(30, y + 3);
+        targetCtx.lineTo(tw - 30, y + 3);
+        targetCtx.stroke();
+        targetCtx.restore();
       };
       drawDecoDashes(184);
 
@@ -1130,14 +1203,15 @@
       if (forPrint) {
         const tunedPhoto = applyColorAndCustomTuning(capturedRawCanvas, photoW, photoH);
         const ditheredPhoto = applyZigzagStippleDithering(tunedPhoto, photoW, photoH);
-        offscreenCtx.drawImage(ditheredPhoto, photoX, photoY, photoW, photoH);
+        targetCtx.drawImage(ditheredPhoto, photoX, photoY, photoW, photoH);
       } else {
-        offscreenCtx.drawImage(capturedRawCanvas, photoX, photoY, photoW, photoH);
+        // 화면 미리보기: 생생한 고화질 원본 컬러
+        targetCtx.drawImage(capturedRawCanvas, photoX, photoY, photoW, photoH);
       }
 
-      offscreenCtx.strokeStyle = '#000000';
-      offscreenCtx.lineWidth = 3;
-      offscreenCtx.strokeRect(photoX, photoY, photoW, photoH);
+      targetCtx.strokeStyle = '#000000';
+      targetCtx.lineWidth = 3;
+      targetCtx.strokeRect(photoX, photoY, photoW, photoH);
 
       const bottomDashY = photoY + photoH + 34;
       drawDecoDashes(bottomDashY);
@@ -1145,12 +1219,12 @@
       const now = new Date();
       const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      offscreenCtx.font = 'bold 26px monospace';
-      offscreenCtx.fillStyle = '#000000';
-      offscreenCtx.fillText(`DATE: ${dateStr}`, tw / 2, bottomDashY + 48);
+      targetCtx.font = 'bold 26px monospace';
+      targetCtx.fillStyle = '#000000';
+      targetCtx.fillText(`DATE: ${dateStr}`, tw / 2, bottomDashY + 48);
 
-      offscreenCtx.font = 'bold 32px sans-serif';
-      offscreenCtx.fillText('방문해주셔서 감사합니다!', tw / 2, bottomDashY + 92);
+      targetCtx.font = 'bold 32px sans-serif';
+      targetCtx.fillText('방문해주셔서 감사합니다!', tw / 2, bottomDashY + 92);
 
       // 바코드
       const barcodeY = bottomDashY + 116;
@@ -1165,68 +1239,97 @@
 
       for (let i = 0; i < barPattern.length; i++) {
         const w = barPattern[i] * 3.6;
-        if (i % 2 === 0) offscreenCtx.fillRect(startBx, barcodeY, w - 0.5, barcodeH);
+        if (i % 2 === 0) targetCtx.fillRect(startBx, barcodeY, w - 0.5, barcodeH);
         startBx += w;
       }
 
-      // [PRINT CONFIG SPEC] 점선 박스
+      // [PRINT CONFIG SPEC] 점선 박스 (실제 인쇄물 하단 박스 완벽 유지)
       const specBoxY = barcodeY + barcodeH + 26;
       const specBoxW = 740;
       const specBoxH = 210;
       const specBoxX = (tw - specBoxW) / 2;
 
-      offscreenCtx.save();
-      offscreenCtx.strokeStyle = '#000000';
-      offscreenCtx.lineWidth = 1.8;
-      offscreenCtx.setLineDash([5, 4]);
-      offscreenCtx.strokeRect(specBoxX, specBoxY, specBoxW, specBoxH);
+      targetCtx.save();
+      targetCtx.strokeStyle = '#000000';
+      targetCtx.lineWidth = 1.8;
+      targetCtx.setLineDash([5, 4]);
+      targetCtx.strokeRect(specBoxX, specBoxY, specBoxW, specBoxH);
 
-      offscreenCtx.setLineDash([]);
-      offscreenCtx.font = 'bold 20px monospace';
-      offscreenCtx.textAlign = 'left';
-      offscreenCtx.fillText('[PRINT CONFIG SPEC]', specBoxX + 16, specBoxY + 30);
+      targetCtx.setLineDash([]);
+      targetCtx.font = 'bold 20px monospace';
+      targetCtx.textAlign = 'left';
+      targetCtx.fillText('[PRINT CONFIG SPEC]', specBoxX + 16, specBoxY + 30);
 
-      offscreenCtx.textAlign = 'right';
-      offscreenCtx.fillText(TUNING_PARAMS.algorithm, specBoxX + specBoxW - 16, specBoxY + 30);
+      targetCtx.textAlign = 'right';
+      targetCtx.fillText(TUNING_PARAMS.algorithm, specBoxX + specBoxW - 16, specBoxY + 30);
 
-      offscreenCtx.lineWidth = 1;
-      offscreenCtx.beginPath();
-      offscreenCtx.moveTo(specBoxX + 16, specBoxY + 40);
-      offscreenCtx.lineTo(specBoxX + specBoxW - 16, specBoxY + 40);
-      offscreenCtx.stroke();
+      targetCtx.lineWidth = 1;
+      targetCtx.beginPath();
+      targetCtx.moveTo(specBoxX + 16, specBoxY + 40);
+      targetCtx.lineTo(specBoxX + specBoxW - 16, specBoxY + 40);
+      targetCtx.stroke();
 
-      offscreenCtx.font = 'bold 18px monospace';
+      targetCtx.font = 'bold 18px monospace';
       const col1X = specBoxX + 16;
       const col2X = specBoxX + 390;
       let textY = specBoxY + 70;
       const lineGap = 26;
 
-      offscreenCtx.textAlign = 'left';
-      offscreenCtx.fillText(`SIZE: ${TUNING_PARAMS.printSize}`, col1X, textY);
-      offscreenCtx.fillText(`DENSITY: ${TUNING_PARAMS.printDensity}`, col1X, textY + lineGap);
-      offscreenCtx.fillText(`AUTO: ${Math.round(TUNING_PARAMS.autoStrength * 100)}%`, col1X, textY + lineGap * 2);
-      offscreenCtx.fillText(`CONTRAST: ${TUNING_PARAMS.contrast}`, col1X, textY + lineGap * 3);
-      offscreenCtx.fillText(`TEMP: ${TUNING_PARAMS.temperature}`, col1X, textY + lineGap * 4);
+      targetCtx.textAlign = 'left';
+      targetCtx.fillText(`SIZE: ${TUNING_PARAMS.printSize}`, col1X, textY);
+      targetCtx.fillText(`DENSITY: ${TUNING_PARAMS.printDensity}`, col1X, textY + lineGap);
+      targetCtx.fillText(`AUTO: ${Math.round(TUNING_PARAMS.autoStrength * 100)}%`, col1X, textY + lineGap * 2);
+      targetCtx.fillText(`CONTRAST: ${TUNING_PARAMS.contrast}`, col1X, textY + lineGap * 3);
+      targetCtx.fillText(`TEMP: ${TUNING_PARAMS.temperature}`, col1X, textY + lineGap * 4);
 
-      offscreenCtx.fillText(`PRESET: ${TUNING_PARAMS.presetName}`, col2X, textY);
-      offscreenCtx.fillText(`FILTER: ${Math.round(TUNING_PARAMS.customFilterStrength * 100)}%`, col2X, textY + lineGap);
-      offscreenCtx.fillText(`BRIGHT: ${TUNING_PARAMS.brightness}`, col2X, textY + lineGap * 2);
-      offscreenCtx.fillText(`SATUR: ${TUNING_PARAMS.saturation}`, col2X, textY + lineGap * 3);
-      offscreenCtx.fillText(`GAMMA: ${TUNING_PARAMS.gamma.toFixed(2)}`, col2X, textY + lineGap * 4);
+      targetCtx.fillText(`PRESET: ${TUNING_PARAMS.presetName}`, col2X, textY);
+      targetCtx.fillText(`FILTER: ${Math.round(TUNING_PARAMS.customFilterStrength * 100)}%`, col2X, textY + lineGap);
+      targetCtx.fillText(`BRIGHT: ${TUNING_PARAMS.brightness}`, col2X, textY + lineGap * 2);
+      targetCtx.fillText(`SATUR: ${TUNING_PARAMS.saturation}`, col2X, textY + lineGap * 3);
+      targetCtx.fillText(`GAMMA: ${TUNING_PARAMS.gamma.toFixed(2)}`, col2X, textY + lineGap * 4);
 
-      offscreenCtx.fillText(`VIGNETTE: ${Math.round(TUNING_PARAMS.vignette * 100)}%`, col1X, textY + lineGap * 5);
-      offscreenCtx.restore();
+      targetCtx.fillText(`VIGNETTE: ${Math.round(TUNING_PARAMS.vignette * 100)}%`, col1X, textY + lineGap * 5);
+      targetCtx.restore();
 
-      offscreenCtx.font = 'bold 22px sans-serif';
-      offscreenCtx.fillStyle = '#111111';
-      offscreenCtx.textAlign = 'center';
-      offscreenCtx.fillText('광주수피아여자고등학교 AI·SW체험관', tw / 2, specBoxY + specBoxH + 34);
-
-      return offscreenCanvas.toDataURL('image/png');
+      targetCtx.font = 'bold 22px sans-serif';
+      targetCtx.fillStyle = '#111111';
+      targetCtx.textAlign = 'center';
+      targetCtx.fillText('광주수피아여자고등학교 AI·SW체험관', tw / 2, specBoxY + specBoxH + 34);
     }
 
     /**
-     * 5. 촬영 시퀀스 (3초 카운트다운 -> 플래시 -> 캡처)
+     * 5. 관리자 페이지 내 실시간 인쇄품질(1-bit Stipple) 시뮬레이션
+     */
+    function renderAdminQualityPreview() {
+      if (!adminQualityCtx) return;
+
+      let source = capturedRawCanvas;
+      if (!source && webcamView && webcamView.videoWidth) {
+        const temp = document.createElement('canvas');
+        temp.width = 576;
+        temp.height = 576;
+        const ctx = temp.getContext('2d');
+        const vw = webcamView.videoWidth;
+        const vh = webcamView.videoHeight;
+        const sz = Math.min(vw, vh);
+        ctx.drawImage(webcamView, (vw - sz) / 2, (vh - sz) / 2, sz, sz, 0, 0, 576, 576);
+        source = temp;
+      }
+      if (!source) {
+        createMockCapturedSample();
+        source = capturedRawCanvas;
+      }
+
+      const tuned = applyColorAndCustomTuning(source, 576, 576);
+      const dithered = applyZigzagStippleDithering(tuned, 576, 576);
+
+      adminQualityCanvas.width = 576;
+      adminQualityCanvas.height = 576;
+      adminQualityCtx.drawImage(dithered, 0, 0);
+    }
+
+    /**
+     * 6. 촬영 시퀀스 (3초 카운트다운 -> 플래시 -> 캔버스 직접 렌더링)
      */
     async function triggerPhotoShoot() {
       shootButton.disabled = true;
@@ -1238,6 +1341,7 @@
       }
       countdownBox.style.display = 'none';
 
+      // 플래시 효과
       flashOverlay.classList.remove('flash-anim');
       void flashOverlay.offsetWidth;
       flashOverlay.classList.add('flash-anim');
@@ -1254,23 +1358,30 @@
       const tCtx = tempCanvas.getContext('2d');
       tCtx.imageSmoothingEnabled = true;
       tCtx.imageSmoothingQuality = 'high';
-      tCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, tempCanvas.width, tempCanvas.height);
 
+      // 글씨와 얼굴이 올바른 방향으로 나오도록 정상 캡처
+      tCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, tempCanvas.width, tempCanvas.height);
       capturedRawCanvas = tempCanvas;
 
-      // 화면 모달용: 선명한 풀컬러 영수증 미리보기
-      finalPreviewColorDataUrl = composeReceiptSticker(false);
-      previewImg.src = finalPreviewColorDataUrl;
+      // [핵심] 화면 결과 모달용 미리보기 캔버스에 직접 즉시 렌더링 (지연 0, 흰화면 오류 완전 박멸)
+      previewDirectCanvas.width = 800;
+      previewDirectCanvas.height = 1520;
+      renderFullReceiptToContext(previewDirectCtx, false);
 
-      // 인쇄용: 점묘화 디더링 데이터
-      finalPrintDataUrl = composeReceiptSticker(true);
+      // 인쇄용 데이터 생성
+      offscreenCanvas.width = 800;
+      offscreenCanvas.height = 1520;
+      renderFullReceiptToContext(offscreenCtx, true);
+      finalPrintDataUrl = offscreenCanvas.toDataURL('image/png');
 
+      // 모달 표시
       resultModal.style.display = 'flex';
       shootButton.disabled = false;
+      renderAdminQualityPreview();
     }
 
     /**
-     * 6. 영수증 인쇄 (직결 연결 시 ESC/POS, 미연결 시 OS 브라우저 인쇄)
+     * 7. 영수증 인쇄 (직결 연결 시 ESC/POS, 미연결 시 OS 브라우저 인쇄)
      */
     async function printReceipt() {
       printBtn.disabled = true;
@@ -1323,10 +1434,11 @@
     }
 
     // ============================================================
-    // 7. 관리자 모달 및 파라미터 동기화
+    // 8. 관리자 모달 및 파라미터 동기화
     // ============================================================
     function openAdminModal() {
       syncTuningParamsToAdminUI();
+      renderAdminQualityPreview();
       adminModal.classList.remove('hidden');
     }
 
@@ -1365,6 +1477,7 @@
       TUNING_PARAMS.algorithm = `STIPPLE ${TUNING_PARAMS.stippleScale.toFixed(1)}x`;
       TUNING_PARAMS.printDensity = parseInt(document.getElementById('admSliderDensity').value);
       updateAdminLabels();
+      renderAdminQualityPreview();
     }
 
     function updateAdminLabels() {
@@ -1378,7 +1491,6 @@
       document.getElementById('admValVignette').innerText = `${Math.round(TUNING_PARAMS.vignette * 100)}%`;
       document.getElementById('admValStipple').innerText = `${TUNING_PARAMS.stippleScale.toFixed(1)}x`;
       document.getElementById('admValDensity').innerText = (TUNING_PARAMS.printDensity > 0 ? '+' : '') + TUNING_PARAMS.printDensity;
-      document.getElementById('resEngineLabel').innerText = TUNING_PARAMS.algorithm;
     }
 
     function resetTuningToDefault() {
@@ -1396,6 +1508,7 @@
         vignette: 0.10
       });
       syncTuningParamsToAdminUI();
+      renderAdminQualityPreview();
       showToast('스펙 기본값으로 초기화되었습니다.');
     }
 
@@ -1408,7 +1521,7 @@
     }
 
     // ============================================================
-    // 8. 하드웨어 직결 통신 (BLE & USB WebAPI 지원)
+    // 9. 하드웨어 직결 통신 (BLE & USB WebAPI 지원)
     // ============================================================
     const EPSON_BLE_SERVICES = [
       'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
@@ -1547,7 +1660,7 @@
 
     function buildBandedEscPosCommands(imgData) {
       const w = 576;
-      const totalH = Math.min(imgData.height, 1200);
+      const totalH = Math.min(imgData.height, 1520);
       const widthBytes = w / 8; // 72 bytes
       const data = imgData.data;
       const BAND_HEIGHT = 24;
@@ -1614,6 +1727,8 @@
     window.onload = () => {
       initializeCamera();
       syncTuningParamsToAdminUI();
+      createMockCapturedSample();
+      renderAdminQualityPreview();
     };
   </script>
 </body>
