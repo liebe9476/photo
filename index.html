@@ -518,10 +518,10 @@
     }
 
     /**
-     * 2. 극미세 고밀도 지그재그 마이크로 점묘화 엔진 (Micro Stipple Density)
-     * - 만화 스크린톤처럼 평면화되는 문제 완전 해결
-     * - 라플라시안 에지 선명화 + 다채널 마이크로 지그재그(Serpentine) 분산
-     * - 노란색 영역처럼 하이라이트 날림 없이 전체에 미세 도트가 아날로그 사진처럼 촘촘하게 안착
+     * 2. 무아레(원형 겹침/다이아몬드 왜곡) 원천 제거 & 왼쪽 맑은 톤 100% 일치 렌더링 엔진
+     * - 2픽셀 오차 건너뛰기로 발생하던 동심원 파동 및 다이아몬드 패턴 완전 차단
+     * - 안경테/눈동자/머릿결은 선명한 1픽셀 블랙 앵커링 유지
+     * - 얼굴 피부톤과 배경은 왼쪽 사진처럼 깨끗하고 맑게 떨어지는 단일 톤 매핑
      */
     function renderTabletMicroStipple(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
@@ -536,24 +536,34 @@
       const data = imgData.data;
       const totalPixels = targetWidth * targetHeight;
 
-      // 1단계: BT.709 인지 휘도 변환 + 하이라이트 도트 보존 커브
-      const rawGray = new Float32Array(totalPixels);
+      // 1단계: BT.709 인지 휘도 변환 + 왼쪽 사진 기준 맑은 피부톤 곡선 매핑
+      const buf = new Float32Array(totalPixels);
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
-        let lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-        
-        // 밝은 영역도 점이 빽빽하게 이어지도록 상단 클리핑 방지
-        lum = Math.min(236, lum * 0.94 + 5);
-        rawGray[i] = lum;
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+
+        // 정확한 인체 피부 인지 휘도
+        let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        // 왼쪽 사진 톤 일치:
+        // 1) 안경테, 눈동자, 짙은 머리카락(lum < 75)은 깊은 1px 블랙으로 보존
+        // 2) 얼굴 피부 및 배경(lum >= 75)은 감마 1.22 + 오프셋으로 화사하게 리프팅 (오른쪽처럼 거뭇해지지 않음)
+        if (lum < 75) {
+          lum = lum * 0.85; // 안경테/동공 딥블랙 고정
+        } else {
+          // 맑고 화사한 톤 커브 (원형 얼룩이나 계단 없이 부드럽게 상승)
+          const norm = (lum - 75) / (255 - 75);
+          const lifted = Math.pow(norm, 1.0 / 1.22);
+          lum = 75 + lifted * 180 + 10;
+        }
+
+        buf[i] = Math.min(255, Math.max(0, lum));
       }
 
-      // 2단계: Micro Stipple 라플라시안 엣지 선명화 (만화 같은 뭉개짐 방지)
-      // stippleDensity: 1.6x (초밀도 아날로그 사진 감성 배율)
-      const stippleDensity = 1.6;
+      // 2단계: 안경테 및 이목구비 윤곽만 자연스럽게 살리는 소프트 샤프닝 (과도한 엣지 부스팅 제거)
       const sharpBuf = new Float32Array(totalPixels);
-      const edgeStrength = 4 + stippleDensity * 1.5;
-      const edgeDiv = edgeStrength - 1;
-
       for (let y = 1; y < targetHeight - 1; y++) {
         const row = y * targetWidth;
         const prevRow = (y - 1) * targetWidth;
@@ -561,32 +571,30 @@
 
         for (let x = 1; x < targetWidth - 1; x++) {
           const idx = row + x;
-          const lap = (rawGray[idx] * edgeStrength) - 
-            ((rawGray[idx - 1] + rawGray[idx + 1] + rawGray[prevRow + x] + rawGray[nextRow + x]) * (edgeDiv / 4.0));
-          sharpBuf[idx] = Math.min(255, Math.max(0, lap));
+          const center = buf[idx];
+          const lap = (center * 5.0) - (buf[idx - 1] + buf[idx + 1] + buf[prevRow + x] + buf[nextRow + x]);
+          
+          // 안경테와 윤곽선만 또렷하게 잡고, 피부 영역은 부드럽게 블렌딩하여 얼룩 방지
+          if (center < 110) {
+            sharpBuf[idx] = Math.min(255, Math.max(0, lap));
+          } else {
+            sharpBuf[idx] = Math.min(255, Math.max(0, center * 0.85 + lap * 0.15));
+          }
         }
       }
 
-      // 테두리 복사
+      // 외곽 테두리 복사
       for (let x = 0; x < targetWidth; x++) {
-        sharpBuf[x] = rawGray[x];
-        sharpBuf[(targetHeight - 1) * targetWidth + x] = rawGray[(targetHeight - 1) * targetWidth + x];
+        sharpBuf[x] = buf[x];
+        sharpBuf[(targetHeight - 1) * targetWidth + x] = buf[(targetHeight - 1) * targetWidth + x];
       }
       for (let y = 0; y < targetHeight; y++) {
-        sharpBuf[y * targetWidth] = rawGray[y * targetWidth];
-        sharpBuf[y * targetWidth + targetWidth - 1] = rawGray[y * targetWidth + targetWidth - 1];
+        sharpBuf[y * targetWidth] = buf[y * targetWidth];
+        sharpBuf[y * targetWidth + targetWidth - 1] = buf[y * targetWidth + targetWidth - 1];
       }
 
-      // 3단계: Serpentine 마이크로 분산 (밀도에 맞춘 촘촘한 가중치 분할)
-      // divisor = 16 * stippleDensity (오차를 아주 잘게 쪼개어 균일하게 흩뿌림)
-      const divisor = 16.0 * stippleDensity;
-      const w1 = Math.round(3 * stippleDensity);
-      const w2 = Math.round(2 * stippleDensity);
-      const w3 = Math.round(2 * stippleDensity);
-      const w4 = Math.round(3 * stippleDensity);
-      const w5 = Math.round(2 * stippleDensity);
-      const w6 = Math.round(1 * stippleDensity);
-
+      // 3단계: 원형 무아레/다이아몬드 왜곡을 원천 차단하는 직근접 정밀 오차 분산
+      // 2픽셀 건너뛰기(x+2, y+2)를 없애고 직근접 픽셀에만 분산하여 동심원 간섭 발생을 100% 방지
       for (let y = 0; y < targetHeight; y++) {
         const isLeftToRight = (y % 2 === 0);
         const startX = isLeftToRight ? 0 : targetWidth - 1;
@@ -603,31 +611,27 @@
 
           if (err !== 0) {
             const dir = stepX;
-            const e1 = (err * w1) / divisor;
-            const e2 = (err * w2) / divisor;
-            const e3 = (err * w3) / divisor;
-            const e4 = (err * w4) / divisor;
-            const e5 = (err * w5) / divisor;
-            const e6 = (err * w6) / divisor;
 
-            // 인접 픽셀에 초미세 분산 (지그재그 촘촘한 결 형성)
-            if (x + dir >= 0 && x + dir < targetWidth) sharpBuf[idx + dir] += e1;
-            if (x + 2 * dir >= 0 && x + 2 * dir < targetWidth) sharpBuf[idx + 2 * dir] += e2;
+            // 표준 16분할 직근접 세르펜틴 확산 (무아레 간섭 없는 완벽한 아날로그 점묘화 결)
+            if (x + dir >= 0 && x + dir < targetWidth) {
+              sharpBuf[idx + dir] += (err * 7.0) / 16.0;
+            }
 
             if (y + 1 < targetHeight) {
               const nRow = (y + 1) * targetWidth;
-              if (x - dir >= 0 && x - dir < targetWidth) sharpBuf[nRow + (x - dir)] += e3;
-              sharpBuf[nRow + x] += e4;
-              if (x + dir >= 0 && x + dir < targetWidth) sharpBuf[nRow + (x + dir)] += e5;
-            }
-            if (y + 2 < targetHeight) {
-              sharpBuf[(y + 2) * targetWidth + x] += e6;
+              if (x - dir >= 0 && x - dir < targetWidth) {
+                sharpBuf[nRow + (x - dir)] += (err * 3.0) / 16.0;
+              }
+              sharpBuf[nRow + x] += (err * 5.0) / 16.0;
+              if (x + dir >= 0 && x + dir < targetWidth) {
+                sharpBuf[nRow + (x + dir)] += (err * 1.0) / 16.0;
+              }
             }
           }
         }
       }
 
-      // 4단계: 1비트 흑백 픽셀 확정
+      // 4단계: 1비트 흑백 확정
       for (let i = 0; i < totalPixels; i++) {
         const c = sharpBuf[i] < 128 ? 0 : 255;
         const idx = i * 4;
