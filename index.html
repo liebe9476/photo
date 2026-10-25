@@ -736,7 +736,7 @@
     /**
      * 5. 무왜곡 72×72mm 규격 인쇄 파이프라인
      * - 화면 깜빡임/창 커짐이 전혀 없는 백그라운드 Iframe 인쇄
-     * - CSS에서 72mm 폭을 엄격히 고정하여 풀 화면 늘어남 현상 원천 차단
+     * - 태블릿/모바일 인쇄 스풀러에서 축소되지 않고 용지 가로 폭 전체에 100% 꽉 차게 렌더링
      */
     function printReceipt() {
       printBtn.disabled = true;
@@ -753,8 +753,8 @@
             <title>Receipt Print</title>
             <style>
               @page {
-                size: 72mm auto;
-                margin: 0mm !important;
+                size: 80mm auto;
+                margin: 0 !important;
               }
               *, *::before, *::after {
                 box-sizing: border-box !important;
@@ -764,23 +764,26 @@
                 print-color-adjust: exact !important;
               }
               html, body {
-                width: 72mm !important;
-                max-width: 72mm !important;
+                width: 100% !important;
+                min-width: 100% !important;
                 margin: 0 auto !important;
                 padding: 0 !important;
                 background: #ffffff !important;
                 overflow: hidden !important;
               }
               .receipt-wrapper {
-                width: 72mm !important;
-                max-width: 72mm !important;
+                width: 100% !important;
+                min-width: 100% !important;
                 margin: 0 auto !important;
                 padding: 0 !important;
-                display: block !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
               }
               .receipt-img {
-                width: 72mm !important;
-                max-width: 72mm !important;
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
                 height: auto !important;
                 display: block !important;
                 margin: 0 auto !important;
@@ -803,7 +806,7 @@
           hiddenPrintFrame.contentWindow.focus();
           hiddenPrintFrame.contentWindow.print();
           printBtnText.innerText = '인쇄 완료!';
-          showToast('72×72mm 영수증 인쇄가 시작되었습니다.');
+          showToast('영수증 인쇄가 시작되었습니다.');
         }, 300);
 
       } catch (err) {
