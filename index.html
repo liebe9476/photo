@@ -1205,22 +1205,23 @@
       };
       drawDecoDashes(168);
 
-      // 72x72mm 규격 사진 영역 (800px 캔버스 기준 610x610px 1:1, 테두리선 미표시)
-      const photoSize = 610;
-      const photoX = (tw - photoSize) / 2;
+      // 가로 75mm x 세로 78mm 규격 사진 영역 (800px 캔버스 기준 635x660px, 테두리선 없음)
+      const photoW = 635;
+      const photoH = 660;
+      const photoX = (tw - photoW) / 2;
       const photoY = 194;
 
       if (forPrint) {
-        const tuned = applyColorAndCustomTuning(capturedRawCanvas, photoSize, photoSize);
-        const dithered = applyZigzagStippleDithering(tuned, photoSize, photoSize);
-        targetCtx.drawImage(dithered, photoX, photoY, photoSize, photoSize);
+        const tuned = applyColorAndCustomTuning(capturedRawCanvas, photoW, photoH);
+        const dithered = applyZigzagStippleDithering(tuned, photoW, photoH);
+        targetCtx.drawImage(dithered, photoX, photoY, photoW, photoH);
       } else {
-        targetCtx.drawImage(capturedRawCanvas, photoX, photoY, photoSize, photoSize);
+        targetCtx.drawImage(capturedRawCanvas, photoX, photoY, photoW, photoH);
       }
 
-      // 사진 테두리선 제거 완료 (요청 사항 반영)
+      // 사진 테두리선 미표시 유지
 
-      const bottomDashY = photoY + photoSize + 30;
+      const bottomDashY = photoY + photoH + 24;
       drawDecoDashes(bottomDashY);
 
       // 날짜 및 감사 문구
