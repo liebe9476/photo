@@ -372,25 +372,27 @@
        ============================================================ */
     @page {
       size: 80mm auto;
-      margin: 0mm !important;
+      margin: 0 !important;
     }
 
     @media print {
-      * {
+      *, *::before, *::after {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        box-sizing: border-box !important;
         margin: 0 !important;
         padding: 0 !important;
       }
 
       html, body {
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        min-width: 100vw !important;
         height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
-        overflow: hidden !important;
+        overflow: visible !important;
       }
 
       body > *:not(#printOutputZone) {
@@ -403,9 +405,10 @@
       #printOutputZone {
         display: block !important;
         visibility: visible !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 auto !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        min-width: 100vw !important;
+        margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         page-break-inside: avoid !important;
@@ -413,13 +416,13 @@
       }
 
       #printOutputZone img {
-        /* TM Print Assistant 앱 및 모바일 브라우저 축소 방지: 용지 인쇄폭 100% 가득 채움 */
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 100% !important;
+        /* 안드로이드 A4 축소 방지: 용지 가로폭 100% 꽉 채움 */
+        width: 100vw !important;
+        max-width: 100vw !important;
+        min-width: 100vw !important;
         height: auto !important;
         display: block !important;
-        margin: 0 auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         image-rendering: pixelated !important;
         image-rendering: crisp-edges !important;
@@ -688,112 +691,112 @@
         const qrY = photoY + photoSize + 18;
         offscreenCtx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
       } catch (err) {
-        console.warn('QR 코드 렌더 실패, 대체 생성:', err);
-      }
-
-      return offscreenCanvas.toDataURL('image/png');
-    }
-
-    // QR 코드 생성 헬퍼 (태블릿 렌더링 지연 방지)
-    function generateQRCodeCanvas(text, size) {
-      return new Promise((resolve) => {
-        const holder = document.getElementById('qrHiddenHolder');
-        holder.innerHTML = '';
-        new QRCode(holder, {
-          text: text,
-          width: size,
-          height: size,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.M
-        });
-
-        // 태블릿 브라우저 타이밍 이슈 방지를 위해 100ms 확보
-        setTimeout(() => {
-          const qrCanvasEl = holder.querySelector('canvas');
-          const qrImgEl = holder.querySelector('img');
-          
-          if (qrCanvasEl) {
-            resolve(qrCanvasEl);
-          } else if (qrImgEl && qrImgEl.src) {
-            const tempC = document.createElement('canvas');
-            tempC.width = size;
-            tempC.height = size;
-            const tctx = tempC.getContext('2d');
-            tctx.drawImage(qrImgEl, 0, 0, size, size);
-            resolve(tempC);
-          } else {
-            const fallback = document.createElement('canvas');
-            fallback.width = size;
-            fallback.height = size;
-            resolve(fallback);
-          }
-        }, 100);
-      });
-    }
-
-    // 4. 촬영 실행
-    async function triggerPhotoShoot() {
-      shootButton.disabled = true;
-
-      countdownBox.style.display = 'flex';
-      for (let c = 3; c >= 1; c--) {
-        countdownNum.innerText = c;
-        await sleep(1000);
-      }
-      countdownBox.style.display = 'none';
-
-      flashOverlay.classList.remove('flash-anim');
-      void flashOverlay.offsetWidth;
-      flashOverlay.classList.add('flash-anim');
-
-      const vw = webcamView.videoWidth || 1280;
-      const vh = webcamView.videoHeight || 720;
-      const cropSize = Math.min(vw, vh);
-      const cropX = (vw - cropSize) / 2;
-      const cropY = (vh - cropSize) / 2;
-
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 800;
-      tempCanvas.height = 800;
-      const tCtx = tempCanvas.getContext('2d');
-      tCtx.imageSmoothingEnabled = true;
-      tCtx.imageSmoothingQuality = 'high';
-      tCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, tempCanvas.width, tempCanvas.height);
-
-      capturedRawCanvas = tempCanvas;
-
-      // 앳킨슨 디더링 영수증 완성본 생성
-      finalReceiptDataUrl = await composeTargetReceipt();
-      previewImg.src = finalReceiptDataUrl;
-
-      resultModal.style.display = 'flex';
-      shootButton.disabled = false;
-    }
-
-    // 5. 영수증 인쇄
+    // 5. 영수증 인쇄 (태블릿 A4 축소 문제 완벽 해결: 전용 인쇄 팝업 & Full-width)
     async function printReceipt() {
       printBtn.disabled = true;
       printBtnText.innerText = '인쇄 전송 중...';
 
-      if (printTargetImg) {
-        printTargetImg.src = finalReceiptDataUrl;
-        if (printTargetImg.decode) {
-          try { await printTargetImg.decode(); } catch (e) {}
+      try {
+        // 태블릿 및 모바일 브라우저의 축소/A4 오인식을 방지하는 독립 인쇄 창 생성
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        
+        if (printWindow) {
+          printWindow.document.open();
+          printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+              <title>영수증 인쇄</title>
+              <style>
+                @page {
+                  size: 80mm auto;
+                  margin: 0 !important;
+                }
+                *, *::before, *::after {
+                  box-sizing: border-box !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  height: auto !important;
+                  background: #ffffff !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow: hidden !important;
+                }
+                .print-container {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  display: block !important;
+                }
+                .print-img {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 100% !important;
+                  height: auto !important;
+                  display: block !important;
+                  image-rendering: pixelated !important;
+                  image-rendering: crisp-edges !important;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="print-container">
+                <img class="print-img" src="${finalReceiptDataUrl}" alt="receipt" />
+              </div>
+              <script>
+                window.onload = function() {
+                  setTimeout(function() {
+                    window.focus();
+                    window.print();
+                    setTimeout(function() {
+                      window.close();
+                    }, 1000);
+                  }, 250);
+                };
+              <\/script>
+            </body>
+            </html>
+          `);
+          printWindow.document.close();
+          
+          printBtnText.innerText = '인쇄 완료!';
+          showToast('영수증 출력이 시작되었습니다.');
+        } else {
+          // 팝업이 차단된 경우 기존 인쇄 방식으로 안전하게 폴백
+          if (printTargetImg) {
+            printTargetImg.src = finalReceiptDataUrl;
+            if (printTargetImg.decode) {
+              try { await printTargetImg.decode(); } catch (e) {}
+            }
+          }
+          setTimeout(() => {
+            window.print();
+            printBtnText.innerText = '인쇄 완료!';
+            showToast('영수증 출력이 시작되었습니다.');
+          }, 300);
         }
+      } catch (err) {
+        console.warn('인쇄 창 생성 실패, 기본 인쇄로 진행:', err);
+        if (printTargetImg) {
+          printTargetImg.src = finalReceiptDataUrl;
+        }
+        window.print();
       }
 
       setTimeout(() => {
-        window.print();
-        printBtnText.innerText = '인쇄 완료!';
-        showToast('영수증 출력이 시작되었습니다.');
-
-        setTimeout(() => {
-          printBtn.disabled = false;
-          printBtnText.innerText = '영수증 인쇄하기';
-          closeModalAndResume();
-        }, 2200);
-      }, 300);
+        printBtn.disabled = false;
+        printBtnText.innerText = '영수증 인쇄하기';
+        closeModalAndResume();
+      }, 2500);
     }
 
     function closeModalAndResume() {
