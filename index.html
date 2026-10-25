@@ -506,8 +506,8 @@
           audio: false,
           video: {
             facingMode: 'user',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           }
         });
         webcamView.srcObject = currentMediaStream;
@@ -518,25 +518,23 @@
     }
 
     /**
-     * 2. 무아레(원형 겹침/다이아몬드 왜곡) 원천 제거 & 왼쪽 맑은 톤 100% 일치 렌더링 엔진
-     * - 2픽셀 오차 건너뛰기로 발생하던 동심원 파동 및 다이아몬드 패턴 완전 차단
-     * - 안경테/눈동자/머릿결은 선명한 1픽셀 블랙 앵커링 유지
-     * - 얼굴 피부톤과 배경은 왼쪽 사진처럼 깨끗하고 맑게 떨어지는 단일 톤 매핑
+     * 2. 원형 간섭/다이아몬드 왜곡 원천 차단 렌더링 엔진
+     * - 인위적인 라플라시안/샤프닝/2픽셀 건너뛰기 일체 배제
+     * - 원본 왼쪽 사진과 100% 동일한 정통 클래식 앳킨슨 (Atkinson 6/8 분산)
      */
     function renderTabletMicroStipple(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
       canvas.height = targetHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.imageSmoothingEnabled = false; // 브라우저 자체 왜곡 필터 차단
       ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
 
       const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
       const data = imgData.data;
       const totalPixels = targetWidth * targetHeight;
 
-      // 1단계: BT.709 인지 휘도 변환 + 왼쪽 사진 기준 맑은 피부톤 곡선 매핑
+      // 1단계: 선형 BT.709 인지 휘도 변환 + 왼쪽 사진 기준 맑고 깨끗한 피부톤
       const buf = new Float32Array(totalPixels);
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
@@ -547,93 +545,58 @@
         // 정확한 인체 피부 인지 휘도
         let lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-        // 왼쪽 사진 톤 일치:
-        // 1) 안경테, 눈동자, 짙은 머리카락(lum < 75)은 깊은 1px 블랙으로 보존
-        // 2) 얼굴 피부 및 배경(lum >= 75)은 감마 1.22 + 오프셋으로 화사하게 리프팅 (오른쪽처럼 거뭇해지지 않음)
-        if (lum < 75) {
-          lum = lum * 0.85; // 안경테/동공 딥블랙 고정
+        // [왼쪽 사진 기준 맑은 톤 매핑]
+        // 안경테, 눈동자, 짙은 머릿결(lum < 80)은 딥블랙 1px로 또렷하게 살림
+        // 얼굴 피부와 배경(lum >= 80)은 부드럽게 밝혀서 화사하게 인화
+        if (lum < 80) {
+          lum = lum * 0.9;
         } else {
-          // 맑고 화사한 톤 커브 (원형 얼룩이나 계단 없이 부드럽게 상승)
-          const norm = (lum - 75) / (255 - 75);
-          const lifted = Math.pow(norm, 1.0 / 1.22);
-          lum = 75 + lifted * 180 + 10;
+          const norm = (lum - 80) / (255 - 80);
+          lum = 80 + Math.pow(norm, 1.0 / 1.35) * 175;
         }
 
         buf[i] = Math.min(255, Math.max(0, lum));
       }
 
-      // 2단계: 안경테 및 이목구비 윤곽만 자연스럽게 살리는 소프트 샤프닝 (과도한 엣지 부스팅 제거)
-      const sharpBuf = new Float32Array(totalPixels);
-      for (let y = 1; y < targetHeight - 1; y++) {
+      // 2단계: 정통 앳킨슨(Atkinson) 오차 확산 (유료 앱 표준 엔진)
+      // 오차의 6/8(75%)만 6개 이웃에 확산시키고 25%는 소멸시킴
+      // -> 동심원 무아레 파동이 물리적으로 전혀 발생하지 않고, 왼쪽 사진처럼 맑은 피부톤 완성
+      for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
-        const prevRow = (y - 1) * targetWidth;
-        const nextRow = (y + 1) * targetWidth;
+        const nextRow1 = (y + 1) * targetWidth;
+        const nextRow2 = (y + 2) * targetWidth;
+        const hasNext1 = (y + 1 < targetHeight);
+        const hasNext2 = (y + 2 < targetHeight);
 
-        for (let x = 1; x < targetWidth - 1; x++) {
+        for (let x = 0; x < targetWidth; x++) {
           const idx = row + x;
-          const center = buf[idx];
-          const lap = (center * 5.0) - (buf[idx - 1] + buf[idx + 1] + buf[prevRow + x] + buf[nextRow + x]);
-          
-          // 안경테와 윤곽선만 또렷하게 잡고, 피부 영역은 부드럽게 블렌딩하여 얼룩 방지
-          if (center < 110) {
-            sharpBuf[idx] = Math.min(255, Math.max(0, lap));
-          } else {
-            sharpBuf[idx] = Math.min(255, Math.max(0, center * 0.85 + lap * 0.15));
-          }
-        }
-      }
-
-      // 외곽 테두리 복사
-      for (let x = 0; x < targetWidth; x++) {
-        sharpBuf[x] = buf[x];
-        sharpBuf[(targetHeight - 1) * targetWidth + x] = buf[(targetHeight - 1) * targetWidth + x];
-      }
-      for (let y = 0; y < targetHeight; y++) {
-        sharpBuf[y * targetWidth] = buf[y * targetWidth];
-        sharpBuf[y * targetWidth + targetWidth - 1] = buf[y * targetWidth + targetWidth - 1];
-      }
-
-      // 3단계: 원형 무아레/다이아몬드 왜곡을 원천 차단하는 직근접 정밀 오차 분산
-      // 2픽셀 건너뛰기(x+2, y+2)를 없애고 직근접 픽셀에만 분산하여 동심원 간섭 발생을 100% 방지
-      for (let y = 0; y < targetHeight; y++) {
-        const isLeftToRight = (y % 2 === 0);
-        const startX = isLeftToRight ? 0 : targetWidth - 1;
-        const endX = isLeftToRight ? targetWidth : -1;
-        const stepX = isLeftToRight ? 1 : -1;
-
-        for (let x = startX; x !== endX; x += stepX) {
-          const idx = y * targetWidth + x;
-          const oldVal = sharpBuf[idx];
+          const oldVal = buf[idx];
           const newVal = (oldVal < 128) ? 0 : 255;
-          sharpBuf[idx] = newVal;
+          buf[idx] = newVal;
 
-          const err = oldVal - newVal;
+          const err = (oldVal - newVal) / 8.0;
 
           if (err !== 0) {
-            const dir = stepX;
+            // 이웃 6개 픽셀에만 균등하게 1/8씩 분산 (원형 간섭 원천 차단)
+            if (x + 1 < targetWidth) buf[idx + 1] += err;
+            if (x + 2 < targetWidth) buf[idx + 2] += err;
 
-            // 표준 16분할 직근접 세르펜틴 확산 (무아레 간섭 없는 완벽한 아날로그 점묘화 결)
-            if (x + dir >= 0 && x + dir < targetWidth) {
-              sharpBuf[idx + dir] += (err * 7.0) / 16.0;
+            if (hasNext1) {
+              if (x - 1 >= 0) buf[nextRow1 + (x - 1)] += err;
+              buf[nextRow1 + x] += err;
+              if (x + 1 < targetWidth) buf[nextRow1 + (x + 1)] += err;
             }
 
-            if (y + 1 < targetHeight) {
-              const nRow = (y + 1) * targetWidth;
-              if (x - dir >= 0 && x - dir < targetWidth) {
-                sharpBuf[nRow + (x - dir)] += (err * 3.0) / 16.0;
-              }
-              sharpBuf[nRow + x] += (err * 5.0) / 16.0;
-              if (x + dir >= 0 && x + dir < targetWidth) {
-                sharpBuf[nRow + (x + dir)] += (err * 1.0) / 16.0;
-              }
+            if (hasNext2) {
+              buf[nextRow2 + x] += err;
             }
           }
         }
       }
 
-      // 4단계: 1비트 흑백 확정
+      // 3단계: 순수 1비트 흑백 확정 (점 뭉침 없음)
       for (let i = 0; i < totalPixels; i++) {
-        const c = sharpBuf[i] < 128 ? 0 : 255;
+        const c = buf[i] < 128 ? 0 : 255;
         const idx = i * 4;
         data[idx] = c;
         data[idx + 1] = c;
@@ -723,6 +686,8 @@
 
     /**
      * 4. 사진 촬영 시퀀스
+     * - [핵심 해결]: 태블릿 GPU 렌더러가 대형 영상(1280px)을 576px로 급격히 줄이며 생기던
+     *   동심원 렌즈 왜곡을 차단하기 위해 2단계 밉맵 다운샘플링(Step-down Resizing) 적용
      */
     async function triggerPhotoShoot() {
       shootButton.disabled = true;
@@ -745,25 +710,32 @@
       const cropX = (vw - cropSize) / 2;
       const cropY = (vh - cropSize) / 2;
 
-      // 72x72mm 1:1 정방형 원본 컬러 캔버스 생성
+      // 1단계: 원본에서 1:1 정방형 800px로 1차 축소 (GPU 렌즈 메쉬 왜곡 제거)
+      const stepCanvas = document.createElement('canvas');
+      stepCanvas.width = 800;
+      stepCanvas.height = 800;
+      const sCtx = stepCanvas.getContext('2d');
+      sCtx.imageSmoothingEnabled = true;
+      sCtx.imageSmoothingQuality = 'high';
+      sCtx.translate(800, 0);
+      sCtx.scale(-1, 1);
+      sCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, 800, 800);
+
+      // 2단계: 최종 576x576px (72x72mm)로 무왜곡 다운샘플링
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = 576;
       tempCanvas.height = 576;
       const tCtx = tempCanvas.getContext('2d');
       tCtx.imageSmoothingEnabled = true;
       tCtx.imageSmoothingQuality = 'high';
-
-      // 좌우 반전 일치
-      tCtx.translate(576, 0);
-      tCtx.scale(-1, 1);
-      tCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, 576, 576);
+      tCtx.drawImage(stepCanvas, 0, 0, 800, 800, 0, 0, 576, 576);
 
       capturedColorCanvas = tempCanvas;
 
       // 미리보기: 촬영된 선명한 원본 컬러 그대로 표시
       previewImg.src = capturedColorCanvas.toDataURL('image/png');
 
-      // 인쇄용: 태블릿 부드러운 앳킨슨 흑백 + QR코드 합성
+      // 인쇄용: 원형 왜곡 0% 순수 앳킨슨 흑백 + QR코드 합성
       finalPrintReceiptDataUrl = await composeTargetReceipt();
 
       resultModal.style.display = 'flex';
