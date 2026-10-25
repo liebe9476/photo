@@ -1205,8 +1205,8 @@
       };
       drawDecoDashes(168);
 
-      // 1:1 사진 영역 (670x670px)
-      const photoSize = 670;
+      // 72x72mm 규격 사진 영역 (800px 캔버스 기준 610x610px 1:1, 테두리선 미표시)
+      const photoSize = 610;
       const photoX = (tw - photoSize) / 2;
       const photoY = 194;
 
@@ -1218,9 +1218,7 @@
         targetCtx.drawImage(capturedRawCanvas, photoX, photoY, photoSize, photoSize);
       }
 
-      targetCtx.strokeStyle = '#000000';
-      targetCtx.lineWidth = 3;
-      targetCtx.strokeRect(photoX, photoY, photoSize, photoSize);
+      // 사진 테두리선 제거 완료 (요청 사항 반영)
 
       const bottomDashY = photoY + photoSize + 30;
       drawDecoDashes(bottomDashY);
