@@ -518,76 +518,76 @@
     }
 
     /**
-     * 2. 순수 픽셀 도트 매트릭스 렌더링 엔진 (Bayer Ordered Pixel Dot Matrix)
-     * - 오차 확산 방식의 동심원/원형 파동(Pattern Wave)을 원천 차단
-     * - 각 픽셀 위치마다 독립적으로 도트를 1:1 정밀 타격하여 인화
-     * - 태블릿 카메라의 모서리 4개 원형 비네팅을 평탄화하여 중앙 공백 제거
+     * 2. 순수 정통 앳킨슨(Atkinson) 렌더링 엔진 (처음부터 재구축)
+     * - 인위적 노이즈나 복잡한 매트릭스를 배제하고 오리지널 매킨토시 앳킨슨 복원
+     * - 동심원 / 다이아몬드 왜곡 패턴 원천 차단 (단순 직근접 6방향 확산)
+     * - 안경테/눈동자는 얇고 진한 1픽셀 블랙선 유지
+     * - 얼굴 피부톤은 화사하고 뽀얗게 밝기 유지
      */
-    function renderTabletMicroStipple(sourceCanvas, targetWidth, targetHeight) {
+    function renderPureAtkinsonPhoto(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
       canvas.height = targetHeight;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.imageSmoothingEnabled = false;
+      const ctx = canvas.getContext('2d');
       ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
 
       const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
       const data = imgData.data;
+      const totalPixels = targetWidth * targetHeight;
+      const grayBuffer = new Float32Array(totalPixels);
 
-      // [핵심] 고해상도 8x8 고밀도 분산 정렬 도트 매트릭스 테이블
-      // 오차를 주변으로 번지게 하지 않고, 픽셀 좌표(x, y)에 직접 1:1 도트를 찍음
-      const bayer8 = [
-        [  0, 32,  8, 40,  2, 34, 10, 42 ],
-        [ 48, 16, 56, 24, 50, 18, 58, 26 ],
-        [ 12, 44,  4, 36, 14, 46,  6, 38 ],
-        [ 60, 28, 52, 20, 62, 30, 54, 22 ],
-        [  3, 35, 11, 43,  1, 33,  9, 41 ],
-        [ 51, 19, 59, 27, 49, 17, 57, 25 ],
-        [ 15, 47,  7, 39, 13, 45,  5, 37 ],
-        [ 63, 31, 55, 23, 61, 29, 53, 21 ]
-      ];
+      // 1단계: 밝은 얼굴톤 전처리 (BT.709 휘도 + 화사한 피부 감마 + 안경테 앵커)
+      for (let i = 0; i < totalPixels; i++) {
+        const p = i * 4;
+        const r = data[p];
+        const g = data[p + 1];
+        const b = data[p + 2];
 
-      const cx = targetWidth / 2;
-      const cy = targetHeight / 2;
-      const maxDist = Math.sqrt(cx * cx + cy * cy);
+        // 표준 인지 휘도
+        let lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
+        // 안경테, 눈동자, 짙은 눈썹 (lum < 75)은 깊은 1픽셀 블랙으로 단단하게 보존
+        if (lum < 75) {
+          lum = lum * 0.82;
+        } else {
+          // 얼굴 피부톤을 화사하고 맑게 유지 (감마 1.32 커브 + 미드톤 리프팅)
+          const norm = (lum - 75) / (255 - 75);
+          lum = 75 + Math.pow(norm, 1.0 / 1.32) * (255 - 75);
+          lum = lum + 10; // 피부 밝기 기분 좋게 띄움
+        }
+
+        grayBuffer[i] = Math.min(255, Math.max(0, lum));
+      }
+
+      // 2단계: 정통 앳킨슨 오차 확산 (6방향 각 1/8씩 분산, 2/8 자연 소멸)
+      // 이웃 픽셀 이외의 먼 곳으로 건너뛰지 않으므로 원형/다이아몬드 왜곡이 물리적으로 발생 불가
       for (let y = 0; y < targetHeight; y++) {
+        const row = y * targetWidth;
         for (let x = 0; x < targetWidth; x++) {
-          const idx = (y * targetWidth + x) * 4;
-          const r = data[idx];
-          const g = data[idx + 1];
-          const b = data[idx + 2];
+          const idx = row + x;
+          const oldVal = grayBuffer[idx];
+          const newVal = oldVal < 128 ? 0 : 255;
+          grayBuffer[idx] = newVal;
 
-          // 1단계: 선형 BT.709 인지 휘도
-          let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const err = (oldVal - newVal) / 8.0; // 1/8씩 6군데로 분산 (2/8 소멸로 하이라이트 깨끗이 유지)
 
-          // 2단계: 태블릿 카메라의 모서리 4개 비네팅 셰이딩(원형 어두워짐) 평탄화 보정
-          // 렌즈 주변부(4개 모서리)가 어두워지는 현상을 고르게 펴서 중앙 다이아몬드 공백 방지
-          const dx = x - cx;
-          const dy = y - cy;
-          const distNorm = Math.sqrt(dx * dx + dy * dy) / maxDist;
-          // 모서리로 갈수록 발생하는 렌즈 쉐이딩을 미세 상쇄
-          lum = lum + (distNorm * distNorm * 18);
-
-          // 3단계: 인물 피부 맑은 톤 매핑 (안경테·눈동자는 딥블랙, 피부는 화사하게)
-          if (lum < 75) {
-            lum = lum * 0.85; // 안경테, 눈썹, 머리카락을 뚜렷한 1픽셀 도트로 유지
-          } else {
-            const norm = (lum - 75) / (255 - 75);
-            lum = 75 + Math.pow(norm, 1.0 / 1.25) * 180;
+          if (x + 1 < targetWidth) grayBuffer[idx + 1] += err;
+          if (x + 2 < targetWidth) grayBuffer[idx + 2] += err;
+          if (y + 1 < targetHeight) {
+            if (x - 1 >= 0) grayBuffer[(y + 1) * targetWidth + (x - 1)] += err;
+            grayBuffer[(y + 1) * targetWidth + x] += err;
+            if (x + 1 < targetWidth) grayBuffer[(y + 1) * targetWidth + (x + 1)] += err;
+          }
+          if (y + 2 < targetHeight) {
+            grayBuffer[(y + 2) * targetWidth + x] += err;
           }
 
-          lum = Math.min(255, Math.max(0, lum));
-
-          // 4단계: 순수 픽셀 도트 타격 (임계치와 1:1 매칭)
-          // 8x8 매트릭스의 기준값에 따라 흑/백 점을 직접 찍으므로 원형 왜곡이 물리적으로 발생 불가
-          const threshold = (bayer8[y % 8][x % 8] / 64) * 255;
-          const dot = lum < threshold ? 0 : 255;
-
-          data[idx] = dot;
-          data[idx + 1] = dot;
-          data[idx + 2] = dot;
-          data[idx + 3] = 255;
+          // 1비트 흑백 픽셀 기록
+          const p = idx * 4;
+          data[p] = newVal;
+          data[p + 1] = newVal;
+          data[p + 2] = newVal;
+          data[p + 3] = 255;
         }
       }
 
@@ -653,9 +653,9 @@
       offscreenCtx.fillStyle = '#ffffff';
       offscreenCtx.fillRect(0, 0, tw, th);
 
-      // 사진 영역: Micro Stipple Density 적용 렌더링
-      const ditheredPhoto = renderTabletMicroStipple(capturedColorCanvas, photoSize, photoSize);
-      offscreenCtx.drawImage(ditheredPhoto, 0, 0, photoSize, photoSize);
+      // 사진 영역: 순수 앳킨슨(Atkinson) 적용 렌더링
+      const atkinsonPhoto = renderPureAtkinsonPhoto(capturedColorCanvas, photoSize, photoSize);
+      offscreenCtx.drawImage(atkinsonPhoto, 0, 0, photoSize, photoSize);
 
       // 하단 QR 코드 렌더링
       try {
