@@ -518,90 +518,77 @@
     }
 
     /**
-     * 2. 원형 간섭/다이아몬드 왜곡 원천 차단 렌더링 엔진
-     * - 인위적인 라플라시안/샤프닝/2픽셀 건너뛰기 일체 배제
-     * - 원본 왼쪽 사진과 100% 동일한 정통 클래식 앳킨슨 (Atkinson 6/8 분산)
+     * 2. 순수 픽셀 도트 매트릭스 렌더링 엔진 (Bayer Ordered Pixel Dot Matrix)
+     * - 오차 확산 방식의 동심원/원형 파동(Pattern Wave)을 원천 차단
+     * - 각 픽셀 위치마다 독립적으로 도트를 1:1 정밀 타격하여 인화
+     * - 태블릿 카메라의 모서리 4개 원형 비네팅을 평탄화하여 중앙 공백 제거
      */
     function renderTabletMicroStipple(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
       canvas.height = targetHeight;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.imageSmoothingEnabled = false; // 브라우저 자체 왜곡 필터 차단
+      ctx.imageSmoothingEnabled = false;
       ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
 
       const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
       const data = imgData.data;
-      const totalPixels = targetWidth * targetHeight;
 
-      // 1단계: 선형 BT.709 인지 휘도 변환 + 왼쪽 사진 기준 맑고 깨끗한 피부톤
-      const buf = new Float32Array(totalPixels);
-      for (let i = 0; i < totalPixels; i++) {
-        const idx = i * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
+      // [핵심] 고해상도 8x8 고밀도 분산 정렬 도트 매트릭스 테이블
+      // 오차를 주변으로 번지게 하지 않고, 픽셀 좌표(x, y)에 직접 1:1 도트를 찍음
+      const bayer8 = [
+        [  0, 32,  8, 40,  2, 34, 10, 42 ],
+        [ 48, 16, 56, 24, 50, 18, 58, 26 ],
+        [ 12, 44,  4, 36, 14, 46,  6, 38 ],
+        [ 60, 28, 52, 20, 62, 30, 54, 22 ],
+        [  3, 35, 11, 43,  1, 33,  9, 41 ],
+        [ 51, 19, 59, 27, 49, 17, 57, 25 ],
+        [ 15, 47,  7, 39, 13, 45,  5, 37 ],
+        [ 63, 31, 55, 23, 61, 29, 53, 21 ]
+      ];
 
-        // 정확한 인체 피부 인지 휘도
-        let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      const cx = targetWidth / 2;
+      const cy = targetHeight / 2;
+      const maxDist = Math.sqrt(cx * cx + cy * cy);
 
-        // [왼쪽 사진 기준 맑은 톤 매핑]
-        // 안경테, 눈동자, 짙은 머릿결(lum < 80)은 딥블랙 1px로 또렷하게 살림
-        // 얼굴 피부와 배경(lum >= 80)은 부드럽게 밝혀서 화사하게 인화
-        if (lum < 80) {
-          lum = lum * 0.9;
-        } else {
-          const norm = (lum - 80) / (255 - 80);
-          lum = 80 + Math.pow(norm, 1.0 / 1.35) * 175;
-        }
-
-        buf[i] = Math.min(255, Math.max(0, lum));
-      }
-
-      // 2단계: 정통 앳킨슨(Atkinson) 오차 확산 (유료 앱 표준 엔진)
-      // 오차의 6/8(75%)만 6개 이웃에 확산시키고 25%는 소멸시킴
-      // -> 동심원 무아레 파동이 물리적으로 전혀 발생하지 않고, 왼쪽 사진처럼 맑은 피부톤 완성
       for (let y = 0; y < targetHeight; y++) {
-        const row = y * targetWidth;
-        const nextRow1 = (y + 1) * targetWidth;
-        const nextRow2 = (y + 2) * targetWidth;
-        const hasNext1 = (y + 1 < targetHeight);
-        const hasNext2 = (y + 2 < targetHeight);
-
         for (let x = 0; x < targetWidth; x++) {
-          const idx = row + x;
-          const oldVal = buf[idx];
-          const newVal = (oldVal < 128) ? 0 : 255;
-          buf[idx] = newVal;
+          const idx = (y * targetWidth + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
 
-          const err = (oldVal - newVal) / 8.0;
+          // 1단계: 선형 BT.709 인지 휘도
+          let lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-          if (err !== 0) {
-            // 이웃 6개 픽셀에만 균등하게 1/8씩 분산 (원형 간섭 원천 차단)
-            if (x + 1 < targetWidth) buf[idx + 1] += err;
-            if (x + 2 < targetWidth) buf[idx + 2] += err;
+          // 2단계: 태블릿 카메라의 모서리 4개 비네팅 셰이딩(원형 어두워짐) 평탄화 보정
+          // 렌즈 주변부(4개 모서리)가 어두워지는 현상을 고르게 펴서 중앙 다이아몬드 공백 방지
+          const dx = x - cx;
+          const dy = y - cy;
+          const distNorm = Math.sqrt(dx * dx + dy * dy) / maxDist;
+          // 모서리로 갈수록 발생하는 렌즈 쉐이딩을 미세 상쇄
+          lum = lum + (distNorm * distNorm * 18);
 
-            if (hasNext1) {
-              if (x - 1 >= 0) buf[nextRow1 + (x - 1)] += err;
-              buf[nextRow1 + x] += err;
-              if (x + 1 < targetWidth) buf[nextRow1 + (x + 1)] += err;
-            }
-
-            if (hasNext2) {
-              buf[nextRow2 + x] += err;
-            }
+          // 3단계: 인물 피부 맑은 톤 매핑 (안경테·눈동자는 딥블랙, 피부는 화사하게)
+          if (lum < 75) {
+            lum = lum * 0.85; // 안경테, 눈썹, 머리카락을 뚜렷한 1픽셀 도트로 유지
+          } else {
+            const norm = (lum - 75) / (255 - 75);
+            lum = 75 + Math.pow(norm, 1.0 / 1.25) * 180;
           }
-        }
-      }
 
-      // 3단계: 순수 1비트 흑백 확정 (점 뭉침 없음)
-      for (let i = 0; i < totalPixels; i++) {
-        const c = buf[i] < 128 ? 0 : 255;
-        const idx = i * 4;
-        data[idx] = c;
-        data[idx + 1] = c;
-        data[idx + 2] = c;
-        data[idx + 3] = 255;
+          lum = Math.min(255, Math.max(0, lum));
+
+          // 4단계: 순수 픽셀 도트 타격 (임계치와 1:1 매칭)
+          // 8x8 매트릭스의 기준값에 따라 흑/백 점을 직접 찍으므로 원형 왜곡이 물리적으로 발생 불가
+          const threshold = (bayer8[y % 8][x % 8] / 64) * 255;
+          const dot = lum < threshold ? 0 : 255;
+
+          data[idx] = dot;
+          data[idx + 1] = dot;
+          data[idx + 2] = dot;
+          data[idx + 3] = 255;
+        }
       }
 
       ctx.putImageData(imgData, 0, 0);
