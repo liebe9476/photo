@@ -50,6 +50,94 @@
       inset: 0;
       mix-blend-mode: multiply;
     }
+
+    /* ==============================================================
+       ★ 시스템 브라우저 인쇄 전용 CSS (영수증 외 전체 UI 완벽 제거) ★
+       ============================================================== */
+    @media print {
+      @page {
+        size: 80mm auto;
+        margin: 0mm !important;
+      }
+      html, body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 80mm !important;
+        min-width: 80mm !important;
+        height: auto !important;
+      }
+      /* 헤더, 카메라, 컨트롤 패널, 모달, 토스트 등 일체 숨김 */
+      header,
+      main > div:first-child,
+      #connectionBadge,
+      button,
+      input,
+      select,
+      #camControlCard,
+      #troubleModal,
+      #toast,
+      .no-print {
+        display: none !important;
+      }
+      /* 메인 레이아웃 초기화 */
+      main {
+        display: block !important;
+        width: 80mm !important;
+        max-width: 80mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .lg\:col-span-5 {
+        width: 80mm !important;
+        max-width: 80mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: static !important;
+      }
+      .lg\:col-span-5 > div:first-child {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+      }
+      .lg\:col-span-5 > div:first-child > div:first-child,
+      .lg\:col-span-5 > div:first-child > .mt-5,
+      .lg\:col-span-5 > div:last-child {
+        display: none !important; /* 미리보기 제목 & 인쇄 버튼 숨김 */
+      }
+      .receipt-container-wrap {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      /* 순수 영수증 본체만 정확히 72mm 폭(80mm 용지 기준)으로 중앙 출력 */
+      .receipt-paper {
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        border: none !important;
+        width: 72mm !important;
+        margin: 0 auto !important;
+        padding: 4mm 2mm !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .receipt-zigzag-bottom {
+        display: none !important;
+      }
+      #ditherCanvas {
+        width: 68mm !important;
+        height: auto !important;
+        display: block !important;
+        margin: 0 auto !important;
+        filter: contrast(120%) grayscale(100%);
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-black">
@@ -345,8 +433,8 @@
         </div>
 
         <!-- 영수증 종이 1:1 시뮬레이터 -->
-        <div class="flex justify-center bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-800 max-h-[640px] overflow-y-auto">
-          <div class="receipt-paper text-slate-900 w-[280px] p-4 rounded-t-sm shadow-2xl transition-all">
+        <div class="receipt-container-wrap flex justify-center bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-800 max-h-[640px] overflow-y-auto">
+          <div id="receiptPrintArea" class="receipt-paper text-slate-900 w-[280px] p-4 rounded-t-sm shadow-2xl transition-all">
             
             <!-- 상단 헤더 -->
             <div class="text-center font-mono-receipt border-b-2 border-dashed border-slate-800 pb-2 mb-2">
@@ -397,7 +485,7 @@
 
           <button id="btnAirPrint" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-semibold text-slate-300 flex items-center justify-center space-x-1.5 transition">
             <i class="ph-bold ph-browsers"></i>
-            <span>시스템 브라우저 인쇄 다이얼로그 열기</span>
+            <span>시스템 브라우저 인쇄 다이얼로그 열기 (영수증만 인쇄)</span>
           </button>
         </div>
 
@@ -437,26 +525,27 @@
 
       <div class="space-y-3 text-xs text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
         <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-          <p class="font-bold text-emerald-400 mb-1">1. 블루투스(BLE) 검색이 안 될 때</p>
-          <ul class="list-disc list-inside space-y-1 text-slate-400">
-            <li>안드로이드: <b>[설정] > [위치(GPS)]</b>가 켜져 있어야 BLE 장치 검색이 허용됩니다.</li>
-            <li>다른 폰이나 포스기에 이미 블루투스가 물려있으면 검색되지 않습니다. (1:1 접속 해제 필요)</li>
-            <li>프린터 전원을 껐다 켠 후 피드(FEED) 버튼을 길게 눌러 Bluetooth 페어링 대기 상태인지 확인하세요.</li>
+          <p class="font-bold text-emerald-400 mb-1">1. 블루투스(BLE) 검색 목록에 프린터가 안 뜰 때 (필독)</p>
+          <ul class="list-disc list-inside space-y-1.5 text-slate-400">
+            <li><b>위치(GPS) 켜기 (안드로이드 필수)</b>: 안드로이드 보안 정책상 [설정] &gt; [위치]가 켜져 있어야 주변 BLE 블루투스 장치 스캔이 허용됩니다.</li>
+            <li><b>1:1 페어링 점유 해제</b>: TM-m30III는 동시에 1대의 기기만 연결 가능합니다. 스마트폰, 다른 태블릿, POS 기기에 이미 블루투스로 연결되어 있다면 해당 기기에서 블루투스를 끄거나 등록을 해제하세요.</li>
+            <li><b>OS 설정 페어링 해제</b>: 태블릿 자체 [설정] &gt; [블루투스] 목록에 이미 기기가 등록되어 있으면 브라우저 스캔 목록에 안 나타날 수 있습니다. '등록 해제(이 기기 지우기)' 후 웹앱에서 직접 검색하세요.</li>
+            <li><b>프린터 재부팅 및 페어링 대기</b>: 프린터 전원을 껐다 켜고, 파란색 블루투스 LED가 깜빡이는지 확인하세요.</li>
           </ul>
         </div>
 
         <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
           <p class="font-bold text-cyan-400 mb-1">2. USB 케이블 연결 시 "장치를 찾을 수 없음" 또는 거부될 때</p>
           <ul class="list-disc list-inside space-y-1 text-slate-400">
-            <li>OTG 젠더가 정상 지원되는지 확인하세요 (데이터 통신 가능 케이블 필수).</li>
+            <li>충전 전용이 아닌 <b>데이터 전송 가능 USB 케이블</b>을 사용하세요.</li>
             <li>팝업이 뜨면 <b>[Epson TM-m30III]</b>를 선택 후 '연결'을 누르세요.</li>
             <li>WebUSB 접근이 차단된 경우, 본 앱은 Web Serial 가상 포트로 자동 전환하여 재시도합니다.</li>
           </ul>
         </div>
 
         <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-          <p class="font-bold text-amber-400 mb-1">3. 아이패드(iPad) Safari 환경인 경우</p>
-          <p class="text-slate-400">Safari 브라우저는 Apple 정책상 Web Bluetooth를 차단합니다. <b>[Bluefy]</b> 앱을 통해 접속하시거나, 하단의 <b>[시스템 브라우저 인쇄]</b>를 누르면 즉시 AirPrint로 고화질 출력이 가능합니다.</p>
+          <p class="font-bold text-amber-400 mb-1">3. 아이패드(iPad) 환경인 경우</p>
+          <p class="text-slate-400">Safari 브라우저는 Apple 정책상 Web Bluetooth를 차단합니다. <b>[Bluefy]</b> 브라우저 앱을 사용하시면 블루투스 직결이 가능하며, Safari에서는 <b>[시스템 브라우저 인쇄 다이얼로그 열기]</b>를 누르면 페어링된 TM-m30III로 즉시 사진 영수증만 인쇄됩니다.</p>
         </div>
       </div>
 
@@ -471,12 +560,16 @@
     const PRINTER_WIDTH = 576; // 80mm 규격 (203 DPI, 576 도트)
     const EPSON_USB_VENDOR_ID = 0x04b8;
 
-    // TM-m30 계열 대표 서비스 UUID 목록
+    // TM-m30III 및 Epson POS 프린터에 사용되는 표준/커스텀 BLE 서비스 UUID 모음
     const EPSON_BLE_SERVICES = [
-      'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-      '000018f0-0000-1000-8000-00805f9b34fb',
-      '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-      '0000ff00-0000-1000-8000-00805f9b34fb'
+      'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Epson 표준 TM-m30 서비스
+      '000018f0-0000-1000-8000-00805f9b34fb', // Standard Print Service
+      '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip/ISSC Transparent UART
+      '0000ff00-0000-1000-8000-00805f9b34fb', // Custom UART Service
+      '0000ffe0-0000-1000-8000-00805f9b34fb', // Standard Serial BLE
+      '00001101-0000-1000-8000-00805f9b34fb', // Serial Port Profile (SPP)
+      'generic_access',
+      'generic_attribute'
     ];
 
     // 라이브 필터 8종 프리셋 정의
@@ -1345,7 +1438,7 @@
 
     // --- 7. 개선된 블루투스 & USB 연결 엔진 (실패 원인 전면 해소) ---
 
-    // 1) 블루투스 연결 (Epson 전용 필터 실패 시 acceptAllDevices 자동 폴백)
+    // 1) 블루투스 연결: 무조건 모든 기기 팝업 노출 (acceptAllDevices) 후 최적 서비스 매핑
     btnConnectBT.addEventListener('click', async () => {
       if (!navigator.bluetooth) {
         showToast('Web Bluetooth를 지원하지 않는 브라우저입니다.', 'ph-warning');
@@ -1354,38 +1447,45 @@
       }
 
       try {
-        showToast('TM-m30III 블루투스 검색 중...', 'ph-magnifying-glass');
+        showToast('블루투스 장치를 검색하는 중입니다...', 'ph-magnifying-glass');
         connStatusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping";
-        connStatusText.textContent = "BLE 검색...";
+        connStatusText.textContent = "장치 선택 창 대기...";
 
+        // ★ 핵심 변경: 이름/필터 조건으로 인해 목록이 가려지는 문제를 막기 위해 acceptAllDevices를 1순위로 호출합니다.
         let device = null;
         try {
-          // 1차 시도: Epson 접두사 필터링
-          device = await navigator.bluetooth.requestDevice({
-            filters: [
-              { namePrefix: 'TM-m30' },
-              { namePrefix: 'TM-' },
-              { namePrefix: 'EPSON' }
-            ],
-            optionalServices: [...EPSON_BLE_SERVICES, 'generic_access']
-          });
-        } catch (filterErr) {
-          if (filterErr.name === 'NotFoundError') throw filterErr;
-          // 2차 시도: 전체 장치 허용 폴백
           device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: [...EPSON_BLE_SERVICES, 'generic_access']
+            optionalServices: EPSON_BLE_SERVICES
+          });
+        } catch (reqErr) {
+          // 보안 정책 등으로 실패한 경우 필터 기반으로 대체 시도
+          if (reqErr.name === 'NotFoundError') {
+            throw reqErr; // 사용자가 취소함
+          }
+          console.warn('acceptAllDevices 실패, 이름 필터 모드로 재시도:', reqErr);
+          device = await navigator.bluetooth.requestDevice({
+            filters: [
+              { namePrefix: 'TM' },
+              { namePrefix: 'EPSON' },
+              { namePrefix: 'Printer' },
+              { namePrefix: 'tm' },
+              { namePrefix: 'epson' }
+            ],
+            optionalServices: EPSON_BLE_SERVICES
           });
         }
 
         bluetoothDevice = device;
         bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-        connStatusText.textContent = "GATT 연결 중...";
+        connStatusText.textContent = "GATT 통신 연결 중...";
         const server = await bluetoothDevice.gatt.connect();
 
-        // 사용 가능한 쓰기 캐릭터리스틱 탐색
+        // 사용 가능한 쓰기 캐릭터리스틱 전체 탐색
         let targetChar = null;
+
+        // A. 등록된 서비스 UUID 순차 탐색
         for (const sUuid of EPSON_BLE_SERVICES) {
           try {
             const service = await server.getPrimaryService(sUuid);
@@ -1400,25 +1500,27 @@
           if (targetChar) break;
         }
 
+        // B. 기기가 제공하는 모든 공개 서비스 탐색 (Generic fallback)
         if (!targetChar) {
-          // generic fallback
-          const services = await server.getPrimaryServices();
-          for (const s of services) {
-            try {
-              const chars = await s.getCharacteristics();
-              for (const c of chars) {
-                if (c.properties.write || c.properties.writeWithoutResponse) {
-                  targetChar = c;
-                  break;
+          try {
+            const services = await server.getPrimaryServices();
+            for (const s of services) {
+              try {
+                const chars = await s.getCharacteristics();
+                for (const c of chars) {
+                  if (c.properties.write || c.properties.writeWithoutResponse) {
+                    targetChar = c;
+                    break;
+                  }
                 }
-              }
-            } catch(e) {}
-            if (targetChar) break;
-          }
+              } catch(e) {}
+              if (targetChar) break;
+            }
+          } catch(e) {}
         }
 
         if (!targetChar) {
-          throw new Error('프린터 쓰기 채널(Characteristic)을 찾지 못했습니다.');
+          throw new Error('프린터와 통신할 수 있는 쓰기 채널(Characteristic)을 찾지 못했습니다.');
         }
 
         writeCharacteristic = targetChar;
@@ -1427,7 +1529,7 @@
         connStatusText.textContent = `BLE: ${bluetoothDevice.name || 'TM-m30III'}`;
         btnConnectBT.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 text-emerald-400 font-bold text-xs border border-emerald-500/30";
         btnConnectBT.innerHTML = `<i class="ph-bold ph-check"></i><span class="hidden sm:inline">BLE 연결됨</span>`;
-        showToast(`'${bluetoothDevice.name || 'TM-m30III'}' 블루투스 연결 성공!`, 'ph-check-circle');
+        showToast(`'${bluetoothDevice.name || 'TM-m30III'}' 연결 성공!`, 'ph-check-circle');
 
       } catch (err) {
         console.error('BLE Connect Error:', err);
@@ -1436,6 +1538,8 @@
         if (err.name !== 'NotFoundError') {
           showToast('블루투스 연결 실패: ' + err.message, 'ph-x-circle');
           troubleModal.classList.remove('hidden');
+        } else {
+          showToast('블루투스 선택이 취소되었습니다.');
         }
       }
     });
@@ -1581,7 +1685,7 @@
           showToast('시리얼 인쇄 완료!', 'ph-check-circle');
 
         } else if (activeConnectionType === 'BLE') {
-          // BLE 청크 전송 (128 바이트)
+          // BLE 청크 전송 (128 바이트 안전 크기)
           const BLE_CHUNK = 128;
           for (let i = 0; i < escBytes.length; i += BLE_CHUNK) {
             const chunk = escBytes.slice(i, i + BLE_CHUNK);
@@ -1604,8 +1708,12 @@
       }
     });
 
+    // 시스템 브라우저 인쇄: 영수증 영역만 인쇄되도록 팝업 호출
     btnAirPrint.addEventListener('click', () => {
-      window.print();
+      showToast('영수증 규격 인쇄 창을 엽니다...', 'ph-printer');
+      setTimeout(() => {
+        window.print();
+      }, 150);
     });
 
     // 트러블슈팅 모달 이벤트
