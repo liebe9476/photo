@@ -541,10 +541,11 @@
 
       const cx = targetWidth / 2;
       const cy = targetHeight / 2;
-      const maxRadius = Math.sqrt(cx * cx + cy * cy);
+      // [핵심] 원의 곡률 반경을 2배로 확장하여 원형 등고선이 얼굴 밖으로 시원하게 빠져나가도록 설정
+      const maxRadius = Math.sqrt(cx * cx + cy * cy) * 2.0;
 
-      // 1단계: BT.709 표준 인지 휘도 + 태블릿 광각 렌즈 평탄화(Flat-Field Anti-Vignette)
-      // 중앙 다이아몬드가 생기던 구역의 방사형 빛 편차를 완벽한 수평 평면으로 확장 보정
+      // 1단계: BT.709 표준 인지 휘도 + 태블릿 광각 렌즈 2배 와이드 평탄화(Wide Flat-Field)
+      // 중앙 다이아몬드가 생기던 구역의 원을 2배로 크게 넓혀 가운데 공백을 완전히 메움
       for (let y = 0; y < targetHeight; y++) {
         const row = y * targetWidth;
         const dy = y - cy;
@@ -558,11 +559,10 @@
           // 기본 인지 휘도
           let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-          // [핵심] 중심부에서 바깥으로 갈수록 원이 자연스럽게 넓게 채워지도록 하는 평탄화 계수
-          // 코와 볼 사이 중심부가 비어서 다이아몬드가 생기던 현상을 고르게 메워줌
+          // 원을 2배로 넓게 펼쳐 중심부 공백을 완벽하게 평면화
           const dx = x - cx;
           const dist = Math.sqrt(dx * dx + dy * dy) / maxRadius;
-          const centerCompensation = (1.0 - dist * dist) * 12.0; // 중심부 과다 노출 보정
+          const centerCompensation = Math.max(0, (1.0 - dist * dist)) * 18.0; // 넓고 완만한 보정
 
           lum = lum - centerCompensation;
 
