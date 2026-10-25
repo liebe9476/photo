@@ -429,6 +429,7 @@
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        box-sizing: border-box !important;
       }
 
       html, body {
@@ -444,6 +445,8 @@
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
 
       #printOutputZone {
@@ -453,14 +456,26 @@
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
+        line-height: 0 !important;
+        font-size: 0 !important;
+        page-break-before: avoid !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-before: avoid !important;
+        break-inside: avoid !important;
+        break-after: avoid !important;
       }
 
       #printOutputZone img {
         width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
         display: block !important;
         margin: 0 !important;
         padding: 0 !important;
+        border: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
   </style>
@@ -1621,7 +1636,7 @@
 
     function buildBandedEscPosCommands(imgData) {
       const w = 576;
-      const totalH = Math.min(imgData.height, 1520);
+      const totalH = Math.min(imgData.height, 1240);
       const widthBytes = w / 8; // 72 bytes
       const data = imgData.data;
       const BAND_HEIGHT = 24;
@@ -1652,8 +1667,9 @@
         commands.push(new Uint8Array(band));
       }
 
-      commands.push(new Uint8Array([0x1B, 0x64, 0x04])); // Feed 4
-      commands.push(new Uint8Array([0x1D, 0x56, 0x42, 0x00])); // Cut
+      // 여백 급지를 4행에서 2행으로 최적화하고 즉시 컷팅하여 1페이지로 완벽 제한
+      commands.push(new Uint8Array([0x1B, 0x64, 0x02])); // Feed 2 lines
+      commands.push(new Uint8Array([0x1D, 0x56, 0x42, 0x00])); // Auto cut
       return commands;
     }
 
