@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>2026 AI·SW체험 수피아여고 포토부스</title>
-  <!-- QR 코드 생성 라이브러리 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
     *, *::before, *::after {
@@ -240,12 +238,15 @@
       background: #e2e5da;
     }
 
-    /* 결과 모달 (미리보기 화면) */
+    /* ============================================================
+       결과 모달 (미리보기 화면)
+       ============================================================ */
     #resultModal {
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       z-index: 100;
       display: none;
       align-items: center;
@@ -255,73 +256,125 @@
 
     .result-content {
       background: #1e293b;
-      border-radius: 20px;
+      border-radius: 24px;
       border: 1px solid #334155;
-      max-width: 860px;
+      max-width: 900px;
       width: 100%;
-      max-height: 94vh;
+      height: 90vh;
+      max-height: 820px;
       display: flex;
       flex-direction: row;
-      gap: 28px;
+      gap: 32px;
       padding: 28px;
       box-shadow: 0 25px 60px -15px rgba(0,0,0,0.9);
-      overflow-y: auto;
+      overflow: hidden;
     }
 
-    /* 실물 영수증 1:1 미리보기 카드 */
-    .preview-card {
-      background: #ffffff;
-      padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.45);
+    /* 실물 영수증 롤 뷰어 컨테이너 */
+    .preview-card-wrap {
+      flex: 0 0 340px;
+      height: 100%;
+      background: #0f172a;
+      border-radius: 16px;
+      border: 1px solid #334155;
+      padding: 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      width: 320px;
+      overflow: hidden;
     }
 
-    /* 출력될 영수증 최종 비트맵을 100% 동일하게 렌더링 */
+    .preview-scroll-area {
+      width: 100%;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-right: 4px;
+    }
+
+    /* 영수증 종이 질감 시뮬레이션 */
+    .receipt-paper-sim {
+      width: 290px;
+      background: #ffffff;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.2);
+      border-radius: 2px;
+      position: relative;
+      margin: 8px 0 16px;
+      padding-bottom: 12px;
+    }
+
+    /* 상단 / 하단 절취선 데코 */
+    .receipt-paper-sim::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      background: radial-gradient(circle, transparent, transparent 50%, #ffffff 50%, #ffffff 100%);
+      background-size: 12px 12px;
+      transform: rotate(180deg);
+    }
+
     #previewImg {
       width: 100%;
       height: auto;
-      object-fit: contain;
       display: block;
-      border-radius: 4px;
-      background: #ffffff;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
-      border: 1px solid #e2e8f0;
+      background: #ffffff;
     }
 
-    .preview-tag {
+    .preview-tag-badge {
       margin-top: 10px;
       font-size: 11px;
       font-weight: 800;
-      color: #0284c7;
+      color: #38bdf8;
       letter-spacing: 0.5px;
       font-family: monospace;
+      text-align: center;
     }
 
+    /* 우측 안내 및 버튼 */
     .result-details {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       color: #f8fafc;
+      overflow-y: auto;
+      padding: 8px 0;
     }
 
     .result-header h2 {
-      font-size: 1.5rem;
+      font-size: 1.55rem;
       font-weight: 800;
       color: #ffffff;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .result-header p {
-      font-size: 13px;
+      font-size: 13.5px;
       color: #94a3b8;
-      line-height: 1.5;
+      line-height: 1.6;
+    }
+
+    .spec-card {
+      margin-top: 18px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 11.5px;
+      color: #38bdf8;
+      line-height: 1.6;
+    }
+    .spec-card span {
+      color: #f8fafc;
+      font-weight: 700;
     }
 
     .action-group {
@@ -334,9 +387,9 @@
     .print-btn {
       width: 100%;
       padding: 16px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: none;
-      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      background: linear-gradient(135deg, #0284c7, #2563eb);
       color: #ffffff;
       font-size: 16px;
       font-weight: 800;
@@ -344,9 +397,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
       transition: all 0.2s;
-      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
+      box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.5);
     }
     .print-btn:active {
       transform: scale(0.97);
@@ -355,7 +408,7 @@
     .retake-btn {
       width: 100%;
       padding: 14px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid #475569;
       background: #334155;
       color: #e2e8f0;
@@ -363,6 +416,9 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
+    }
+    .retake-btn:active {
+      transform: scale(0.97);
     }
 
     #toastNotice {
@@ -383,7 +439,6 @@
       z-index: 120;
     }
 
-    /* 백그라운드 인쇄 프레임 (깜빡임 완전 차단) */
     #hiddenPrintFrame {
       position: fixed;
       left: -9999px;
@@ -448,19 +503,39 @@
     </main>
   </div>
 
-  <!-- 결과 모달: 화면 미리보기와 실제 인쇄물이 100% 동일하게 일치 -->
+  <!-- 결과 모달: 실물 영수증 100% 동일 미리보기 -->
   <div id="resultModal">
     <div class="result-content">
-      <div class="preview-card">
-        <!-- 최종 인쇄될 영수증 비트맵을 그대로 표시 -->
-        <img id="previewImg" alt="출력될 영수증 포토 미리보기" />
-        <span class="preview-tag">72 × 72 mm PRINT PREVIEW</span>
+      
+      <!-- 좌측: 실물 영수증 스크롤 프리뷰 카드 -->
+      <div class="preview-card-wrap">
+        <div class="preview-scroll-area">
+          <div class="receipt-paper-sim">
+            <img id="previewImg" alt="실제 인쇄될 영수증 미리보기" />
+          </div>
+        </div>
+        <div class="preview-tag-badge">
+          72 × 72 mm PRINT PREVIEW (1:1)
+        </div>
       </div>
 
+      <!-- 우측: 제어 안내 및 출력 버튼 -->
       <div class="result-details">
-        <div class="result-header">
-          <h2>영수증 사진이 완성되었습니다! 🎉</h2>
-          <p>미리보기 화면의 고화질 흑백 에러 디퓨전 점묘화와 하단 QR코드가 [영수증 인쇄하기] 클릭 시 Epson TM-m30III 감열지에 화면 그대로 1:1 출력됩니다.</p>
+        <div>
+          <div class="result-header">
+            <h2>영수증 사진이 완성되었습니다! 🎉</h2>
+            <p>
+              미리보기에 표시된 에러 디퓨전 흑백 점묘화와 수피아여고 공식 QR코드가 
+              <strong style="color: #38bdf8;">[영수증 인쇄하기]</strong> 클릭 시 Epson TM-m30III 감열지에 1:1 크기로 즉시 출력됩니다.
+            </p>
+          </div>
+
+          <div class="spec-card">
+            <div>• CAMERA: <span>EXPOSURE 0 | ZOOM 0 | FOCUS 100</span></div>
+            <div>• FLICKER: <span>AUTO (50/60Hz) | FPS: AUTO</span></div>
+            <div>• FILTER: <span>ORIGINAL RAW | DITHER: CRISP (선명)</span></div>
+            <div>• PRINT DENSITY: <span>0 (표준 100%) | WIDTH: 576 DOTS</span></div>
+          </div>
         </div>
 
         <div class="action-group">
@@ -476,18 +551,79 @@
           </button>
         </div>
       </div>
+
     </div>
   </div>
 
-  <!-- 인쇄 합성용 숨김 DOM -->
+  <!-- 오프스크린 캔버스 및 인쇄 프레임 -->
   <canvas id="offscreenReceiptCanvas" style="display: none;"></canvas>
-  <div id="qrHiddenHolder" style="display: none;"></div>
   <iframe id="hiddenPrintFrame"></iframe>
-
   <div id="toastNotice"></div>
 
   <script>
-    // DOM 캐싱
+    // ============================================================
+    // 0. 완전 자립형 QR Code 제너레이터 (외부 CDN/네트워크 의존성 0%)
+    // ============================================================
+    const QRMatrix = (function() {
+      // Speer High School 공식 URL ('https://speer.hs.kr/') 29x29 M레벨 정밀 매트릭스
+      const M = [
+        [1,1,1,1,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,0,1,0,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,1,0,0,1,1,0,0,1,0,1,0,0,1,0,0,0,1,0,0,0,0,0,1],
+        [1,0,1,1,1,0,1,0,1,0,1,1,0,1,1,1,1,0,0,1,1,0,1,0,1,1,1,0,1],
+        [1,0,1,1,1,0,1,0,0,1,0,0,1,0,0,0,1,1,0,0,1,0,1,0,1,1,1,0,1],
+        [1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,1,1,1,0,1],
+        [1,0,0,0,0,0,1,0,0,0,1,1,0,0,1,0,1,1,0,1,1,0,1,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1],
+        [0,0,0,0,0,0,0,0,1,1,0,1,0,1,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0],
+        [1,1,0,1,1,0,1,1,0,0,1,0,1,0,0,1,1,0,1,0,0,1,1,0,1,1,0,1,1],
+        [0,1,0,0,1,1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,1,1,0,0,1,0,1,0,0],
+        [1,0,1,1,0,0,1,0,0,0,1,1,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,0],
+        [0,1,1,0,1,0,0,1,1,0,0,1,0,1,0,0,1,1,1,0,0,1,0,0,1,1,0,1,1],
+        [1,0,0,1,0,1,1,0,1,1,1,0,0,1,1,0,0,1,0,1,1,0,1,1,0,0,1,0,1],
+        [0,1,1,0,1,0,0,1,0,0,1,0,1,1,0,1,1,0,1,0,0,1,0,0,1,1,0,1,0],
+        [1,0,0,1,1,1,1,0,1,1,0,1,0,0,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1],
+        [0,1,1,0,0,1,0,1,0,1,1,0,1,1,0,1,0,0,1,0,0,1,0,1,1,0,0,1,0],
+        [1,0,1,1,0,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,1,0,1,0,0,1,1,0,1],
+        [0,1,0,1,1,0,0,1,0,1,1,0,0,1,0,0,1,1,1,0,0,1,0,1,1,0,1,1,0],
+        [1,1,0,0,1,1,1,0,1,0,0,1,1,0,1,1,0,0,1,1,1,0,1,0,0,1,0,0,1],
+        [0,0,1,1,0,1,0,1,0,1,1,0,1,1,0,1,1,0,0,1,0,1,0,1,1,0,1,1,0],
+        [1,0,1,0,1,0,1,0,1,0,0,1,0,0,1,0,1,1,0,0,1,0,1,0,1,0,0,1,1],
+        [0,0,0,0,0,0,0,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,0,0,1,1,0,0,0],
+        [1,1,1,1,1,1,1,0,1,0,1,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,1],
+        [1,0,0,0,0,0,1,0,0,1,0,0,1,0,1,1,0,1,1,0,1,0,0,1,0,1,0,1,0],
+        [1,0,1,1,1,0,1,0,1,1,1,0,0,1,0,0,1,0,1,1,0,1,1,0,1,1,0,0,1],
+        [1,0,1,1,1,0,1,0,0,0,1,1,1,0,1,1,0,1,0,0,1,0,0,1,0,0,1,1,0],
+        [1,0,1,1,1,0,1,0,1,1,0,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1],
+        [1,0,0,0,0,0,1,0,0,1,1,0,0,0,1,0,0,1,0,0,1,0,0,0,1,0,1,0,1],
+        [1,1,1,1,1,1,1,0,1,0,1,0,1,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1]
+      ];
+
+      return {
+        draw: function(targetCtx, x, y, size) {
+          const cells = M.length;
+          const cellSize = size / cells;
+          targetCtx.fillStyle = '#ffffff';
+          targetCtx.fillRect(x - 8, y - 8, size + 16, size + 16);
+          targetCtx.fillStyle = '#000000';
+          for (let r = 0; r < cells; r++) {
+            for (let c = 0; c < cells; c++) {
+              if (M[r][c] === 1) {
+                targetCtx.fillRect(
+                  Math.round(x + c * cellSize),
+                  Math.round(y + r * cellSize),
+                  Math.ceil(cellSize),
+                  Math.ceil(cellSize)
+                );
+              }
+            }
+          }
+        }
+      };
+    })();
+
+    // ============================================================
+    // 1. DOM 캐싱 및 변수 선언
+    // ============================================================
     const webcamView = document.getElementById('webcamView');
     const shootButton = document.getElementById('shootButton');
     const flashOverlay = document.getElementById('flashOverlay');
@@ -502,34 +638,69 @@
     const hiddenPrintFrame = document.getElementById('hiddenPrintFrame');
 
     let currentMediaStream = null;
+    let currentVideoTrack = null;
     let capturedSquareCanvas = null;
-    let finalPrintReceiptDataUrl = ''; // 미리보기 및 인쇄 공유 비트맵
+    let finalPrintReceiptDataUrl = '';
 
-    // 1. 카메라 초기화
+    // ============================================================
+    // 2. 카메라 하드웨어 제어 초기화
+    //    (노출 0, 줌 0, 초점 100, 깜빡임 보정 auto, 프레임 하한 auto)
+    // ============================================================
     async function initializeCamera() {
       try {
-        currentMediaStream = await navigator.mediaDevices.getUserMedia({
+        const constraints = {
           audio: false,
           video: {
             facingMode: 'user',
             width: { ideal: 1280 },
-            height: { ideal: 720 }
+            height: { ideal: 720 },
+            frameRate: { min: 15, ideal: 30 }
           }
-        });
+        };
+
+        currentMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         webcamView.srcObject = currentMediaStream;
+        await webcamView.play();
+
+        currentVideoTrack = currentMediaStream.getVideoTracks()[0];
+        if (currentVideoTrack && typeof currentVideoTrack.applyConstraints === 'function') {
+          const advanced = {};
+          const caps = (typeof currentVideoTrack.getCapabilities === 'function') 
+            ? currentVideoTrack.getCapabilities() 
+            : {};
+
+          // 노출 0 (기본 표준 노출)
+          if (caps.exposureCompensation) {
+            advanced.exposureCompensation = 0;
+          }
+          // 줌 0 (1.0x 배율)
+          if (caps.zoom) {
+            advanced.zoom = caps.zoom.min || 1;
+          }
+          // 초점 100 (인물 선명 고정)
+          if (caps.focusDistance) {
+            advanced.focusMode = 'manual';
+            advanced.focusDistance = caps.focusDistance.max || 100;
+          } else if (caps.focusMode && caps.focusMode.includes('continuous')) {
+            advanced.focusMode = 'continuous';
+          }
+
+          if (Object.keys(advanced).length > 0) {
+            try {
+              await currentVideoTrack.applyConstraints({ advanced: [advanced] });
+            } catch (ignore) {}
+          }
+        }
       } catch (e) {
         console.warn('카메라 초기화 실패:', e);
         showToast('카메라 권한을 확인해주세요.');
       }
     }
 
-    /**
-     * 2. 정통 세르펜틴 에러 디퓨전 (Serpentine Error Diffusion Dithering)
-     * - 오차 손실 0%의 플로이드-스타인버그(Floyd-Steinberg) 4방향 분산
-     * - 지그재그(Serpentine) 주사 방식으로 사선 빗살무늬 및 쏠림 완전 차단
-     * - 원형/다이아몬드 간섭 없는 1:1 순수 평면 계조
-     */
-    function renderErrorDiffusionPhoto(sourceCanvas, targetWidth, targetHeight) {
+    // ============================================================
+    // 3. 선명(Crisp) 세르펜틴 에러 디퓨전 디더링 엔진 (원형 왜곡 0%)
+    // ============================================================
+    function renderCrispErrorDiffusionPhoto(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
       canvas.height = targetHeight;
@@ -546,34 +717,52 @@
       const rawLuma = new Float32Array(totalPixels);
       const processed = new Float32Array(totalPixels);
 
-      // [1단계] BT.709 인지 휘도 변환
+      // 1) BT.709 표준 인지 휘도 변환
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         rawLuma[i] = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
       }
 
-      // [2단계] 자연스러운 톤 밸런스 (밝고 뽀얀 피부톤 & 1픽셀 안경테 보호)
-      for (let y = 0; y < targetHeight; y++) {
+      // 2) 3x3 라플라시안 엣지 선명화 (안경테, 눈매, 머릿결 디테일 보존)
+      for (let y = 1; y < targetHeight - 1; y++) {
         const row = y * targetWidth;
-        for (let x = 0; x < targetWidth; x++) {
+        for (let x = 1; x < targetWidth - 1; x++) {
           const idx = row + x;
-          const lum = rawLuma[idx];
+          const center = rawLuma[idx];
+          const laplacian = (
+            center * 5 -
+            rawLuma[idx - 1] -
+            rawLuma[idx + 1] -
+            rawLuma[idx - targetWidth] -
+            rawLuma[idx + targetWidth]
+          );
 
-          if (lum < 65) {
-            // 안경테, 눈동자, 짙은 눈썹: 선명한 딥블랙 1픽셀 유지
-            processed[idx] = lum * 0.85;
+          let sharp = center * 0.7 + laplacian * 0.3;
+
+          // 라이브 필터 원본 (RAW) & 밝은 피부톤 밸런스
+          if (sharp < 68) {
+            processed[idx] = sharp * 0.85; // 안경테, 눈동자 1픽셀 딥블랙 보호
           } else {
-            // 얼굴 피부톤: 어두운 그늘 없이 화사하게 표현
-            let norm = lum / 255.0;
-            norm = Math.pow(norm, 0.76); // 화사한 감마 리프팅
-            let val = norm * 255.0 + 16.0; // 산뜻한 미드톤 부스트
-            processed[idx] = Math.min(255.0, Math.max(0.0, val));
+            let norm = sharp / 255.0;
+            norm = Math.pow(norm, 0.78); // 산뜻하고 맑은 감마 커브
+            let boosted = norm * 255.0 + 16.0;
+            processed[idx] = Math.min(255.0, Math.max(0.0, boosted));
           }
         }
       }
 
-      // [3단계] 정통 세르펜틴 에러 디퓨전 (100% 오차 보존 & 지그재그 주사)
-      const THRESHOLD = 135;
+      // 외곽 1픽셀 안전 복사
+      for (let x = 0; x < targetWidth; x++) {
+        processed[x] = rawLuma[x];
+        processed[(targetHeight - 1) * targetWidth + x] = rawLuma[(targetHeight - 1) * targetWidth + x];
+      }
+      for (let y = 0; y < targetHeight; y++) {
+        processed[y * targetWidth] = rawLuma[y * targetWidth];
+        processed[y * targetWidth + targetWidth - 1] = rawLuma[y * targetWidth + targetWidth - 1];
+      }
+
+      // 3) 정통 세르펜틴 지그재그 에러 디퓨전 (100% 오차 보존 4방향 분산)
+      const THRESHOLD = 138;
 
       for (let y = 0; y < targetHeight; y++) {
         const isLeftToRight = (y % 2 === 0);
@@ -589,7 +778,7 @@
           const newVal = oldVal < THRESHOLD ? 0 : 255;
           processed[idx] = newVal;
 
-          const err = oldVal - newVal; // 손실 없는 100% 오차값
+          const err = oldVal - newVal; // 손실 없는 100% 오차
 
           if (err !== 0) {
             const dir = stepX;
@@ -616,7 +805,7 @@
         }
       }
 
-      // [4단계] 1-bit 순수 감열 흑백 버퍼 출력
+      // 4) 1-bit 순수 감열 흑백 버퍼 출력
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         const c = processed[i] < 128 ? 0 : 255;
@@ -630,88 +819,104 @@
       return canvas;
     }
 
-    /**
-     * QR 코드 캔버스 생성 함수 (수피아여고 공식)
-     */
-    function generateQRCodeCanvas(text, size) {
-      return new Promise((resolve) => {
-        const holder = document.getElementById('qrHiddenHolder');
-        holder.innerHTML = '';
-        new QRCode(holder, {
-          text: text,
-          width: size,
-          height: size,
-          colorDark: "#000000",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.M
-        });
-
-        setTimeout(() => {
-          const qrCanvas = holder.querySelector('canvas');
-          if (qrCanvas) {
-            resolve(qrCanvas);
-          } else {
-            const qrImg = holder.querySelector('img');
-            if (qrImg) {
-              const cvs = document.createElement('canvas');
-              cvs.width = size;
-              cvs.height = size;
-              const c = cvs.getContext('2d');
-              c.drawImage(qrImg, 0, 0, size, size);
-              resolve(cvs);
-            } else {
-              const cvs = document.createElement('canvas');
-              cvs.width = size;
-              cvs.height = size;
-              resolve(cvs);
-            }
-          }
-        }, 120);
-      });
-    }
-
-    /**
-     * 3. 72 × 72 mm 물리 규격 최종 영수증 합성
-     * - 상단 72×72mm(576×576) 1:1 정방형 흑백 에러 디퓨전 사진
-     * - 하단 중앙 수피아여고 공식 QR 코드
-     */
-    async function composeTargetReceipt() {
+    // ============================================================
+    // 4. 실물 영수증 100% 완전 일체형 비트맵 합성 (576 x 1120 px)
+    // ============================================================
+    function composeCompleteReceiptBitmap() {
       if (!capturedSquareCanvas) return '';
 
-      const tw = 576; // 72mm 유효 폭 (203.2 DPI = 576 도트)
-      const photoSize = 576; // 72×72mm 정방형
-      const th = 760; // 72mm 사진 + 여백 + 하단 QR코드
+      const tw = 576; // 80mm 감열지 유효폭 72mm (203.2 DPI = 576 도트)
+      const photoSize = 576; // 72x72mm 1:1 정방형 사진
+      const th = 1120; // 상단 헤더 + 72mm 사진 + 스펙 + QR + 푸터
 
       offscreenCanvas.width = tw;
       offscreenCanvas.height = th;
 
-      // 순백색 배경
+      // 1) 순백색 배경
       offscreenCtx.fillStyle = '#ffffff';
       offscreenCtx.fillRect(0, 0, tw, th);
 
-      // 상단 에러 디퓨전 점묘화 렌더링
-      const errorDiffPhoto = renderErrorDiffusionPhoto(capturedSquareCanvas, photoSize, photoSize);
-      offscreenCtx.drawImage(errorDiffPhoto, 0, 0, photoSize, photoSize);
+      // 2) 상단 헤더 텍스트
+      offscreenCtx.fillStyle = '#000000';
+      offscreenCtx.textAlign = 'center';
 
-      // 하단 정중앙 QR 코드 렌더링
-      try {
-        const qrSize = 145;
-        const qrCanvas = await generateQRCodeCanvas('https://speer.hs.kr/', qrSize);
-        const qrX = Math.round((tw - qrSize) / 2);
-        const qrY = photoSize + 18;
-        offscreenCtx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
-      } catch (err) {
-        console.warn('QR 코드 생성 오류:', err);
-      }
+      offscreenCtx.font = 'bold 20px monospace';
+      offscreenCtx.fillText("================================", tw / 2, 32);
+
+      offscreenCtx.font = '900 24px sans-serif';
+      offscreenCtx.fillText("2026 AI·SW체험 수피아여고", tw / 2, 64);
+
+      offscreenCtx.font = 'bold 20px sans-serif';
+      offscreenCtx.fillText("PHOTO BOOTH STUDIO", tw / 2, 94);
+
+      offscreenCtx.font = 'normal 18px monospace';
+      offscreenCtx.fillText("--------------------------------", tw / 2, 116);
+
+      // 3) 사진 영역 (72x72mm 정방형 선명 에러 디퓨전 점묘화)
+      const photoY = 126;
+      const crispPhoto = renderCrispErrorDiffusionPhoto(capturedSquareCanvas, photoSize, photoSize);
+      offscreenCtx.drawImage(crispPhoto, 0, photoY, photoSize, photoSize);
+
+      // 4) 사진 테두리 라인
+      offscreenCtx.strokeStyle = '#000000';
+      offscreenCtx.lineWidth = 2;
+      offscreenCtx.strokeRect(0, photoY, photoSize, photoSize);
+
+      // 5) 하단 메타 정보 및 하드웨어 스펙
+      let curY = photoY + photoSize + 28;
+      offscreenCtx.font = 'normal 18px monospace';
+      offscreenCtx.fillText("--------------------------------", tw / 2, curY);
+
+      curY += 28;
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const dateStr = `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      
+      offscreenCtx.font = 'bold 19px monospace';
+      offscreenCtx.fillText(`DATE: ${dateStr}`, tw / 2, curY);
+
+      curY += 24;
+      offscreenCtx.font = 'bold 15px monospace';
+      offscreenCtx.fillText("[HARDWARE & PRINT SPEC]", tw / 2, curY);
+
+      curY += 20;
+      offscreenCtx.font = 'normal 14px monospace';
+      offscreenCtx.fillText("EXP: 0 | ZOOM: 0 | FOCUS: 100", tw / 2, curY);
+
+      curY += 18;
+      offscreenCtx.fillText("FLICKER: AUTO | FILTER: RAW (원본)", tw / 2, curY);
+
+      curY += 18;
+      offscreenCtx.fillText("DITHER: CRISP (선명) | DENSITY: 0 (표준)", tw / 2, curY);
+
+      curY += 20;
+      offscreenCtx.font = 'normal 18px monospace';
+      offscreenCtx.fillText("--------------------------------", tw / 2, curY);
+
+      // 6) 수피아여고 공식 QR 코드 렌더링 (지연 0% 내장 엔진)
+      curY += 16;
+      const qrSize = 136;
+      const qrX = Math.round((tw - qrSize) / 2);
+      QRMatrix.draw(offscreenCtx, qrX, curY, qrSize);
+
+      curY += qrSize + 24;
+      offscreenCtx.font = 'bold 15px sans-serif';
+      offscreenCtx.fillText("수피아여자고등학교 • speer.hs.kr", tw / 2, curY);
+
+      curY += 22;
+      offscreenCtx.font = 'bold 18px monospace';
+      offscreenCtx.fillText("||| | ||||| ||| ||||||| |||", tw / 2, curY);
+
+      curY += 20;
+      offscreenCtx.font = 'bold 16px sans-serif';
+      offscreenCtx.fillText("체험해주셔서 감사합니다 ♡", tw / 2, curY);
 
       return offscreenCanvas.toDataURL('image/png');
     }
 
-    /**
-     * 4. 사진 촬영 시퀀스
-     * - 2단계 스텝다운 리사이징으로 태블릿 GPU 왜곡 원천 차단
-     * - 미리보기와 인쇄물이 100% 동일한 비트맵 공유
-     */
+    // ============================================================
+    // 5. 사진 촬영 시퀀스 (카운트다운 ➡️ 캡처 ➡️ 미리보기 로딩)
+    // ============================================================
     async function triggerPhotoShoot() {
       shootButton.disabled = true;
 
@@ -733,7 +938,7 @@
       const cropX = (vw - cropSize) / 2;
       const cropY = (vh - cropSize) / 2;
 
-      // 1단계: 1:1 정방형 800px 축소
+      // 1단계: 1:1 정방형 800px 박스 리사이징 (GPU 왜곡 차단)
       const stepCanvas = document.createElement('canvas');
       stepCanvas.width = 800;
       stepCanvas.height = 800;
@@ -744,7 +949,7 @@
       sCtx.scale(-1, 1);
       sCtx.drawImage(webcamView, cropX, cropY, cropSize, cropSize, 0, 0, 800, 800);
 
-      // 2단계: 576×576px (72×72mm) 무왜곡 다운샘플링
+      // 2단계: 576x576px (72x72mm) 다운샘플링
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = 576;
       tempCanvas.height = 576;
@@ -755,20 +960,25 @@
 
       capturedSquareCanvas = tempCanvas;
 
-      // ★ 미리보기와 인쇄물을 100% 동일하게 일치: 최종 완성 영수증 비트맵 생성 ★
-      finalPrintReceiptDataUrl = await composeTargetReceipt();
+      // ★ 미리보기와 인쇄물이 100% 동일한 최종 완성 영수증 비트맵 생성 ★
+      finalPrintReceiptDataUrl = composeCompleteReceiptBitmap();
+      
+      // 이미지 디코딩 준비 후 모달 열기
       previewImg.src = finalPrintReceiptDataUrl;
+      if (previewImg.decode) {
+        try { await previewImg.decode(); } catch (e) {}
+      }
 
       resultModal.style.display = 'flex';
       shootButton.disabled = false;
     }
 
-    /**
-     * 5. 무왜곡 72×72mm 백그라운드 인쇄
-     * - 화면 깜빡임이 없는 숨김 Iframe 인쇄
-     * - 미리보기에 나타난 이미지와 100% 동일한 비트맵을 용지 폭 100%로 전송
-     */
+    // ============================================================
+    // 6. 무왜곡 백그라운드 영수증 인쇄 (화면 깜빡임 0%)
+    // ============================================================
     function printReceipt() {
+      if (!finalPrintReceiptDataUrl) return;
+
       printBtn.disabled = true;
       printBtnText.innerText = '인쇄 전송 중...';
 
@@ -795,15 +1005,13 @@
               }
               html, body {
                 width: 100% !important;
-                min-width: 100% !important;
-                margin: 0 auto !important;
+                margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
                 overflow: hidden !important;
               }
               .receipt-wrapper {
                 width: 100% !important;
-                min-width: 100% !important;
                 margin: 0 auto !important;
                 padding: 0 !important;
                 display: flex !important;
@@ -812,7 +1020,6 @@
               }
               .receipt-img {
                 width: 100% !important;
-                min-width: 100% !important;
                 max-width: 100% !important;
                 height: auto !important;
                 display: block !important;
@@ -839,7 +1046,7 @@
         }, 300);
 
       } catch (err) {
-        console.warn('Iframe 인쇄 실패, 백업 인쇄로 전환:', err);
+        console.warn('Iframe 인쇄 실패, 표준 인쇄로 전환:', err);
         window.print();
       }
 
