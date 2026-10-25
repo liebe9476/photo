@@ -518,11 +518,12 @@
     }
 
     /**
-     * 2. 노란색 영역처럼 하이라이트 날림 없이 전체에 미세 도트가 고르게 안착되는 고정밀 디더링 엔진
-     * - 앳킨슨의 25% 오차 소실(White Hole) 문제 해결 -> 100% 완전 보존형 지그재그(Serpentine) 오차 확산
-     * - 밝은 영역에서도 도트가 끊기지 않고 고운 질감으로 촘촘하게 흩뿌려짐
+     * 2. 극미세 고밀도 지그재그 마이크로 점묘화 엔진 (Micro Stipple Density)
+     * - 만화 스크린톤처럼 평면화되는 문제 완전 해결
+     * - 라플라시안 에지 선명화 + 다채널 마이크로 지그재그(Serpentine) 분산
+     * - 노란색 영역처럼 하이라이트 날림 없이 전체에 미세 도트가 아날로그 사진처럼 촘촘하게 안착
      */
-    function renderTabletSmoothAtkinsonDither(sourceCanvas, targetWidth, targetHeight) {
+    function renderTabletMicroStipple(sourceCanvas, targetWidth, targetHeight) {
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
       canvas.height = targetHeight;
@@ -535,71 +536,92 @@
       const data = imgData.data;
       const totalPixels = targetWidth * targetHeight;
 
-      // 1단계: 표준 BT.709 인지 휘도 변환 + 하이라이트 도트 보존 커브
-      // 밝은 영역이 하얗게 날아가지 않도록 상단 범위를 240 수준으로 완만하게 압축
+      // 1단계: BT.709 인지 휘도 변환 + 하이라이트 도트 보존 커브
       const rawGray = new Float32Array(totalPixels);
       for (let i = 0; i < totalPixels; i++) {
         const idx = i * 4;
         let lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
         
-        // 하이라이트 날림 방지: 밝은 곳도 노란 영역처럼 고운 도트가 촘촘히 얹히도록 부드러운 S-커브
-        lum = Math.min(238, lum * 0.94 + 6);
+        // 밝은 영역도 점이 빽빽하게 이어지도록 상단 클리핑 방지
+        lum = Math.min(236, lum * 0.94 + 5);
         rawGray[i] = lum;
       }
 
-      // 2단계: 태블릿 디지털 노이즈 완화 3x3 스무딩 (경계선 단차 조건문 완전 배제)
-      const smoothed = new Float32Array(totalPixels);
-      for (let y = 0; y < targetHeight; y++) {
+      // 2단계: Micro Stipple 라플라시안 엣지 선명화 (만화 같은 뭉개짐 방지)
+      // stippleDensity: 1.6x (초밀도 아날로그 사진 감성 배율)
+      const stippleDensity = 1.6;
+      const sharpBuf = new Float32Array(totalPixels);
+      const edgeStrength = 4 + stippleDensity * 1.5;
+      const edgeDiv = edgeStrength - 1;
+
+      for (let y = 1; y < targetHeight - 1; y++) {
         const row = y * targetWidth;
-        const prevRow = (y > 0 ? y - 1 : 0) * targetWidth;
-        const nextRow = (y < targetHeight - 1 ? y + 1 : y) * targetWidth;
+        const prevRow = (y - 1) * targetWidth;
+        const nextRow = (y + 1) * targetWidth;
 
-        for (let x = 0; x < targetWidth; x++) {
-          const prevX = x > 0 ? x - 1 : 0;
-          const nextX = x < targetWidth - 1 ? x + 1 : x;
-
-          // 3x3 가우시안 필터링 (가중치 합 16)
-          const val =
-            (rawGray[prevRow + prevX] * 1 + rawGray[prevRow + x] * 2 + rawGray[prevRow + nextX] * 1 +
-             rawGray[row + prevX] * 2     + rawGray[row + x] * 4     + rawGray[row + nextX] * 2 +
-             rawGray[nextRow + prevX] * 1 + rawGray[nextRow + x] * 2 + rawGray[nextRow + nextX] * 1) / 16.0;
-
-          smoothed[row + x] = val;
+        for (let x = 1; x < targetWidth - 1; x++) {
+          const idx = row + x;
+          const lap = (rawGray[idx] * edgeStrength) - 
+            ((rawGray[idx - 1] + rawGray[idx + 1] + rawGray[prevRow + x] + rawGray[nextRow + x]) * (edgeDiv / 4.0));
+          sharpBuf[idx] = Math.min(255, Math.max(0, lap));
         }
       }
 
-      // 3단계: 지그재그(Serpentine) 완전 보존형 오차 확산
-      // 앳킨슨처럼 오차가 사라지지 않고 16/16(100%) 전달되므로 하얗게 비는 곳 없이 전체가 노란 영역처럼 균일한 도트로 채워짐
+      // 테두리 복사
+      for (let x = 0; x < targetWidth; x++) {
+        sharpBuf[x] = rawGray[x];
+        sharpBuf[(targetHeight - 1) * targetWidth + x] = rawGray[(targetHeight - 1) * targetWidth + x];
+      }
       for (let y = 0; y < targetHeight; y++) {
-        const isRight = (y % 2 === 0);
-        const startX = isRight ? 0 : targetWidth - 1;
-        const endX = isRight ? targetWidth : -1;
-        const step = isRight ? 1 : -1;
+        sharpBuf[y * targetWidth] = rawGray[y * targetWidth];
+        sharpBuf[y * targetWidth + targetWidth - 1] = rawGray[y * targetWidth + targetWidth - 1];
+      }
 
-        for (let x = startX; x !== endX; x += step) {
+      // 3단계: Serpentine 마이크로 분산 (밀도에 맞춘 촘촘한 가중치 분할)
+      // divisor = 16 * stippleDensity (오차를 아주 잘게 쪼개어 균일하게 흩뿌림)
+      const divisor = 16.0 * stippleDensity;
+      const w1 = Math.round(3 * stippleDensity);
+      const w2 = Math.round(2 * stippleDensity);
+      const w3 = Math.round(2 * stippleDensity);
+      const w4 = Math.round(3 * stippleDensity);
+      const w5 = Math.round(2 * stippleDensity);
+      const w6 = Math.round(1 * stippleDensity);
+
+      for (let y = 0; y < targetHeight; y++) {
+        const isLeftToRight = (y % 2 === 0);
+        const startX = isLeftToRight ? 0 : targetWidth - 1;
+        const endX = isLeftToRight ? targetWidth : -1;
+        const stepX = isLeftToRight ? 1 : -1;
+
+        for (let x = startX; x !== endX; x += stepX) {
           const idx = y * targetWidth + x;
-          const oldVal = smoothed[idx];
-          const newVal = oldVal < 128 ? 0 : 255;
-          smoothed[idx] = newVal;
+          const oldVal = sharpBuf[idx];
+          const newVal = (oldVal < 128) ? 0 : 255;
+          sharpBuf[idx] = newVal;
 
           const err = oldVal - newVal;
 
-          // 지그재그(Serpentine) 방향에 맞춘 정밀 오차 분배 (7/16, 3/16, 5/16, 1/16)
-          if (isRight) {
-            if (x + 1 < targetWidth) smoothed[idx + 1] += (err * 7) / 16.0;
+          if (err !== 0) {
+            const dir = stepX;
+            const e1 = (err * w1) / divisor;
+            const e2 = (err * w2) / divisor;
+            const e3 = (err * w3) / divisor;
+            const e4 = (err * w4) / divisor;
+            const e5 = (err * w5) / divisor;
+            const e6 = (err * w6) / divisor;
+
+            // 인접 픽셀에 초미세 분산 (지그재그 촘촘한 결 형성)
+            if (x + dir >= 0 && x + dir < targetWidth) sharpBuf[idx + dir] += e1;
+            if (x + 2 * dir >= 0 && x + 2 * dir < targetWidth) sharpBuf[idx + 2 * dir] += e2;
+
             if (y + 1 < targetHeight) {
-              const nextRow = (y + 1) * targetWidth;
-              if (x - 1 >= 0) smoothed[nextRow + (x - 1)] += (err * 3) / 16.0;
-              smoothed[nextRow + x] += (err * 5) / 16.0;
-              if (x + 1 < targetWidth) smoothed[nextRow + (x + 1)] += (err * 1) / 16.0;
+              const nRow = (y + 1) * targetWidth;
+              if (x - dir >= 0 && x - dir < targetWidth) sharpBuf[nRow + (x - dir)] += e3;
+              sharpBuf[nRow + x] += e4;
+              if (x + dir >= 0 && x + dir < targetWidth) sharpBuf[nRow + (x + dir)] += e5;
             }
-          } else {
-            if (x - 1 >= 0) smoothed[idx - 1] += (err * 7) / 16.0;
-            if (y + 1 < targetHeight) {
-              const nextRow = (y + 1) * targetWidth;
-              if (x + 1 < targetWidth) smoothed[nextRow + (x + 1)] += (err * 3) / 16.0;
-              smoothed[nextRow + x] += (err * 5) / 16.0;
-              if (x - 1 >= 0) smoothed[nextRow + (x - 1)] += (err * 1) / 16.0;
+            if (y + 2 < targetHeight) {
+              sharpBuf[(y + 2) * targetWidth + x] += e6;
             }
           }
         }
@@ -607,7 +629,7 @@
 
       // 4단계: 1비트 흑백 픽셀 확정
       for (let i = 0; i < totalPixels; i++) {
-        const c = smoothed[i] < 128 ? 0 : 255;
+        const c = sharpBuf[i] < 128 ? 0 : 255;
         const idx = i * 4;
         data[idx] = c;
         data[idx + 1] = c;
@@ -677,8 +699,8 @@
       offscreenCtx.fillStyle = '#ffffff';
       offscreenCtx.fillRect(0, 0, tw, th);
 
-      // 사진 영역 (72x72mm 전폭 1:1 렌더링)
-      const ditheredPhoto = renderTabletSmoothAtkinsonDither(capturedColorCanvas, photoSize, photoSize);
+      // 사진 영역: Micro Stipple Density 적용 렌더링
+      const ditheredPhoto = renderTabletMicroStipple(capturedColorCanvas, photoSize, photoSize);
       offscreenCtx.drawImage(ditheredPhoto, 0, 0, photoSize, photoSize);
 
       // 하단 QR 코드 렌더링
